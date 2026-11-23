@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Presented Candidate</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Presented Candidates</value>
+    </caseValues>
+    <layouts>
+        <layout>Presented Candidate Layout</layout>
+        <sections>
+            <label><!-- Client Interview --></label>
+            <section>Client Interview</section>
+        </sections>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+        <sections>
+            <label><!-- Final Outcome --></label>
+            <section>Final Outcome</section>
+        </sections>
+        <sections>
+            <label><!-- Internal Interview --></label>
+            <section>Internal Interview</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

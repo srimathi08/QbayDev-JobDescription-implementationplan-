@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Blacklist_Reason_Rule</fullName>
+    <active>false</active>
+    <errorConditionFormula>AND(
+ISPICKVAL(Status__c, &quot;Blacklist&quot;),
+ISBLANK(Blacklist_Reason__c)
+)</errorConditionFormula>
+    <errorMessage>Please provide a value in the Blacklist Reason field when the candidate is marked as blacklisted</errorMessage>
+</ValidationRule>

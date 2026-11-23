@@ -1,0 +1,15 @@
+.slds-item {
+    border-radius: 0.75rem; /* smoother curve */
+    color:#666; /* text color */
+    background-color: #fdfefe;; /* pure white card */
+    padding: 1rem; /* more spacing inside */
+    margin: 0.5rem; /* balanced spacing between cards */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); /* soft shadow */
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    border: 0px solid #e6e6e6; /* light border for definition */
+}
+
+.slds-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* elevate on hover */
+    transform: translateY(-2px);
+}

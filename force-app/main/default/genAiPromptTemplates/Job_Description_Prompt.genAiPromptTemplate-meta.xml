@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_4</activeVersionIdentifier>
+    <developerName>Job_Description_Prompt</developerName>
+    <masterLabel>Job Description Prompt</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>{!$Input:Content}
+
+```
+Instructions:
+&quot;The following email contains one or more job descriptions. Separate each job description, and return a list of structured JSON objects as defined above, one for each role.&quot;
+You will receive one or more job descriptions in plain text format.
+- there may be one job description are multiple
+-Give Skill like soft skill, technical skill, etc.., 
+For each job description:
+1. Extract and structure the data into the following JSON format:
+ {
+  &quot;Company_Name__c&quot;: [Company name mentioned],
+  &quot;Contact&quot;:[Contact name if mentioned]
+  &quot;Email&quot;:[Email if mentioned],
+  &quot;Phone&quot;:[Phone if mentioned]
+  &quot;AR__c&quot;: [AR value as a number, if mentioned],
+  &quot;Experience__c&quot;: [Years of experience required as a decimal],
+  &quot;Name&quot;: [Job title],
+  &quot;Key_Responsibilities__c&quot;: [List of key responsibilities in string with comma seperated],
+  &quot;Other_Location__c&quot;: [Other possible work locations, if mentioned],
+  &quot;Preferred_Location__c&quot;: [Preferred work location, if mentioned],
+  &quot;Required_Qualification__c&quot;: [Required degrees, certifications],
+  &quot;Skills__c&quot;: [Key skills mentioned in string with comma seperated],
+  &quot;Time_Zone__c&quot;: [Time zone(s) mentioned],
+  &quot;Original_Description__c&quot;: [Full original job description text, dont change cotent only remove extra space and ascii characters and align]
+ }
+
+2. If a field is not mentioned in the job description, return it as `null`.
+
+
+Rule 
+- - DO NOT add any extra text, explanations, warnings, suggestions, or notes outside of these tags.
+-- Its email body DO Not use forwarded Content contains from to and subject as contact or company name 
+-- DO NOT Use footer content as contact or company
+-- give me raw json format which supports for salesforce
+--- in the only give json format dont inclue ```json ``` 
+```
+
+Please parse the following job description(s) accordingly:
+[INSERT JOB DESCRIPTION TEXT HERE]
+
+</content>
+        <inputs>
+            <apiName>Content</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Content</masterLabel>
+            <referenceName>Input:Content</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_1</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Content}
+
+Instructions:
+&quot;The following email contains one or more job descriptions. Separate each job description, and return a list of structured JSON objects as defined above, one for each role.&quot;
+
+You will receive one or more job descriptions in plain text format.
+
+There may be one job description or multiple.
+
+Give skill types like soft skill, technical skill, etc.
+
+For each job description:
+
+Extract and structure the data into the following JSON format:
+
+{
+&quot;Company_Name__c&quot;: [Company name mentioned],
+&quot;Contact&quot;: [Contact name if mentioned],
+&quot;Email&quot;: [Email if mentioned],
+&quot;Phone&quot;: [Phone if mentioned],
+&quot;AR__c&quot;: [AR value as a number, if mentioned],
+&quot;Experience__c&quot;: [Years of experience required as a decimal],
+&quot;Name&quot;: [Job title],
+&quot;Key_Responsibilities__c&quot;: [List of key responsibilities in string with comma separated],
+&quot;Other_Location__c&quot;: [Other possible work locations, if mentioned],
+&quot;Preferred_Location__c&quot;: [Preferred work location, if mentioned],
+&quot;Required_Qualification__c&quot;: [Required degrees, certifications],
+&quot;Skills__c&quot;: [Key skills mentioned in string with comma separated],
+&quot;Time_Zone__c&quot;: [Time zone(s) mentioned],
+&quot;Original_Description__c&quot;: [Full original job description text, don&apos;t change content, only remove extra space and ASCII characters and align],
+&quot;Job_Opportunity&quot;: &quot;[Insert the provided Job Opportunity Id]&quot;
+}
+
+If a field is not mentioned in the job description, return it as null.
+
+Rules:
+
+DO NOT add any extra text, explanations, warnings, suggestions, or notes outside of the JSON.
+
+This is an email body — DO NOT use headers like &quot;From&quot;, &quot;To&quot;, or &quot;Subject&quot; as contact or company.
+
+DO NOT use footer content as contact or company.
+
+Only return raw JSON that can be used directly in Salesforce.
+
+Do not wrap the output in json — return raw JSON only.
+
+
+
+Please parse the following job description(s) accordingly:
+[INSERT JOB DESCRIPTION TEXT HERE]
+</content>
+        <inputs>
+            <apiName>Content</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Content</masterLabel>
+            <referenceName>Input:Content</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_2</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Content}
+
+```
+Instructions:
+&quot;The following email contains one or more job descriptions. Separate each job description, and return a list of structured JSON objects as defined above, one for each role.&quot;
+You will receive one or more job descriptions in plain text format.
+- there may be one job description are multiple
+-Give Skill like soft skill, technical skill, etc.., 
+For each job description:
+1. Extract and structure the data into the following JSON format:
+ {
+ &quot;Company_Name__c&quot;: [Company name mentioned],
+ &quot;Contact&quot;:[Contact name if mentioned]
+ &quot;Email&quot;:[Email if mentioned],
+ &quot;Phone&quot;:[Phone if mentioned]
+ &quot;AR__c&quot;: [AR value as a number, if mentioned],
+ &quot;Experience__c&quot;: [Years of experience required as a decimal],
+ &quot;Name&quot;: [Job title],
+ &quot;Key_Responsibilities__c&quot;: [List of key responsibilities in string with comma seperated],
+ &quot;Other_Location__c&quot;: [Other possible work locations, if mentioned],
+ &quot;Preferred_Location__c&quot;: [Preferred work location, if mentioned],
+ &quot;Required_Qualification__c&quot;: [Required degrees, certifications],
+ &quot;Skills__c&quot;: [Key skills mentioned in string with comma seperated],
+ &quot;Time_Zone__c&quot;: [Time zone(s) mentioned],
+ &quot;Original_Description__c&quot;: [Full original job description text, dont change cotent only remove extra space and ascii characters and align]
+ }
+
+2. If a field is not mentioned in the job description, return it as `null`.
+
+
+Rule 
+- - DO NOT add any extra text, explanations, warnings, suggestions, or notes outside of these tags.
+-- Its email body DO Not use forwarded Content contains from to and subject as contact or company name 
+-- DO NOT Use footer content as contact or company
+-- give me raw json format which supports for salesforce
+--- in the only give json format dont inclue ```json ``` 
+```
+
+Please parse the following job description(s) accordingly:
+[INSERT JOB DESCRIPTION TEXT HERE]
+
+</content>
+        <inputs>
+            <apiName>Content</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Content</masterLabel>
+            <referenceName>Input:Content</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_3</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Content}
+
+```
+Instructions:
+&quot;The following email contains one or more job descriptions. Separate each job description, and return a list of structured JSON objects as defined above, one for each role.&quot;
+You will receive one or more job descriptions in plain text format.
+- there may be one job description are multiple
+-Give Skill like soft skill, technical skill, etc.., 
+For each job description:
+1. Extract and structure the data into the following JSON format:
+ {
+ &quot;Company_Name__c&quot;: [Company name mentioned],
+ &quot;Contact&quot;:[Contact name if mentioned]
+ &quot;Email&quot;:[Email if mentioned],
+ &quot;Phone&quot;:[Phone if mentioned]
+ &quot;AR__c&quot;: [AR value as a number, if mentioned],
+ &quot;Experience__c&quot;: [Years of experience required as a decimal],
+ &quot;Name&quot;: [Job title],
+ &quot;Key_Responsibilities__c&quot;: [List of key responsibilities in string with comma seperated],
+ &quot;Other_Location__c&quot;: [Other possible work locations, if mentioned],
+ &quot;Preferred_Location__c&quot;: [Preferred work location, if mentioned],
+ &quot;Required_Qualification__c&quot;: [Required degrees, certifications],
+ &quot;Skills__c&quot;: [Key skills mentioned in string with comma seperated],
+ &quot;Time_Zone__c&quot;: [Time zone(s) mentioned],
+ &quot;Original_Description__c&quot;: [Full original job description text, dont change cotent only remove extra space and ascii characters and align]
+ }
+
+2. If a field is not mentioned in the job description, return it as `null`.
+
+
+Rule 
+- - DO NOT add any extra text, explanations, warnings, suggestions, or notes outside of these tags.
+-- Its email body DO Not use forwarded Content contains from to and subject as contact or company name 
+-- DO NOT Use footer content as contact or company
+-- Give me raw JSON format which supports for Salesforce
+-- Always return the output as a JSON array [ ... ], even if there is only one job description.
+-- Do not include ```json``` or any extra formatting — only the raw JSON array.
+
+Please parse the following job description(s) accordingly:
+[INSERT JOB DESCRIPTION TEXT HERE]
+
+</content>
+        <inputs>
+            <apiName>Content</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Content</masterLabel>
+            <referenceName>Input:Content</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_4</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

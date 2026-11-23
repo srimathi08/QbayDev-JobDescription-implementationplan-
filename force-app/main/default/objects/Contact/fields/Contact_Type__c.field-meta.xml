@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contact_Type__c</fullName>
+    <label>Contact Type</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Direct Customers</fullName>
+                <default>false</default>
+                <label>Direct Customers</label>
+            </value>
+            <value>
+                <fullName>Channel Partners</fullName>
+                <default>false</default>
+                <label>Channel Partners</label>
+            </value>
+            <value>
+                <fullName>Delivery Partners</fullName>
+                <default>false</default>
+                <label>Delivery Partners</label>
+            </value>
+            <value>
+                <fullName>Indirect Customers</fullName>
+                <default>false</default>
+                <label>Indirect Customers</label>
+            </value>
+            <value>
+                <fullName>OSW – Original Software Vendors</fullName>
+                <default>false</default>
+                <label>OSW – Original Software Vendors</label>
+            </value>
+            <value>
+                <fullName>Recruiting Partner</fullName>
+                <default>false</default>
+                <label>Recruiting Partner</label>
+            </value>
+            <value>
+                <fullName>Candidates</fullName>
+                <default>false</default>
+                <label>Candidates</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

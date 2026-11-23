@@ -1,0 +1,1173 @@
+<template>
+    
+    <div class="attendance-wrapper">
+        <!-- Loading Spinner -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading..." size="large" class="main-spinner"></lightning-spinner>
+        </template>
+
+        <!-- Today's Attendance Card -->
+        <div class="today-attendance-card">
+            <div class="attendance-header">
+                <div class="header-info">
+                    <lightning-icon icon-name="standard:date_time" alternative-text="clock" size="x-small"></lightning-icon>
+                    <span class="header-text">Today's Attendance - {currentUserName}</span>
+                </div>
+                <div class="status-indicators">
+                    <span class="wifi-status">
+                        <lightning-icon icon-name="utility:wifi" size="x-small"></lightning-icon>
+                    </span>
+                    <span class={lateBadgeClass}>{lateStatusText}</span>
+                </div>
+            </div>
+
+            <!-- Leave Information Card -->
+            <template if:true={showLeaveInfoCard}>
+                <div class="leave-info-card">
+                    <div class="leave-info-header">
+                        <lightning-icon icon-name="utility:event" size="small" class="leave-icon"></lightning-icon>
+                        <span class="leave-info-title">Leave Information</span>
+                    </div>
+                    <div class="leave-info-content">
+                        <div class="leave-detail-row">
+                            <span class="leave-label">Leave Type:</span>
+                            <span class="leave-value">{leaveInfoForDisplay}</span>
+                        </div>
+                        <template if:true={todayLeaveInfo.reason}>
+                            <div class="leave-detail-row">
+                                <span class="leave-label">Reason:</span>
+                                <span class="leave-value">{todayLeaveInfo.reason}</span>
+                            </div>
+                        </template>
+                        <div class="leave-detail-row">
+                            <span class="leave-label">Period:</span>
+                            <span class="leave-value">
+                                <lightning-formatted-date-time
+                                    value={todayLeaveInfo.startDate}
+                                    year="numeric"
+                                    month="short"
+                                    day="2-digit">
+                                </lightning-formatted-date-time>
+                                to
+                                <lightning-formatted-date-time
+                                    value={todayLeaveInfo.endDate}
+                                    year="numeric"
+                                    month="short"
+                                    day="2-digit">
+                                </lightning-formatted-date-time>
+                            </span>
+                        </div>
+                        <div class="leave-notice">
+                            <lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>
+                            <template if:true={todayLeaveInfo.isHalfDay}>
+                                <span>Half-day leave — check-in available for the other half</span>
+                            </template>
+                            <template if:false={todayLeaveInfo.isHalfDay}>
+                                <span>Attendance check-in is disabled for this leave period</span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Previous Day Missing Attendance Card -->
+            <template if:true={hasMissingYesterdayRecord}>
+                <div class="od-missing-card">
+                    <div class="od-card-left">
+                        <div class="od-icon-wrap">
+                            <lightning-icon icon-name="utility:warning" size="small" class="od-warning-icon"></lightning-icon>
+                        </div>
+                        <div class="od-card-text">
+                            <p class="od-card-title">Attendance missing for yesterday</p>
+                            <p class="od-card-subtitle">{previousDayLabel} · {yesterdayDisplayDate}</p>
+                        </div>
+                    </div>
+                    <lightning-button
+                        label="Apply OD / Log Attendance"
+                        variant="brand"
+                        icon-name="utility:add"
+                        icon-position="left"
+                        onclick={handleOpenODModal}
+                        class="od-apply-btn">
+                    </lightning-button>
+                </div>
+            </template>
+
+            <div class="attendance-content">
+                <!-- Left Section - Clock -->
+                <div class="clock-section">
+                    <div class="current-time">{currentTime}</div>
+                    <div class="current-date">{currentDate}</div>
+                    <div class="check-status">
+                        <lightning-icon icon-name="utility:success" size="x-small"></lightning-icon>
+                        <span>{checkStatus}</span>
+                    </div>
+                    <lightning-button
+                        label={checkButtonLabel}
+                        variant="brand"
+                        onclick={handleCheckAction}
+                        disabled={isCheckDisabled}
+                        class={checkButtonClass}
+                        icon-name="utility:check"
+                        icon-position="left">
+                    </lightning-button>
+                </div>
+
+                <!-- Right Section - Shift Info -->
+                <div class="shift-section">
+                    <div class="shift-times">
+                        <div class="shift-time-card">
+                            <div class="shift-time">{shiftStart}</div>
+                            <div class="shift-label">Shift Start</div>
+                        </div>
+                        <div class="shift-time-card">
+                            <div class="shift-time">{shiftEnd}</div>
+                            <div class="shift-label">Shift End</div>
+                        </div>
+                    </div>
+
+                    <div class="schedule-card">
+                        <div class="schedule-header">
+                            <lightning-icon icon-name="utility:event" size="small"></lightning-icon>
+                            <span class="schedule-title">Today's Schedule</span>
+                        </div>
+                        <div class="schedule-details">
+                            <div class="schedule-item">
+                                <span class="schedule-label">Work Location</span>
+                                <span class="schedule-value">{workLocation}</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-label">Hours Worked</span>
+                                <span class="schedule-value hours-worked-display">{actualHoursWorked}h</span>
+                            </div>
+                            <div class="schedule-item required-hours">
+                                <span class="schedule-label">Required Hours</span>
+                                <span class="schedule-value">8 hours</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Summary Section -->
+        <div class="summary-section">
+            <div class="summary-header">
+                <lightning-icon icon-name="utility:trending" size="small"></lightning-icon>
+                <span class="summary-title">{monthName}'s Summary</span>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-card present-card">
+                    <div class="summary-number">{presentDays}</div>
+                    <div class="summary-label">Present Days</div>
+                </div>
+                <div class="summary-card late-card">
+                    <div class="summary-number">{lateDays}</div>
+                    <div class="summary-label">Late Days</div>
+                </div>
+                <div class="summary-card absent-card">
+                    <div class="summary-number">{absentDays}</div>
+                    <div class="summary-label">Absent Days</div>
+                    <div class="absent-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">🏖️ Approved Leave:</span>
+                            <span class="breakdown-value">{approvedLeaveDays}</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">💸 LOP Days:</span>
+                            <span class="breakdown-value">{lopDays}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-card hours-card">
+                    <div class="summary-number">{totalHours}h</div>
+                    <div class="summary-label">Total Hours</div>
+                </div>
+                <div class="summary-card avg-card">
+                    <div class="summary-number">{avgHours}h</div>
+                    <div class="summary-label">Avg Hours/Day</div>
+                </div>
+                <div class="summary-card rate-card">
+                    <div class="summary-number">{attendanceRate}%</div>
+                    <div class="summary-label">Attendance Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT ATTENDANCE SECTION WITH PAGINATION -->
+        <div class="recent-attendance-section">
+            <div class="attendance-header-section">
+                <div class="attendance-title">
+                    <lightning-icon icon-name="utility:table" size="small" class="table-icon"></lightning-icon>
+                    <span class="title-text">Recent Attendance</span>
+                </div>
+            </div>
+
+            <div class="attendance-table-wrapper">
+                <template if:false={noRecordsFound}>
+                    <table class="recent-attendance-table">
+                        <thead>
+                            <tr class="table-header-row">
+                                <th class="date-column">Date</th>
+                                <th class="checkin-column">Check In</th>
+                                <th class="checkout-column">Check Out</th>
+                                <th class="hours-column">Hours Worked</th>
+                                <th class="status-column">Status</th>
+                                <th class="location-column">Location</th>
+                                <th class="approval-column">WFH Approval</th>
+                                <th class="approval-column">OD Approval</th>
+                                <th class="notes-column">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={attendanceRecords} for:item="record">
+                                <tr key={record.Id} class="attendance-data-row">
+                                    <td class="date-data">{record.displayDate}</td>
+                                    <td class="checkin-data">{record.displayCheckIn}</td>
+                                    <td class="checkout-data">{record.displayCheckOut}</td>
+                                    <td class="hours-data">{record.displayHours}</td>
+                                    <td class="status-data">
+                                        <span class={record.statusBadgeClass}>{record.displayStatus}</span>
+                                    </td>
+                                    <td class="location-data">
+                                        <template if:true={record.displayLocation}>
+                                            <div class="location-display-row">
+                                                <lightning-icon icon-name="utility:location" size="x-small" class="location-pin-icon"></lightning-icon>
+                                                <span class="location-name">{record.displayLocation}</span>
+                                            </div>
+                                        </template>
+                                        <template if:false={record.displayLocation}>--</template>
+                                    </td>
+                                    <td class="approval-data">
+                                        <template if:true={record.submittedForApproval}>
+                                            <div class="approval-status-container">
+                                                <span class={record.wfhApprovalBadgeClass}>{record.wfhApprovalStatusText}</span>
+                                                <template if:true={record.approvalComments}>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:info"
+                                                        variant="bare"
+                                                        alternative-text="View Manager Comments"
+                                                        title={record.approvalComments}
+                                                        size="x-small"
+                                                        class="approval-info-icon">
+                                                    </lightning-button-icon>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template if:false={record.submittedForApproval}>--</template>
+                                    </td>
+                                    <td class="approval-data">
+                                        <template if:true={record.isODRequest}>
+                                            <div class="approval-status-container">
+                                                <span class={record.odApprovalBadgeClass}>{record.odApprovalStatusText}</span>
+                                            </div>
+                                        </template>
+                                        <template if:false={record.isODRequest}>--</template>
+                                    </td>
+                                    <td class="notes-data">
+                                        <template if:true={record.displayNotes}>
+                                            <span class="notes-content" title={record.displayNotes}>{record.displayNotes}</span>
+                                        </template>
+                                        <template if:false={record.displayNotes}>--</template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <template if:true={noRecordsFound}>
+                    <div class="empty-state-container">
+                        <div class="empty-state-content">
+                            <lightning-icon icon-name="utility:table" size="large" class="empty-icon"></lightning-icon>
+                            <h3 class="empty-title">No Recent Attendance Records</h3>
+                            <p class="empty-message">
+                                No attendance records found for {currentUserName}.
+                                Start by checking in to create your first attendance record.
+                            </p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- PAGINATION SECTION -->
+            <template if:true={showPagination}>
+                <div class="pagination-section">
+                    <div class="pagination-info">
+                        <div class="records-info">
+                            <span class="pagination-text">{paginationInfo}</span>
+                            <span class="page-text">• {pageInfo}</span>
+                        </div>
+                        <div class="page-size-section">
+                            <label for="pageSize" class="page-size-label">Records per page:</label>
+                            <select
+                                id="pageSize"
+                                class="page-size-select"
+                                onchange={handlePageSizeChange}
+                                value={pageSize}>
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pagination-controls">
+                        <lightning-button
+                            label="First"
+                            variant="neutral"
+                            icon-name="utility:chevronleft"
+                            icon-position="left"
+                            onclick={handleFirstPage}
+                            disabled={isFirstPage}
+                            class="pagination-btn first-btn">
+                        </lightning-button>
+                        <lightning-button
+                            label="Previous"
+                            variant="neutral"
+                            icon-name="utility:left"
+                            icon-position="left"
+                            onclick={handlePreviousPage}
+                            disabled={isFirstPage}
+                            class="pagination-btn prev-btn">
+                        </lightning-button>
+                        <div class="page-number-display">
+                            <span class="current-page-number">{currentPage}</span>
+                            <span class="page-separator">of</span>
+                            <span class="total-pages-number">{totalPages}</span>
+                        </div>
+                        <lightning-button
+                            label="Next"
+                            variant="neutral"
+                            icon-name="utility:right"
+                            icon-position="right"
+                            onclick={handleNextPage}
+                            disabled={isLastPage}
+                            class="pagination-btn next-btn">
+                        </lightning-button>
+                        <lightning-button
+                            label="Last"
+                            variant="neutral"
+                            icon-name="utility:chevronright"
+                            icon-position="right"
+                            onclick={handleLastPage}
+                            disabled={isLastPage}
+                            class="pagination-btn last-btn">
+                        </lightning-button>
+                    </div>
+                </div>
+            </template>
+
+            <template if:false={showPagination}>
+                <template if:false={noRecordsFound}>
+                    <div class="single-page-info">
+                        <span class="pagination-text">{paginationInfo}</span>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- CHECK-IN MODAL                                               -->
+        <!-- ============================================================ -->
+        <template if:true={showCheckInModal}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Check In</h1>
+                        <lightning-button-icon
+                            icon-name="utility:close"
+                            alternative-text="Close"
+                            variant="bare-inverse"
+                            class="slds-modal__close"
+                            onclick={closeModal}>
+                        </lightning-button-icon>
+                    </div>
+
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <div class="checkin-modal-content">
+
+                            <!-- ✅ 1. Auto-capture status strip -->
+                            <div class="auto-capture-status-strip">
+                                <div class="capture-status-item">
+                                    <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
+                                    <span class="capture-label">Time</span>
+                                    <span class="capture-value">{currentTime}</span>
+                                </div>
+                                <div class="capture-status-item">
+                                    <lightning-icon icon-name={photoStatusIcon} size="x-small"></lightning-icon>
+                                    <span class="capture-label">Photo</span>
+                                    <span class={photoStatusClass}>{photoStatusText}</span>
+                                </div>
+                                <div class="capture-status-item">
+                                    <lightning-icon icon-name={gpsStatusIcon} size="x-small"></lightning-icon>
+                                    <span class="capture-label">GPS</span>
+                                    <span class={gpsStatusClass}>{gpsStatusText}</span>
+                                </div>
+                            </div>
+
+                            <!-- ✅ 2. Work Location -->
+                            <div class="work-location-section">
+                                <div class="section-header">
+                                    <lightning-icon icon-name="utility:office" size="small"></lightning-icon>
+                                    <span class="section-title">Work Location
+                                        <abbr class="slds-required" title="required">*</abbr>
+                                    </span>
+                                </div>
+                                <lightning-combobox
+                                    name="workLocation"
+                                    placeholder="Select work location"
+                                    options={workLocationOptions}
+                                    value={selectedWorkLocation}
+                                    onchange={handleWorkLocationChange}>
+                                </lightning-combobox>
+                                <template if:true={isCheckingWFHRequest}>
+                                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:#f0f7ff;border-radius:6px;border-left:3px solid #0176d3;">
+                                        <lightning-spinner alternative-text="Checking WFH request..." size="small"></lightning-spinner>
+                                        <span style="font-size:12px;color:#0176d3;font-style:italic;">Verifying your WFH request...</span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- ✅ 3a. Branch Dropdown (Work from Office) -->
+                            <template if:true={showBranchDropdown}>
+                                <div class="branch-selection-section">
+                                    <div class="section-header">
+                                        <lightning-icon icon-name="utility:location" size="small"></lightning-icon>
+                                        <span class="section-title">Select Branch Office
+                                            <abbr class="slds-required" title="required">*</abbr>
+                                        </span>
+                                    </div>
+                                    <lightning-combobox
+                                        name="branch"
+                                        placeholder="Select your branch"
+                                        options={branchOptions}
+                                        value={selectedBranchId}
+                                        onchange={handleBranchChange}
+                                        required>
+                                    </lightning-combobox>
+                                    <template if:true={selectedBranchName}>
+                                        <div class="branch-confirmation">
+                                            <lightning-icon icon-name="utility:success" size="x-small"></lightning-icon>
+                                            <span>Working at: <strong>{selectedBranchName}</strong></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <!-- ✅ 3b. Client Place Details -->
+                            <template if:true={showClientPlaceDetails}>
+                                <div class="client-place-details-section location-details-section">
+                                    <div class="section-header">
+                                        <lightning-icon icon-name="utility:company" size="small"></lightning-icon>
+                                        <span class="section-title">Client Place Details
+                                            <abbr class="slds-required" title="required">*</abbr>
+                                        </span>
+                                    </div>
+                                    <lightning-textarea
+                                        name="clientPlaceDetails"
+                                        placeholder="Enter client name, address, or location details (e.g., 'ABC Corporation, 123 Main Street, Building A')..."
+                                        value={clientPlaceDetails}
+                                        onchange={handleClientPlaceDetailsChange}
+                                        max-length="1000"
+                                        required>
+                                    </lightning-textarea>
+                                    <div class="character-count">
+                                        <span class="char-count-text">{clientPlaceCharCount}/1000 characters</span>
+                                    </div>
+                                    <div class="location-details-notice">
+                                        <lightning-icon icon-name="utility:info" size="x-small" class="info-icon"></lightning-icon>
+                                        <span class="notice-text">Please provide specific client location details for tracking purposes</span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- ✅ 3c. Field Work Details -->
+                            <template if:true={showFieldWorkDetails}>
+                                <div class="field-work-details-section location-details-section">
+                                    <div class="section-header">
+                                        <lightning-icon icon-name="utility:trail" size="small"></lightning-icon>
+                                        <span class="section-title">Field Work Details
+                                            <abbr class="slds-required" title="required">*</abbr>
+                                        </span>
+                                    </div>
+                                    <lightning-textarea
+                                        name="fieldWorkDetails"
+                                        placeholder="Enter field work location and purpose (e.g., 'Site visit to Construction Site XYZ, Project inspection')..."
+                                        value={fieldWorkDetails}
+                                        onchange={handleFieldWorkDetailsChange}
+                                        max-length="1000"
+                                        required>
+                                    </lightning-textarea>
+                                    <div class="character-count">
+                                        <span class="char-count-text">{fieldWorkCharCount}/1000 characters</span>
+                                    </div>
+                                    <div class="location-details-notice">
+                                        <lightning-icon icon-name="utility:info" size="x-small" class="info-icon"></lightning-icon>
+                                        <span class="notice-text">Please specify the field work location and objective</span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- ✅ 3d. Business Travel -->
+                            <template if:true={showBusinessTravelSection}>
+                                <div class="business-travel-section location-details-section">
+                                    <div class="section-header">
+                                        <lightning-icon icon-name="utility:flight" size="small"></lightning-icon>
+                                        <span class="section-title">Business Travel Details
+                                            <abbr class="slds-required" title="required">*</abbr>
+                                        </span>
+                                    </div>
+                                    <lightning-textarea
+                                        name="businessTravelDetails"
+                                        placeholder="Enter destination, purpose, and travel details (e.g., 'Client meeting in Mumbai, Project presentation')..."
+                                        value={businessTravelDetails}
+                                        onchange={handleBusinessTravelDetailsChange}
+                                        max-length="1000"
+                                        required>
+                                    </lightning-textarea>
+                                    <div class="character-count">
+                                        <span class="char-count-text">{businessTravelCharCount}/1000 characters</span>
+                                    </div>
+                                    <div class="travel-dates-section">
+                                        <lightning-input
+                                            type="date"
+                                            label="Travel Start Date *"
+                                            value={businessTravelStartDate}
+                                            onchange={handleBusinessTravelStartDateChange}
+                                            required>
+                                        </lightning-input>
+                                        <lightning-input
+                                            type="date"
+                                            label="Travel End Date *"
+                                            value={businessTravelEndDate}
+                                            onchange={handleBusinessTravelEndDateChange}
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="travel-file-upload-section">
+                                        <lightning-input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.csv,.zip"
+                                            label="Upload Travel Document *"
+                                            onchange={handleBusinessTravelFileUpload}>
+                                        </lightning-input>
+                                        <template if:true={isFileUploaded}>
+                                            <div class="uploaded-file-display">
+                                                <div class="file-info">
+                                                    <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                                                    <span class="file-name">{uploadedFileName}</span>
+                                                </div>
+                                                <lightning-button-icon
+                                                    icon-name="utility:delete"
+                                                    alternative-text="Remove file"
+                                                    onclick={handleRemoveFile}
+                                                    class="remove-file-btn">
+                                                </lightning-button-icon>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="location-details-notice">
+                                        <lightning-icon icon-name="utility:info" size="x-small" class="info-icon"></lightning-icon>
+                                        <span class="notice-text">Upload travel ticket, hotel booking, or approval letter (Max 5MB)</span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- ✅ 4. Photo Section (compact with auto-capture preview) -->
+                            <div class="photo-section photo-section-compact">
+                                <div class="section-header">
+                                    <lightning-icon icon-name="utility:photo" size="small"></lightning-icon>
+                                    <span class="section-title">Check-in Photo
+                                        <abbr class="slds-required" title="required">*</abbr>
+                                    </span>
+                                    <template if:true={isCapturingPhoto}>
+                                        <lightning-spinner alternative-text="Capturing..." size="small"></lightning-spinner>
+                                    </template>
+                                </div>
+
+                                <template if:false={checkInPhotoPreview}>
+                                    <div class="photo-capture-area" onclick={captureCheckInPhoto}>
+                                        <lightning-icon icon-name="utility:camera" size="large" class="camera-icon"></lightning-icon>
+                                        <p class="photo-instruction">Tap to take a photo</p>
+                                        <p class="photo-subtitle">Required for check-in verification</p>
+                                    </div>
+                                </template>
+
+                                <template if:true={checkInPhotoPreview}>
+                                    <div class="photo-preview photo-preview-compact">
+                                        <img src={checkInPhotoPreview} alt="Check-in photo" class="preview-image preview-image-small" />
+                                        <div class="photo-actions">
+                                            <lightning-button
+                                                label="Retake Photo"
+                                                variant="neutral"
+                                                onclick={captureCheckInPhoto}
+                                                class="retake-button">
+                                            </lightning-button>
+                                            <span class="photo-success">
+                                                <lightning-icon icon-name="utility:success" size="x-small" class="success-icon"></lightning-icon>
+                                                Photo captured successfully
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- ✅ 5. GPS Location (compact inline) -->
+                            <div class="location-section location-section-compact">
+                                <div class="section-header">
+                                    <lightning-icon icon-name="utility:location" size="small"></lightning-icon>
+                                    <span class="section-title">GPS Location
+                                        <abbr class="slds-required" title="required">*</abbr>
+                                    </span>
+                                    <template if:true={isGettingLocation}>
+                                        <lightning-spinner alternative-text="Getting location..." size="small"></lightning-spinner>
+                                    </template>
+                                </div>
+
+                                <template if:true={hasValidLocation}>
+                                    <div class="location-inline-success">
+                                        <lightning-icon icon-name="utility:success" size="x-small"></lightning-icon>
+                                        <span class="location-inline-text">{displayLocationName}</span>
+                                        <lightning-button
+                                            label="Refresh"
+                                            variant="bare"
+                                            icon-name="utility:refresh"
+                                            icon-position="left"
+                                            onclick={getCurrentLocation}
+                                            disabled={isGettingLocation}>
+                                        </lightning-button>
+                                    </div>
+                                </template>
+
+                                <template if:false={hasValidLocation}>
+                                    <div class="location-inline-error">
+                                        <lightning-icon icon-name="utility:warning" size="x-small"></lightning-icon>
+                                        <span class="location-inline-text">{locationErrorMessage}</span>
+                                        <lightning-button
+                                            label="Get Location"
+                                            variant="brand"
+                                            icon-name="utility:location"
+                                            icon-position="left"
+                                            onclick={getCurrentLocation}
+                                            disabled={isGettingLocation}>
+                                        </lightning-button>
+                                    </div>
+                                </template>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="slds-modal__footer">
+                        <lightning-button
+                            label="Cancel"
+                            variant="neutral"
+                            onclick={closeModal}>
+                        </lightning-button>
+                        <lightning-button
+                            label={checkInButtonLabel}
+                            variant="brand"
+                            onclick={confirmCheckIn}
+                            disabled={isCheckInDisabled}
+                            class="confirm-button">
+                        </lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+
+        <!-- ============================================================ -->
+        <!-- CHECK-OUT MODAL                                              -->
+        <!-- ============================================================ -->
+       <template if:true={showCheckOutModal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+
+            <!-- HEADER -->
+            <header class="slds-modal__header">
+                <h2 class="slds-text-heading_medium">Check Out</h2>
+            </header>
+
+            <!-- BODY -->
+            <div class="slds-modal__content slds-p-around_medium">
+                <div class="checkout-modal-content">
+
+                    <!-- ✅ STATUS STRIP -->
+                    <div class="auto-capture-status-strip">
+                        <div class="capture-status-item">
+                            <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
+                            <span class="capture-label">Time</span>
+                            <span class="capture-value">{currentTime}</span>
+                        </div>
+
+                        <div class="capture-status-item">
+                            <lightning-icon icon-name={photoStatusIcon} size="x-small"></lightning-icon>
+                            <span class="capture-label">Photo</span>
+                            <span class={checkOutPhotoStatusClass}>{checkOutPhotoStatusText}</span>
+                        </div>
+
+                        <div class="capture-status-item">
+                            <lightning-icon icon-name={gpsStatusIcon} size="x-small"></lightning-icon>
+                            <span class="capture-label">GPS</span>
+                            <span class={gpsStatusClass}>{gpsStatusText}</span>
+                        </div>
+                    </div>
+
+                    <!-- ✅ WORK SUMMARY -->
+                    <div class="schedule-card">
+                        <div class="schedule-header">
+                            <lightning-icon icon-name="utility:clock" size="small"></lightning-icon>
+                            <span class="schedule-title">Today's Work Summary</span>
+                        </div>
+
+                        <div class="schedule-details">
+                            <div class="schedule-item">
+                                <span class="schedule-label">Check In</span>
+                                <span class="schedule-value">{todayCheckInTimeDisplay}</span>
+                            </div>
+
+                            <div class="schedule-item">
+                                <span class="schedule-label">Hours Worked</span>
+                                <span class="schedule-value">{actualHoursWorkedDisplay}h</span>
+                            </div>
+
+                            <div class="schedule-item">
+                                <span class="schedule-label">Location</span>
+                                <span class="schedule-value">{workLocationDisplay}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ✅ PHOTO SECTION -->
+                    <div class="photo-section photo-section-compact">
+                        <div class="section-header">
+                            <lightning-icon icon-name="utility:photo" size="small"></lightning-icon>
+                            <span class="section-title">
+                                Check-out Photo
+                                <abbr class="slds-required">*</abbr>
+                            </span>
+
+                            <template if:true={isCapturingPhoto}>
+                                <lightning-spinner size="small"></lightning-spinner>
+                            </template>
+                        </div>
+
+                        <template if:false={checkOutPhotoPreview}>
+                            <div class="photo-capture-area" onclick={captureCheckOutPhoto}>
+                                <lightning-icon icon-name="utility:camera" size="large"></lightning-icon>
+                                <p>Tap to take a photo</p>
+                            </div>
+                        </template>
+
+                        <template if:true={checkOutPhotoPreview}>
+                            <div class="photo-preview photo-preview-compact">
+                                <img src={checkOutPhotoPreview} class="preview-image-small"/>
+
+                                <lightning-button
+                                    label="Retake"
+                                    onclick={captureCheckOutPhoto}>
+                                </lightning-button>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- ✅ LOCATION -->
+                    <div class="location-section location-section-compact">
+                        <div class="section-header">
+                            <lightning-icon icon-name="utility:location" size="small"></lightning-icon>
+                            <span class="section-title">
+                                GPS Location
+                                <abbr class="slds-required">*</abbr>
+                            </span>
+
+                            <template if:true={isGettingLocation}>
+                                <lightning-spinner size="small"></lightning-spinner>
+                            </template>
+                        </div>
+
+                        <template if:true={hasValidLocation}>
+                            <div class="location-inline-success">
+                                <lightning-icon icon-name="utility:success" size="x-small"></lightning-icon>
+                                <span>{displayLocationName}</span>
+
+                                <lightning-button
+                                    label="Refresh"
+                                    icon-name="utility:refresh"
+                                    onclick={getCurrentLocation}>
+                                </lightning-button>
+                            </div>
+                        </template>
+
+                        <template if:false={hasValidLocation}>
+                            <div class="location-inline-error">
+                                <lightning-icon icon-name="utility:warning" size="x-small"></lightning-icon>
+                                <span>{locationErrorMessage}</span>
+
+                                <lightning-button
+                                    label="Get Location"
+                                    variant="brand"
+                                    onclick={getCurrentLocation}>
+                                </lightning-button>
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- FOOTER -->
+            <footer class="slds-modal__footer">
+                <lightning-button
+                    label="Cancel"
+                    onclick={closeModal}>
+                </lightning-button>
+
+                <lightning-button
+                    label="Confirm Check Out"
+                    variant="brand"
+                    onclick={confirmCheckOut}
+                    disabled={isCheckOutDisabled}>
+                </lightning-button>
+            </footer>
+
+        </div>
+    </section>
+
+    <!-- BACKDROP -->
+    <div class="slds-backdrop slds-backdrop_open"></div>
+</template>
+
+        <!-- Hidden file input for camera fallback -->
+        <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style="display: none;"
+            onchange={handleFileSelect}
+            data-field-name=""
+            class="camera-input"
+        />
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- OD / Previous Day Attendance Modal                           -->
+    <!-- ============================================================ -->
+    <template if:true={showODModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true"
+                 aria-labelledby="od-modal-heading"
+                 class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <div class="slds-modal__header od-modal-header">
+                    <h1 id="od-modal-heading" class="slds-modal__title">
+                        <lightning-icon icon-name="utility:event" size="small" class="od-modal-title-icon"></lightning-icon>
+                        Log Previous Day Attendance — OD Approval
+                    </h1>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        class="slds-modal__close"
+                        onclick={closeODModal}>
+                    </lightning-button-icon>
+                </div>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <div class="od-info-banner">
+                        <lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>
+                        <span>You are logging attendance for <strong>{previousDayLabel}</strong>
+                            ({yesterdayDisplayDate}). This request will be sent to
+                            <strong>{currentUserManagerName}</strong> for approval.</span>
+                    </div>
+
+                    <div class="od-form-section">
+                        <label class="od-field-label">
+                            Work Location <abbr class="slds-required" title="required">*</abbr>
+                        </label>
+                        <lightning-combobox
+                            name="odWorkLocation"
+                            placeholder="Select work location"
+                            options={workLocationOptions}
+                            value={odSelectedWorkLocation}
+                            onchange={handleODWorkLocationChange}>
+                        </lightning-combobox>
+                    </div>
+
+                    <template if:true={odShowBranchDropdown}>
+                        <div class="od-form-section">
+                            <label class="od-field-label">
+                                Branch Office <abbr class="slds-required" title="required">*</abbr>
+                            </label>
+                            <lightning-combobox
+                                name="odBranch"
+                                placeholder="Select branch"
+                                options={branchOptions}
+                                value={odSelectedBranchId}
+                                onchange={handleODBranchChange}>
+                            </lightning-combobox>
+                            <template if:true={odSelectedBranchName}>
+                                <div class="od-branch-confirm">
+                                    <lightning-icon icon-name="utility:success" size="x-small"></lightning-icon>
+                                    <span>Branch: <strong>{odSelectedBranchName}</strong></span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <div class="od-time-row">
+                        <div class="od-form-section od-time-field">
+                            <lightning-input
+                                type="time"
+                                label="Check-in Time *"
+                                value={odCheckInTime}
+                                onchange={handleODCheckInTimeChange}
+                                required>
+                            </lightning-input>
+                        </div>
+                        <div class="od-form-section od-time-field">
+                            <lightning-input
+                                type="time"
+                                label="Check-out Time *"
+                                value={odCheckOutTime}
+                                onchange={handleODCheckOutTimeChange}
+                                required>
+                            </lightning-input>
+                        </div>
+                        
+                    </div>
+                    <template if:true={odTimeValidationError}>
+    <div class="od-time-error" style="display:flex; align-items:center; gap:6px; margin-top:6px; padding:8px 12px; background:#fff1f1; border-radius:6px; border-left:3px solid #c23934;">
+        <lightning-icon icon-name="utility:error" size="x-small" style="color:#c23934;"></lightning-icon>
+        <span style="font-size:12px; color:#c23934; font-weight:500;">{odTimeValidationError}</span>
+    </div>
+</template>
+                    
+
+                    <div class="od-form-section">
+                        <label class="od-field-label">
+                            Reason for OD / Missed Attendance
+                            <abbr class="slds-required" title="required">*</abbr>
+                        </label>
+                        <lightning-textarea
+                            name="odReason"
+                            placeholder="Provide a detailed reason (minimum 20 characters)..."
+                            value={odReason}
+                            onchange={handleODReasonChange}
+                            max-length="1000">
+                        </lightning-textarea>
+                        <div class="od-char-count">{odReasonCharCount} / 1000</div>
+                    </div>
+
+                    <div class="od-form-section">
+                        <label class="od-field-label">Additional Notes (Optional)</label>
+                        <lightning-textarea
+                            name="odNotes"
+                            placeholder="Any additional context for your manager..."
+                            value={odNotes}
+                            onchange={handleODNotesChange}
+                            max-length="500">
+                        </lightning-textarea>
+                    </div>
+
+                    <div class="od-manager-notice">
+                        <lightning-icon icon-name="utility:user" size="x-small"></lightning-icon>
+                        <span>Approval request will be sent to: <strong>{currentUserManagerName}</strong></span>
+                    </div>
+
+                </div>
+
+                <div class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={closeODModal}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Submit for Manager Approval"
+                        variant="brand"
+                        icon-name="utility:forward"
+                        icon-position="left"
+                        onclick={confirmODSubmit}
+                        disabled={isODSubmitDisabled}
+                        class="od-submit-btn">
+                    </lightning-button>
+                </div>
+
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- ============================================================ -->
+    <!-- HYBRID SCHEDULE MODAL                                        -->
+    <!-- ============================================================ -->
+    <template if:true={showHybridScheduleModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="hybrid-modal-heading"
+                 class="slds-modal slds-fade-in-open hybrid-schedule-modal">
+            <div class="slds-modal__container hybrid-modal-container">
+
+                <div class="slds-modal__header hybrid-modal-header">
+                    <h1 id="hybrid-modal-heading" class="slds-modal__title slds-hyphenate">
+                        <lightning-icon icon-name="standard:work_order" size="small" class="header-icon-modal"></lightning-icon>
+                        Hybrid Work Schedule Setup
+                    </h1>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        class="slds-modal__close"
+                        onclick={closeHybridScheduleModal}>
+                    </lightning-button-icon>
+                </div>
+
+                <div class="slds-modal__content slds-p-around_medium hybrid-modal-body" id="hybrid-modal-content">
+                    <div class="hybrid-schedule-form">
+
+                        <div class="hybrid-info-banner">
+                            <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                            <div class="info-text">
+                                <p><strong>Setup your monthly hybrid schedule</strong> and work from home on scheduled days without daily approvals!</p>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <lightning-input
+                                type="month"
+                                label="Schedule Month"
+                                value={hybridScheduleMonth}
+                                onchange={handleHybridMonthChange}
+                                required
+                                min={minMonth}
+                                field-level-help="Select the month for your hybrid schedule">
+                            </lightning-input>
+                        </div>
+
+                        <div class="form-field">
+                            <lightning-combobox
+                                label="Schedule Type"
+                                value={hybridScheduleType}
+                                options={hybridScheduleTypeOptions}
+                                onchange={handleHybridScheduleTypeChange}
+                                placeholder="Select schedule type"
+                                required>
+                            </lightning-combobox>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="slds-form-element__label">
+                                <abbr class="slds-required" title="required">* </abbr>
+                                🏠 Work From Home Days
+                            </label>
+                            <div class="days-checkbox-container">
+                                <template for:each={hybridDaysOfWeek} for:item="day">
+                                    <div key={day.value} class="day-checkbox-wrapper">
+                                        <lightning-input
+                                            type="checkbox"
+                                            label={day.label}
+                                            checked={day.isWFH}
+                                            onchange={handleHybridWFHDayChange}
+                                            data-day={day.value}>
+                                        </lightning-input>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="selected-days-summary wfh-summary">
+                                Selected: <strong>{selectedHybridWFHDaysText}</strong>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="slds-form-element__label">
+                                <abbr class="slds-required" title="required">* </abbr>
+                                🏢 Office Days
+                            </label>
+                            <div class="days-checkbox-container">
+                                <template for:each={hybridDaysOfWeek} for:item="day">
+                                    <div key={day.value} class="day-checkbox-wrapper">
+                                        <lightning-input
+                                            type="checkbox"
+                                            label={day.label}
+                                            checked={day.isOffice}
+                                            onchange={handleHybridOfficeDayChange}
+                                            data-day={day.value}>
+                                        </lightning-input>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="selected-days-summary office-summary">
+                                Selected: <strong>{selectedHybridOfficeDaysText}</strong>
+                            </div>
+                        </div>
+
+                        <template if:true={hybridValidationError}>
+                            <div class="validation-error-banner">
+                                <lightning-icon icon-name="utility:warning" size="x-small"></lightning-icon>
+                                <span>{hybridValidationErrorMessage}</span>
+                            </div>
+                        </template>
+
+                        <div class="form-field">
+                            <lightning-textarea
+                                label="Reason for Hybrid Schedule"
+                                value={hybridScheduleReason}
+                                onchange={handleHybridReasonChange}
+                                placeholder="Provide business justification (minimum 20 characters)..."
+                                required
+                                rows="4"
+                                max-length="1000">
+                            </lightning-textarea>
+                            <div class="character-count">
+                                <span class="char-count-text">{hybridReasonCharCount} / 1000 characters</span>
+                                <template if:true={isHybridReasonTooShort}>
+                                    <span class="error-text"> (Minimum 20 characters required)</span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <template if:true={showHybridSummary}>
+                            <div class="hybrid-summary-box">
+                                <h3 class="summary-title">📊 Schedule Summary</h3>
+                                <div class="summary-details">
+                                    <div class="summary-row">
+                                        <span>Month:</span>
+                                        <strong>{hybridScheduleMonthDisplay}</strong>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>WFH Days:</span>
+                                        <strong class="wfh-count">{totalHybridWFHDays} days</strong>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Office Days:</span>
+                                        <strong class="office-count">{totalHybridOfficeDays} days</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
+                </div>
+
+                <div class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={closeHybridScheduleModal}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Submit for Approval"
+                        variant="brand"
+                        icon-name="utility:forward"
+                        onclick={submitHybridSchedule}
+                        disabled={isHybridSubmitDisabled}>
+                    </lightning-button>
+                </div>
+
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

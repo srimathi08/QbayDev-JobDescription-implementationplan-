@@ -1,0 +1,49 @@
+.create-button {
+position: fixed;
+bottom: 20px;
+right: 20px;
+background: #ff6b6b;
+color: white;
+border-radius: 50px;
+padding: 15px 25px;
+font-size: 18px;
+font-weight: bold;
+cursor: pointer;
+z-index: 100;
+}
+
+.modal {
+position: fixed;
+bottom: 0;
+width: 100%;
+background: white;
+border-top-left-radius: 15px;
+border-top-right-radius: 15px;
+padding: 20px;
+}
+
+/* Separate z-index for modals */
+.modal.opportunity-modal {
+z-index: 200;
+}
+
+.modal.account-modal {
+z-index: 300;
+}
+
+.modal-content {
+padding-top: 20px;
+position: relative;
+}
+
+.close-button {
+position: absolute;
+top: 10px;
+right: 10px;
+z-index: 9999;
+font-size: 28px;
+background: none;
+border: none;
+cursor: pointer;
+line-height: 1;
+}

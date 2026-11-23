@@ -1,0 +1,177 @@
+<template>
+    <template if:true={openModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Upload Supporting Documents</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <!-- ROW 1 -->
+                    <div class="row">
+                        <div class="label">Photo</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload Photo"
+                                record-id={recordId}
+                                onuploadfinished={handlePhotoUpload}>
+                            </lightning-file-upload>
+                            <p if:true={photoName}>Uploaded: {photoName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 2 -->
+                    <div class="row">
+                    <div class="label">Driving License</div>
+                    <div class="upload-box">
+                    <lightning-file-upload
+                     label="Upload Driving License"
+                    record-id={recordId}
+                   onuploadfinished={handleDrivingUpload}>
+                   </lightning-file-upload>
+                   <p if:true={drivingName}>Uploaded: {drivingName}</p>
+                 </div>
+             </div>
+
+
+                    <!-- ROW 3 -->
+                    <div class="row">
+                        <div class="label">PAN Card</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload PAN"
+                                record-id={recordId}
+                                onuploadfinished={handlePanUpload}>
+                            </lightning-file-upload>
+                            <p if:true={panName}>Uploaded: {panName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 4 -->
+                    <div class="row">
+                        <div class="label">Aadhaar</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload Aadhaar"
+                                record-id={recordId}
+                                onuploadfinished={handleAadhaarUpload}>
+                            </lightning-file-upload>
+                            <p if:true={aadhaarName}>Uploaded: {aadhaarName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 5 - 10th -->
+                    <div class="row">
+                        <div class="label">10th Marksheet</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload 10th Marksheet"
+                                record-id={recordId}
+                                onuploadfinished={handleTenthUpload}>
+                            </lightning-file-upload>
+                            <p if:true={tenthName}>Uploaded: {tenthName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 6 - 12th -->
+                    <div class="row">
+                        <div class="label">12th Marksheet</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload 12th Marksheet"
+                                record-id={recordId}
+                                onuploadfinished={handleTwelfthUpload}>
+                            </lightning-file-upload>
+                            <p if:true={twelfthName}>Uploaded: {twelfthName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 7 - Degree -->
+                    <div class="row">
+                        <div class="label">Degree Certificate</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload Degree"
+                                record-id={recordId}
+                                onuploadfinished={handleDegreeUpload}>
+                            </lightning-file-upload>
+                            <p if:true={degreeName}>Uploaded: {degreeName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 8 - PG -->
+                    <div class="row">
+                        <div class="label">Post Graduation</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload PG Certificate"
+                                record-id={recordId}
+                                onuploadfinished={handlePgUpload}>
+                            </lightning-file-upload>
+                            <p if:true={pgName}>Uploaded: {pgName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 9 - Salary Slip -->
+                    <div class="row">
+                        <div class="label">Last Salary Slip</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload Salary Slip"
+                                record-id={recordId}
+                                onuploadfinished={handleSalaryUpload}>
+                            </lightning-file-upload>
+                            <p if:true={salaryName}>Uploaded: {salaryName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 10 - Experience Letter -->
+                    <div class="row">
+                        <div class="label">Experience / Relieving Letter</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Upload Experience Letter"
+                                record-id={recordId}
+                                onuploadfinished={handleExperienceUpload}>
+                            </lightning-file-upload>
+                            <p if:true={experienceName}>Uploaded: {experienceName}</p>
+                        </div>
+                    </div>
+
+                    <!-- ROW 11 Other -->
+                    <div class="row">
+                        <div class="label">Other</div>
+                        <div class="upload-box">
+                            <lightning-file-upload
+                                label="Other Documents"
+                                record-id={recordId}
+                                onuploadfinished={handleOtherUpload}>
+                            </lightning-file-upload>
+                            <p if:true={OtherName}>Uploaded: {OtherName}</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
+                    <lightning-button variant="brand" label="Submit" onclick={submitDocs}></lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Button on Account Page -->
+ <div class="button-center">
+    <button class="upload-btn" onclick={openTheModal}>
+        Upload Supporting Document
+    </button>
+</div>
+
+   </template>

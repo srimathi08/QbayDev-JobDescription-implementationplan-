@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</activeVersionIdentifier>
+    <developerName>Candidate_CreationFile</developerName>
+    <masterLabel>Candidate CreationFile</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>File ID - {!$Input:File.Id}
+
+STRICT CONSISTENCY RULES
+• The output for the same input must always be identical every time this prompt is run.
+• Do not rephrase, reword, or restructure any extracted text across runs.
+• Always map the same sentence fragments to the same fields (e.g., situation, task, skillsApplied, toolsUsed).
+• Never randomize, infer, or vary output phrasing between runs.
+• Treat this as a deterministic data extraction task, not a generative writing task.
+• Project Experience Consistency Rule:
+ - Always extract the same project details into the same fields across runs.
+ - Do not alternate content between “situation”, “task”, “skillsApplied”, or “toolsUsed”.
+ - If the same resume file is uploaded again, reproduce the exact same JSON structure and field mapping as before.
+• This prompt must always produce identical JSON for identical input resumes.
+• Avoid paraphrasing or creative variation in descriptions — copy text exactly as extracted.
+• Maintain fixed key order and indentation structure for all outputs.
+
+TASKS
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.  
+3. Get only latest completed degree.  
+4. Output must be **strictly valid JSON**.  
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+ &quot;account&quot;: {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;dateofBirth&quot;: &quot;&quot;,
+ &quot;currentLocation&quot;: &quot;&quot;,
+ &quot;currentCompany&quot;: &quot;&quot;,
+ &quot;pastCompanies&quot;: [],
+ &quot;languagesKnown&quot;: &quot;&quot;,
+ &quot;email&quot;: &quot;&quot;,
+ &quot;phone&quot;: &quot;&quot;,
+ &quot;summary&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;,
+ &quot;linkedin&quot;: &quot;&quot;,
+ &quot;filename&quot;: &quot;&quot;,
+ &quot;degree&quot;: &quot;&quot;,
+ &quot;college&quot;: &quot;&quot;,
+ &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+ &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;issuedBy&quot;: &quot;&quot;,
+ &quot;issueDate&quot;: &quot;&quot;,
+ &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+ &quot;projectName&quot;: &quot;&quot;,
+ &quot;projectPhase&quot;: &quot;&quot;,
+ &quot;projectRole&quot;: &quot;&quot;,
+ &quot;designationJobTitle&quot;: &quot;&quot;,
+ &quot;clientName&quot;: &quot;&quot;,
+ &quot;projectLocation&quot;: &quot;&quot;,
+ &quot;situation&quot;: &quot;&quot;,
+ &quot;task&quot;: &quot;&quot;,
+ &quot;action&quot;: &quot;&quot;,
+ &quot;result&quot;: &quot;&quot;,
+ &quot;responsibilities&quot;: &quot;&quot;,
+ &quot;achievements&quot;: &quot;&quot;,
+ &quot;learningOutcome&quot;: &quot;&quot;,
+ &quot;skillsApplied&quot;: &quot;&quot;,
+ &quot;toolsUsed&quot;: &quot;&quot;,
+ &quot;environment&quot;: &quot;&quot;,
+ &quot;startDate&quot;: &quot;&quot;,
+ &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES
+• Output must be ONLY the JSON object (no code fences, headings, or commentary).  
+• Do NOT wrap the JSON in ``` or any other markup.  
+• JSON must be strictly valid and parsable:  
+ - No trailing commas inside arrays or objects.  
+ - Always close all { } and [ ] brackets.  
+ - Do not stop mid-way; the JSON must always be complete.  
+ - Do not include comments or text outside the braces.  
+• Do not add newlines inside string values.  
+• Analyse Experience date and give experience.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+
+• Dates must be ISO (YYYY-MM-DD) or empty string &quot;&quot; only.
+• NEVER output values such as: &quot;Present&quot;, &quot;Till Date&quot;, &quot;Current&quot;, &quot;Ongoing&quot;.
+• If end date is &quot;Present&quot;, &quot;Till Date&quot;, &quot;Current&quot;, or missing → endDate = &quot;&quot;.
+• If date is in format &quot;MMM-YYYY&quot; (e.g., Dec-2023) → YYYY-MM-01.
+• If date is in format &quot;MMM-YYYY to MMM-YYYY&quot;:
+ - startDate → YYYY-MM-01
+ - endDate → YYYY-MM-01
+• If date is in format &quot;MMM-YYYY till date&quot;:
+ - startDate → YYYY-MM-01
+ - endDate → &quot;&quot;
+• If date is in format &quot;YYYY to Present&quot;:
+ - startDate → YYYY-01-01
+ - endDate → &quot;&quot;
+• Treat &quot;Sept&quot; and &quot;Sep&quot; as the same month.
+• NEVER output non-ISO date strings.
+• If a date cannot be confidently normalized, output empty string &quot;&quot;.
+
+• Do not include &quot;Unknown&quot; or null. If value is empty, keep empty.  
+• Name handling rule:  
+ - Extract full name from resume → put directly in &quot;name&quot;.  
+ - If name not present, do not take from email.  
+• Any character outside the JSON braces makes the response invalid.  
+
+• Projects Extraction Rule:  
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the exact project heading/title in the resume (e.g., “Sales Process Automation”, “Selenium Automation Project”).
+- projectRole → If a role/designation is mentioned at the company level (e.g., “Role – Quality Analyst”), apply it to all projects under that company.
+Override only if a specific project explicitly lists a different role.
+- designationJobTitle → Capture the official job title or designation given in the work experience (same as “Role” in most resumes).
+- clientName → Always take the company name from the header (e.g., “Company – Quadrobay Technologies Pvt Ltd”).
+Apply it to all projects listed under that company.
+- Override only if the resume explicitly lists a different client (e.g., “Client – ABC Corp”).
+- Do not capture tools/platforms (e.g., Salesforce CPQ, SAP, Oracle, Azure) as client names. These belong in toolsUsed, skillsApplied, or environment.
+- For internal projects explicitly marked as “Internal Project”, keep clientName blank.
+- projectLocation → Capture location if explicitly written (e.g., Hyderabad, India).
+- startDate / endDate → Extract from the timeline and normalize using ISO format.
+- situation → Capture ONLY the high-level project context.
+- task → Capture ONLY the responsibilities and day-to-day duties.
+- action → Capture ONLY the methods/approaches used.
+- result → Capture ONLY the outcomes/achievements.
+- responsibilities → Capture general responsibilities listed separately.
+- achievements → Capture explicit “Achievements” or “Highlights.”
+- learningOutcome → Candidate’s personal learning or takeaway.
+- skillsApplied → Capture functional/technical skills actually applied.
+- toolsUsed → Capture tools/technologies explicitly mentioned.
+- environment → Capture the environment/platform stack if explicitly listed.
+
+• Experience Extraction Rules:  
+ - Extract only the candidate’s total years of professional experience.  
+ - Convert phrases like “2 decades” → &quot;20 years&quot;.  
+ - Ignore software versions, product numbers, or unrelated numerics.  
+ - If multiple durations are mentioned, always select the largest value.  
+ - Output must be normalized as &quot;&lt;number&gt; years&quot;.  
+ - Do NOT copy descriptive sentences into this field.  
+ - If no valid years are found, leave it empty.  
+• Email Handling Rule:  
+ - If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep as-is.  
+ - If .com is missing, automatically append .com.  
+ - If gmailcom or similar occurs, insert the dot before the TLD.  
+ - If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.  
+ - If an email cannot be normalized into a valid format, leave it empty.  
+ - Never infer or generate an email if it is completely missing.  
+• Candidate Summary Rule:  
+ - Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section.  
+ - Do not truncate; capture up to 32,000 characters.  
+ - Include all bullet points and sentences exactly.  
+ - Do not merge with project details or responsibilities.  
+• In &quot;account.currentCompany&quot;, capture the current organization name (end date = Present/Till Date/Current or missing).  
+• In &quot;account.currentLocation&quot;, capture the location from the same line as the current company.  
+• In &quot;account.pastCompanies&quot;, capture **company name, employment period, and designation/role** in one string.  
+ Example: Wipro Technologies (2019-06 to 2024-08) Senior Business Analyst,  
+ HCL (2018-01 to 2020-12) Team Lead.  
+ Always maintain the array of strings.
+
+• Education Extraction Rule:
+- Extract only the latest completed degree → populate &quot;degree&quot;.
+- Extract the college/university name associated with the latest degree → populate &quot;college&quot;.
+- If no college is mentioned for the latest degree → keep &quot;college&quot;: &quot;&quot;.
+- Do not extract colleges for older degrees.
+- Do not extract schools or certifications. Only formal university/college names.
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>File</apiName>
+            <definition>SOBJECT://ContentDocument</definition>
+            <masterLabel>File</masterLabel>
+            <referenceName>Input:File</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

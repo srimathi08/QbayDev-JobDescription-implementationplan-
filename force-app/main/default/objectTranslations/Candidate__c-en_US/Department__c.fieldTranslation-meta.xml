@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Department --></label>
+    <name>Department__c</name>
+    <picklistValues>
+        <masterLabel>Emerging Technologies</masterLabel>
+        <translation><!-- Emerging Technologies --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>HR &amp; Finance</masterLabel>
+        <translation><!-- HR &amp; Finance --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Operations</masterLabel>
+        <translation><!-- Operations --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle</masterLabel>
+        <translation><!-- Oracle --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>QA-Quality Assurance</masterLabel>
+        <translation><!-- QA-Quality Assurance --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Salesforce</masterLabel>
+        <translation><!-- Salesforce --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

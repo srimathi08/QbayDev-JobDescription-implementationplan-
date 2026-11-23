@@ -1,0 +1,86 @@
+/* Floating + Create button */
+.create-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: #ff6a6a;
+  color: #fff;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+  z-index: 10;
+}
+
+:host {
+  --radius: 0.75rem;
+  --pill-bg: #f3f3f3;
+}
+
+/* Card look & rounding */
+.task-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Key/value rows in the card body */
+.row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin: 0.25rem 0;
+}
+
+.label {
+  color: var(--lwc-colorTextWeak, #514f4d);
+  font-size: 0.75rem;
+}
+
+.value {
+  font-weight: 500;
+}
+
+.value--overdue {
+  color: var(--lwc-colorTextError, #ba0517);
+}
+
+/* Priority pill styles */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  background: var(--pill-bg);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Priority variants */
+.pill--high {
+  background: #fdecea;
+  color: #ba0517;
+}
+.pill--normal {
+  background: #eef4ff;
+  color: #1b5fbd;
+}
+.pill--low {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Empty state styling */
+.empty-state {
+  min-height: 120px;
+  color: var(--lwc-colorTextWeak, #514f4d);
+}
+
+/* Optional: tighten the grid spacing slightly on very small screens */
+.card-grid {
+  margin-left: -0.25rem;
+  margin-right: -0.25rem;
+}

@@ -1,0 +1,117 @@
+/* Cards */
+.slds-box {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ---- Modal Container (flex so header/footer stay fixed) ---- */
+.slds-modal__container {
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  max-width: 60rem;
+  margin: 2rem auto;
+
+  /* NEW: layout + sizing for scroll behavior */
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;     /* keep dialog inside viewport */
+  overflow: hidden;     /* contain scroll inside body */
+}
+
+/* Header */
+.slds-modal__header {
+  background-color: #6f2e46;
+  border-bottom: 1px solid #d8dde6;
+  padding: 1rem 2rem;
+  text-align: center;
+
+  /* fixed region */
+  flex: 0 0 auto;
+}
+
+/* Title */
+.slds-modal__title {
+  font-size: 1.25rem;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* Optional colored strip (unused now, keep if you need it) */
+.modaltitle {
+  background-color: #3ed44a;
+  font-weight: bold;
+  border-bottom: 1px solid #d8dde6;
+}
+
+/* Body (scrollable region) */
+.slds-modal__content {
+  background-color: #fff;
+  padding: 1.5rem 2rem;
+
+  /* NEW: scrollable flex area */
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0; /* critical for flex scrolling */
+}
+
+/* Footer */
+.slds-modal__footer {
+  background-color: #f3f6f9;
+  border-top: 1px solid #d8dde6;
+  padding: 1rem 2rem;
+  text-align: right;
+
+  /* fixed region */
+  flex: 0 0 auto;
+}
+
+/* Button spacing */
+lightning-button {
+  margin-top: 0.5rem;
+}
+
+/* Datatable visual tweaks */
+lightning-datatable {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Datatable header styling (scoped) */
+:host ::deep thead th {
+  background-color: #6f2e46 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 1px solid #d8dde6;
+}
+
+/* Optional table class if you apply .custom-table */
+.custom-table thead th {
+  background-color: #6f2e46;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 1px solid #d8dde6;
+  text-align: left;
+}
+.custom-table tbody td {
+  font-size: 0.98rem;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #ede7f3;
+}
+.custom-table-container {
+  overflow-x: auto;
+}
+.custom-table {
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+  background: #fff;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Utility override */
+.slds-text-align_center {
+  text-align: center !important;
+}

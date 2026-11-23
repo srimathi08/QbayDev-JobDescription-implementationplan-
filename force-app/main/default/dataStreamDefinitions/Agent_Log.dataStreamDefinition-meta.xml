@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataStreamDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <areHeadersIncludedInFile>false</areHeadersIncludedInFile>
+    <bulkIngest>false</bulkIngest>
+    <creationType>Custom</creationType>
+    <dataConnector>Agent_6a79d0bc_b97a_4494_b112_b325f53638e2</dataConnector>
+    <dataConnectorType>StreamingApp</dataConnectorType>
+    <dataExtractMethods>FULL_REFRESH</dataExtractMethods>
+    <dataPlatformDataSetItemName>EVENTS</dataPlatformDataSetItemName>
+    <dataSource>Agent_Log</dataSource>
+    <isLimitedToNewFiles>false</isLimitedToNewFiles>
+    <isMissingFileFailure>false</isMissingFileFailure>
+    <masterLabel>Agent-Log</masterLabel>
+    <mktDataLakeObject>Agent_Log__dll</mktDataLakeObject>
+    <mktDataTranObject>Agent_Log</mktDataTranObject>
+</DataStreamDefinition>

@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>On_Role_Candidate</fullName>
+    <active>true</active>
+    <label>On Role Candidate</label>
+    <picklistValues>
+        <picklist>Blood_Group__c</picklist>
+        <values>
+            <fullName>A%2B</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>A-</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>AB%2B</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>AB-</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>B%2B</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>B-</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>O%2B</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>O-</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Department__c</picklist>
+        <values>
+            <fullName>Emerging Technologies</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>HR %26 Finance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Operations</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Oracle</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>QA-Quality Assurance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Salesforce</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Designations__c</picklist>
+        <values>
+            <fullName>Associate consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Asst Manager-Finance %26 Compliance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Consultant - QA</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Delivery Head</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Delivery Lead</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Finance Executive</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>HR Executive</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>HR Generalist</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>HR Manager</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Junior Consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Manager</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Managing Director</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Office Assistant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Operations Manager</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Project Lead</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Salesforce Consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Senior Consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Senior Software Testing Engineer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Software Engineer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Software Testing Engineer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Software consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Sr%2E Finance Executive</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Sr%2E Manager</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Sr%2E Oracle Functional Consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Sr%2EManager HR %26 Finance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Team Lead</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Tech Lead</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Trainee - Oracle</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Trainee - RPA</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Trainee - SFDC</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Trainee Consultant</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Gender__c</picklist>
+        <values>
+            <fullName>Female</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Male</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Nonbinary</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Not Listed</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Marital_Status__c</picklist>
+        <values>
+            <fullName>Divorced</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Married</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Single</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Widowed</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Offer_Letter_Status__c</picklist>
+        <values>
+            <fullName>Accepted</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Declined</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Generated</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Not started</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Sent</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Offer_Type__c</picklist>
+        <values>
+            <fullName>Intern</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>On Role</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Onboarding_Status__c</picklist>
+        <values>
+            <fullName>Approved</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Converted</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>In Progress</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Link Sent</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Not Started</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Submitted</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Place_of_Posting_Base_Location__c</picklist>
+        <values>
+            <fullName>Chennai</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Salem</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Salutation__c</picklist>
+        <values>
+            <fullName>Dr%2E</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mr%2E</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mrs%2E</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Ms%2E</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prof%2E</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Source_Of_Applicant__c</picklist>
+        <values>
+            <fullName>Advertisement</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Campus</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Consultancy</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Referred</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Walk In</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+</RecordType>

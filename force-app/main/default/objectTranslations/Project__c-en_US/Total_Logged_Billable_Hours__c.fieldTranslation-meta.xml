@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <help><!-- Total approved or logged billable hours. --></help>
+    <label><!-- Total Logged Billable Hours --></label>
+    <name>Total_Logged_Billable_Hours__c</name>
+</CustomFieldTranslation>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Validate_DOB</fullName>
+    <active>true</active>
+    <description>To ensure the Candidate must be at least 18 years old.</description>
+    <errorConditionFormula>Date_Of_Birth__c &gt; (TODAY() - (18 * 365))</errorConditionFormula>
+    <errorDisplayField>Date_Of_Birth__c</errorDisplayField>
+    <errorMessage>Candidate must be at least 18 years old.</errorMessage>
+</ValidationRule>

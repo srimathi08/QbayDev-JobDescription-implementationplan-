@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_6</activeVersionIdentifier>
+    <developerName>ResumePromptGenerator_opp</developerName>
+    <masterLabel>ResumePromptGenerator(opp)</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>You are a professional resume writer.
+Rewrite the candidate’s resume using ALL information exactly as given — do NOT omit any details.
+
+Job Description:
+ {!$Input:ResumeOpp}
+
+Candidate Details:
+ {!$Input:resumeText}
+
+Rewrite Requirements:
+ Use all provided details exactly as given.
+Always include:
+Name
+Designation
+Experience
+Description
+Skills
+Certifications (output actual certification names, do not use placeholders)
+Project Experience (output actual project names and full details)
+
+Tailor the resume to clearly align with the Job Description by emphasizing the most relevant skills, certifications, and projects that match the role.
+ Keep less relevant details but weave them naturally later in the sections.
+ Do not invent or add any new information.
+Use clear, polished, modern professional language — like a high-quality LinkedIn summary or executive CV.
+
+✅ Output Structure (must follow exactly):
+1️⃣ A single main heading (&lt;h1&gt;) in the format:
+ Name – Designation
+ Example: Deona Sherine – Consultant
+
+2️⃣ A single &lt;p&gt; paragraph that:
+Rewrites the Description into a fluent, polished professional summary.
+Naturally merges Experience into the narrative — do NOT output “Experience: X years” literally.
+Clearly highlights how the candidate’s background matches the Job Description.
+Mentions relevant skills, responsibilities, and Certifications naturally.
+Combines any separate experience details into one clear narrative.
+
+3️⃣ Then output:
+- `&lt;h2&gt;` Skills section with a `&lt;ul&gt;` list.
+- `&lt;h2&gt;` Certifications section with a `&lt;ul&gt;` list.
+
+
+ 4️⃣ Project Experience
+&lt;h2&gt; Project Experience section with each project formatted like this:
+For each Project:
+Do NOT alter, rewrite, or rephrase the Project Name. Output it exactly as provided in the input.
+If there are multiple projects with the same Project Name, merge their details into a single combined description under that exact Project Name (do not create duplicate entries).
+Project Name as &lt;h3&gt;Project: &lt;/h3&gt;
+Below the heading, output a single &lt;p&gt; paragraph that combines the Situation, Task, Action, Result, Skills Applied, Tools Used, and Learning Outcome into one clear, fluent description.
+Use professional language — do NOT output each field as separate bullet points. Combine them into a coherent narrative.
+Never invent, change, or add information that is not present in the input.
+
+
+Important Rules:
+Output valid HTML only.
+Do NOT wrap the output in any code fences (```).
+Do NOT add extra headings like “Candidate Resume”.
+Keep it clean, professional, and modern.
+Never invent information. Use only what is provided.
+
+✅ Key rule: If multiple projects have the same Project Name, merge their details into a single combined project description.
+
+</content>
+        <inputs>
+            <apiName>resumeText</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>resumeText</masterLabel>
+            <referenceName>Input:resumeText</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>ResumeOpp</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>ResumeOpp</masterLabel>
+            <referenceName>Input:ResumeOpp</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_1</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are a professional resume writer.
+Rewrite the candidate’s resume using ALL information exactly as given — do NOT omit any details.
+
+Job Description:
+ {!$Input:ResumeOpp}
+
+Candidate Details:
+ {!$Input:resumeText}
+
+Rewrite Requirements:
+ Use all provided details exactly as given.
+Always include:
+Name
+Designation
+Experience
+Description
+Skills
+Certifications (output actual certification names, do not use placeholders)
+Project Experience (output actual project names and full details)
+
+Tailor the resume to clearly align with the Job Description by emphasizing the most relevant skills, certifications, and projects that match the role.
+ Keep less relevant details but weave them naturally later in the sections.
+ Do not invent or add any new information.
+Use clear, polished, modern professional language — like a high-quality LinkedIn summary or executive CV.
+
+✅ Output Structure (must follow exactly):
+1️⃣ A single main heading (&lt;h1&gt;) in the format:
+ Name – Designation
+ Example: Deona Sherine – Consultant
+
+2️⃣ A single &lt;p&gt; paragraph that:
+Rewrites the Description into a fluent, polished professional summary.
+Naturally merges Experience into the narrative — do NOT output “Experience: X years” literally.
+Clearly highlights how the candidate’s background matches the Job Description.
+Mentions relevant skills, responsibilities, and Certifications naturally.
+Combines any separate experience details into one clear narrative.
+
+3️⃣ Then output:
+- `&lt;h2&gt;` Skills section with a `&lt;ul&gt;` list.
+
+- `&lt;h2&gt;` Certifications section with a `&lt;ul&gt;` list.
+- Rule: Only render this section if there is at least one certification.
+- If certifications are empty or not provided, do NOT display this section at all.
+
+
+ 4️⃣ Project Experience
+&lt;h2&gt; Project Experience section with each project formatted like this:
+For each Project:
+Do NOT alter, rewrite, or rephrase the Project Name. Output it exactly as provided in the input.
+If there are multiple projects with the same Project Name, merge their details into a single combined description under that exact Project Name (do not create duplicate entries).
+Project Name as &lt;h3&gt;Project: &lt;/h3&gt;
+Below the heading, output a single &lt;p&gt; paragraph that combines the Situation, Task, Action, Result, Skills Applied, Tools Used, and Learning Outcome into one clear, fluent description.
+Use professional language — do NOT output each field as separate bullet points. Combine them into a coherent narrative.
+Never invent, change, or add information that is not present in the input.
+
+
+Important Rules:
+Output valid HTML only.
+Do NOT wrap the output in any code fences (```).
+Do NOT add extra headings like “Candidate Resume”.
+Keep it clean, professional, and modern.
+Never invent information. Use only what is provided.
+
+✅ Key rule: If multiple projects have the same Project Name, merge their details into a single combined project description.
+
+</content>
+        <inputs>
+            <apiName>resumeText</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>resumeText</masterLabel>
+            <referenceName>Input:resumeText</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>ResumeOpp</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>ResumeOpp</masterLabel>
+            <referenceName>Input:ResumeOpp</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_2</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are a professional resume writer.
+Rewrite the candidate’s resume using ALL information exactly as given — do NOT omit any details.
+
+Job Description:
+ {!$Input:ResumeOpp}
+
+Candidate Details:
+ {!$Input:resumeText}
+
+Rewrite Requirements:
+ Use all provided details exactly as given.
+Always include:
+Name
+Designation
+Experience
+Description
+Skills
+Certifications (output actual certification names, do not use placeholders)
+Project Experience (output actual project names and full details)
+
+Tailor the resume to clearly align with the Job Description by emphasizing the most relevant skills, certifications, and projects that match the role.
+ Keep less relevant details but weave them naturally later in the sections.
+ Do not invent or add any new information.
+Use clear, polished, modern professional language — like a high-quality LinkedIn summary or executive CV.
+
+✅ Output Structure (must follow exactly):
+1️⃣ A single main heading (&lt;h1&gt;) in the format:
+ Name – Designation
+ Example: Deona Sherine – Consultant
+
+2️⃣ A single &lt;p&gt; paragraph that:
+Rewrites the Description into a fluent, polished professional summary.
+Naturally merges Experience into the narrative — do NOT output “Experience: X years” literally.
+Clearly highlights how the candidate’s background matches the Job Description.
+Mentions relevant skills, responsibilities, and Certifications naturally.
+Combines any separate experience details into one clear narrative.
+
+3️⃣ Then output:
+- `&lt;h2&gt;` Skills section with a `&lt;ul&gt;` list.
+
+- `&lt;h2&gt;` Certifications section with a `&lt;ul&gt;` list.
+- Rule: Only render this section if there is at least one certification.
+- If certifications are empty or not provided, do NOT display this section at all.
+
+
+ 4️⃣ Project Experience
+&lt;h2&gt; Project Experience section with each project formatted like this:
+For each Project:
+Do NOT alter, rewrite, or rephrase the Project Name. Output it exactly as provided in the input.
+If there are multiple projects with the same Project Name, merge their details into a single combined description under that exact Project Name (do not create duplicate entries).
+Project Name as &lt;h3&gt;Project: &lt;/h3&gt;
+Below the heading, output a single &lt;p&gt; paragraph that combines the Situation, Task, Action, Result, Skills Applied, Tools Used, and Learning Outcome into one clear, fluent description.
+Use professional language — do NOT output each field as separate bullet points. Combine them into a coherent narrative.
+Never invent, change, or add information that is not present in the input.
+
+
+Important Rules:
+Output valid HTML only.
+Do NOT wrap the output in any code fences (```).
+Do NOT add extra headings like “Candidate Resume”.
+Keep it clean, professional, and modern.
+Never invent information. Use only what is provided.
+
+✅ Key rule: If multiple projects have the same Project Name, merge their details into a single combined project description.
+
+</content>
+        <inputs>
+            <apiName>resumeText</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>resumeText</masterLabel>
+            <referenceName>Input:resumeText</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>ResumeOpp</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>ResumeOpp</masterLabel>
+            <referenceName>Input:ResumeOpp</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_3</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are a professional resume writer.
+Rewrite the candidate’s resume using ALL information exactly as given — do NOT omit any details.
+
+Job Description:
+ {!$Input:ResumeOpp}
+
+Candidate Details:
+ {!$Input:resumeText}
+
+Rewrite Requirements:
+ Use all provided details exactly as given.
+Always include:
+Name
+Designation
+Experience
+Description
+Skills
+Certifications (include only if provided; if none are given, skip this section entirely — do not output the heading or an empty list)
+Project Experience (output actual project names and full details)
+
+Tailor the resume to clearly align with the Job Description by emphasizing the most relevant skills, certifications, and projects that match the role.
+ Keep less relevant details but weave them naturally later in the sections.
+ Do not invent or add any new information.
+Use clear, polished, modern professional language — like a high-quality LinkedIn summary or executive CV.
+
+✅ Output Structure (must follow exactly):
+1️⃣ A single main heading (&lt;h1&gt;) in the format:
+ Name – Designation
+ Example: Deona Sherine – Consultant
+
+2️⃣ A single &lt;p&gt; paragraph that:
+Rewrites the Description into a fluent, polished professional summary.
+Naturally merges Experience into the narrative — do NOT output “Experience: X years” literally.
+Clearly highlights how the candidate’s background matches the Job Description.
+Mentions relevant skills, responsibilities, and Certifications naturally.
+Combines any separate experience details into one clear narrative.
+
+3️⃣ Then output:
+- `&lt;h2&gt;` Skills section with a `&lt;ul&gt;` list.
+
+- `&lt;h2&gt;` Certifications section with a `&lt;ul&gt;` list.
+- Rule: Only render this section if there is at least one certification.
+- If certifications are empty or not provided, do NOT display this section at all.
+
+
+ 4️⃣ Project Experience
+&lt;h2&gt; Project Experience section with each project formatted like this:
+For each Project:
+Do NOT alter, rewrite, or rephrase the Project Name. Output it exactly as provided in the input.
+If there are multiple projects with the same Project Name, merge their details into a single combined description under that exact Project Name (do not create duplicate entries).
+Project Name as &lt;h3&gt;Project: &lt;/h3&gt;
+Below the heading, output a single &lt;p&gt; paragraph that combines the Situation, Task, Action, Result, Skills Applied, Tools Used, and Learning Outcome into one clear, fluent description.
+Use professional language — do NOT output each field as separate bullet points. Combine them into a coherent narrative.
+Never invent, change, or add information that is not present in the input.
+
+
+Important Rules:
+Output valid HTML only.
+Do NOT wrap the output in any code fences (```).
+Do NOT add extra headings like “Candidate Resume”.
+Keep it clean, professional, and modern.
+Never invent information. Use only what is provided.
+
+✅ Key rule: If multiple projects have the same Project Name, merge their details into a single combined project description.
+
+</content>
+        <inputs>
+            <apiName>resumeText</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>resumeText</masterLabel>
+            <referenceName>Input:resumeText</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>ResumeOpp</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>ResumeOpp</masterLabel>
+            <referenceName>Input:ResumeOpp</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_4</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are a professional resume writer.
+Rewrite the candidate’s resume using ALL information exactly as given — do NOT omit any details.
+
+Job Description:
+ {!$Input:ResumeOpp}
+
+Candidate Details:
+ {!$Input:resumeText}
+
+Rewrite Requirements:
+ Use all provided details exactly as given.
+Always include:
+Name
+Designation
+Experience
+Description
+Skills
+Certifications (include only if provided; if none are given, skip this section entirely — do not output the heading or an empty list)
+Project Experience (output actual project names and full details)
+
+Tailor the resume to clearly align with the Job Description by emphasizing the most relevant skills, certifications, and projects that match the role.
+ Keep less relevant details but weave them naturally later in the sections.
+ Do not invent or add any new information.
+Use clear, polished, modern professional language — like a high-quality LinkedIn summary or executive CV.
+
+✅ Output Structure (must follow exactly):
+1️⃣ A single main heading (&lt;h1&gt;) in the format:
+ Name – Designation
+ Example: Deona Sherine – Consultant
+
+2️⃣ A single &lt;p&gt; paragraph that:
+Rewrites the Description into a fluent, polished professional summary.
+Naturally merges Experience into the narrative — do NOT output “Experience: X years” literally.
+Clearly highlights how the candidate’s background matches the Job Description.
+Mentions relevant skills, responsibilities, and Certifications naturally.
+Combines any separate experience details into one clear narrative.
+
+3️⃣ Then output:
+- `&lt;h2&gt;` Skills section with a `&lt;ul&gt;` list.
+
+- `&lt;h2&gt;` Certifications section with a `&lt;ul&gt;` list.
+- Rule: Only render this section if there is at least one certification.
+- If certifications are empty or not provided, do NOT display this section at all.
+
+
+ 4️⃣ Project Experience
+&lt;h2&gt; Project Experience section with each project formatted like this:
+For each Project:
+Do NOT alter, rewrite, or rephrase the Project Name. Output it exactly as provided in the input.
+If there are multiple projects with the same Project Name, merge their details into a single combined description under that exact Project Name (do not create duplicate entries).
+Project Name as &lt;h3&gt;Project: &lt;/h3&gt;
+Below the heading, output a single &lt;p&gt; paragraph that combines the Situation, Task, Action, Result, Skills Applied, Tools Used, and Learning Outcome into one clear, fluent description.
+Use professional language — do NOT output each field as separate bullet points. Combine them into a coherent narrative.
+Never invent, change, or add information that is not present in the input.
+If a project has no details (e.g., only the project name is provided, or it explicitly states &quot;details not provided&quot;), do NOT display that project at all in the final resume.
+Only include projects with actual descriptions or task details. 
+
+
+Important Rules:
+Output valid HTML only.
+Do NOT wrap the output in any code fences (```).
+Do NOT add extra headings like “Candidate Resume”.
+Keep it clean, professional, and modern.
+Never invent information. Use only what is provided.
+
+✅ Key rule: If multiple projects have the same Project Name, merge their details into a single combined project description.
+
+</content>
+        <inputs>
+            <apiName>resumeText</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>resumeText</masterLabel>
+            <referenceName>Input:resumeText</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>ResumeOpp</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>ResumeOpp</masterLabel>
+            <referenceName>Input:ResumeOpp</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_5</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are a professional resume writer.  
+Rewrite the candidate’s resume using ALL information exactly as given — do NOT omit any details.  
+
+Job Description:  
+ {!$Input:ResumeOpp}  
+
+Candidate Details:  
+ {!$Input:resumeText}  
+
+Rewrite Requirements:  
+- Use all provided details exactly as given.  
+- Always include:  
+ - Name  
+ - Designation  
+ - Experience  
+ - Description  
+ - Skills  
+ - Certifications (include only if provided; if none are given, skip this section entirely — do not output the heading or an empty list)  
+ - Project Experience (output actual project names and full details)  
+- Tailor the resume to clearly align with the Job Description by emphasizing the most relevant skills, certifications, and projects that match the role.  
+- Keep less relevant details but weave them naturally later in the sections.  
+- Do not invent or add any new information.  
+- Use clear, polished, modern professional language — like a high-quality LinkedIn summary or executive CV.  
+
+---
+
+✅ Output Structure (must follow exactly):  
+
+1️⃣ **Main Heading**  
+- A single main heading (`&lt;h1&gt;`) in the format:  
+ Name – Designation  
+ Example: `Deona Sherine – Consultant`  
+
+2️⃣ **Professional Summary**  
+- A single `&lt;p&gt;` paragraph that:  
+ - Rewrites the Description into a fluent, polished professional summary.  
+ - Naturally merges Experience into the narrative — do NOT output “Experience: X years” literally.  
+ - Clearly highlights how the candidate’s background matches the Job Description.  
+ - Mentions relevant skills, responsibilities, and Certifications naturally.  
+ - Combines any separate experience details into one clear narrative.  
+
+3️⃣ **Skills Section**  
+- Only render this section if skills has at least one item.  
+- Heading: `&lt;h2&gt;Skills&lt;/h2&gt;`  
+- Render a datatable (HTML `&lt;table&gt;`) with exactly 2 columns per row:  
+  - Column 1 = Skill Category (e.g., Data &amp; Analytics, Cloud &amp; ERP, Business Intelligence &amp; Reporting, Databases, ETL &amp; Integration, Programming &amp; Scripting).  
+  - Column 2 = Skills listed under that category, displayed as comma-separated text.  
+- Rules:  
+ - List items strictly from `skills[]` only.  
+ - Display only technical skills (e.g., tools, platforms, databases, programming languages, analytics, BI, ETL, integration, cloud/ERP).  
+ - Exclude soft skills and managerial skills (e.g., Leadership, Team Management, Cross-functional Coordination, Stakeholder Engagement, Administration).  
+ - Do NOT add or infer skills from projects, description, or anywhere else.  
+ - Preserve each skill’s exact text and order as given in the array for the technical ones.  
+
+**Example structure:**  
+
+&lt;table style=&quot;border-collapse: collapse; width: 100%;&quot;&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+  &lt;td style=&quot;border: 1px solid #ddd; padding: 8px;&quot;&gt;&lt;b&gt;Data &amp; Analytics&lt;/b&gt;&lt;/td&gt;
+  &lt;td style=&quot;border: 1px solid #ddd; padding: 8px;&quot;&gt;Analytics, Data Warehousing, Data Modeling, ETL Pipelines, Performance Optimization, Upgradation, Migration&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+  &lt;td style=&quot;border: 1px solid #ddd; padding: 8px;&quot;&gt;&lt;b&gt;Cloud &amp; ERP&lt;/b&gt;&lt;/td&gt;
+  &lt;td style=&quot;border: 1px solid #ddd; padding: 8px;&quot;&gt;Oracle Fusion Cloud ERP, Oracle Fusion Data Intelligence, Oracle Fusion Analytics Warehouse (FAW), Oracle Analytics Cloud (OAC)...&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+&lt;/table&gt;  
+
+4️⃣ **Certifications Section**  
+- Heading: `&lt;h2&gt;Certifications&lt;/h2&gt;`  
+- Render as an unordered list `&lt;ul&gt;` with each certification as a `&lt;li&gt;` item.  
+- Rule: Only render this section if there is at least one certification.  
+- If certifications are empty or not provided, do NOT display this section at all.  
+
+5️⃣ **Project Experience Section**  
+- Heading: `&lt;h2&gt;Project Experience&lt;/h2&gt;`  
+- For each project:  
+ - Render Project Name as `&lt;h3&gt;Project: [Project Name]&lt;/h3&gt;`  
+ - Below the heading, output a single `&lt;p&gt;` paragraph that:  
+  - Combines the Situation, Task, Action, Result, Skills Applied, Tools Used, and Learning Outcome into one clear, fluent description.  
+  - Uses professional, polished language.  
+  - Do NOT output each field as separate bullet points. Instead, merge them into a coherent narrative.  
+ - Do NOT alter, rewrite, or rephrase the Project Name. Output it exactly as provided.  
+ - If multiple projects have the same Project Name, merge their details into a single combined description under that exact name (no duplicate entries).  
+ - If a project has no details (e.g., only the project name is provided, or it explicitly states “details not provided”), do NOT display that project at all in the final resume.  
+ - Only include projects with actual descriptions or task details.  
+
+---
+
+**Important Rules:**  
+- Output valid HTML only.  
+- Do NOT wrap the output in code fences (``` ).  
+- Do NOT add extra headings like “Candidate Resume”.  
+- Keep it clean, professional, and modern.  
+- Never invent information. Use only what is provided.  
+- ✅ Key rule: If multiple projects have the same Project Name, merge their details into a single combined project description.  
+
+</content>
+        <inputs>
+            <apiName>resumeText</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>resumeText</masterLabel>
+            <referenceName>Input:resumeText</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>ResumeOpp</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>ResumeOpp</masterLabel>
+            <referenceName>Input:ResumeOpp</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_6</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

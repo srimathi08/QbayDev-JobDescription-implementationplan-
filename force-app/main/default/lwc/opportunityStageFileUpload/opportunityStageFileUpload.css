@@ -1,0 +1,21 @@
+:host {
+    display: block;
+}
+
+/* Give subtle hover effect to uploaded file box */
+.slds-box:hover {
+    background-color: var(--slds-g-color-neutral-base-95);
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Center the file upload drop zone */
+.slds-align_absolute-center {
+    justify-content: center;
+    align-items: center;
+}
+
+/* Style file upload area */
+lightning-file-upload {
+    --slds-c-file-selector-color-border: var(--slds-g-color-brand-base-40);
+    --slds-c-file-selector-color-background: var(--slds-g-color-neutral-base-100);
+}

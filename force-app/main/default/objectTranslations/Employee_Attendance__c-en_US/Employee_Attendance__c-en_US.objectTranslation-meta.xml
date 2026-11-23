@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Employee Attendance</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Employee Attendances</value>
+    </caseValues>
+    <layouts>
+        <layout>Employee Attendance Layout</layout>
+        <sections>
+            <label><!-- Chek IN / OUT --></label>
+            <section>Chek IN / OUT</section>
+        </sections>
+        <sections>
+            <label><!-- Client Place Details --></label>
+            <section>Client Place Details</section>
+        </sections>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

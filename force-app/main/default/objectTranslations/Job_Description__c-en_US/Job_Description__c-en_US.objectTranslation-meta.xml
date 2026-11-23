@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Job Description</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Job Description</value>
+    </caseValues>
+    <layouts>
+        <layout>Job Description Layout</layout>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+        <sections>
+            <label><!-- Experience &amp; Skills --></label>
+            <section>Experience &amp; Skills</section>
+        </sections>
+        <sections>
+            <label><!-- Location &amp; Time --></label>
+            <section>Location &amp; Time</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

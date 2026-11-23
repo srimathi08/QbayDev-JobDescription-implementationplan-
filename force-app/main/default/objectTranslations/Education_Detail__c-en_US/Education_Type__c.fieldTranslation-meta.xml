@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Education Type --></label>
+    <name>Education_Type__c</name>
+    <picklistValues>
+        <masterLabel>Certification</masterLabel>
+        <translation><!-- Certification --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Diploma</masterLabel>
+        <translation><!-- Diploma --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Grade 10</masterLabel>
+        <translation><!-- Grade 10 --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Grade 12</masterLabel>
+        <translation><!-- Grade 12 --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Other</masterLabel>
+        <translation><!-- Other --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>PG</masterLabel>
+        <translation><!-- PG --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>UG</masterLabel>
+        <translation><!-- UG --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

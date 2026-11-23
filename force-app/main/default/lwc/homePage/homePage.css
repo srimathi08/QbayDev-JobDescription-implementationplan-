@@ -1,0 +1,166 @@
+/* Dashboard menu */
+.dashboard-menu {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: nowrap;
+}
+
+.menu-item {
+  border-radius: 0.75rem;
+  width: 120px;
+  height: 120px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.menu-item:hover { transform: scale(1.05); }
+
+.menu-item lightning-icon {
+  margin-bottom: 0.5rem;
+  --slds-c-icon-color-foreground-default: #cfcfcf;
+}
+.menu-item span {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* Floating +Create button */
+.create-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ff6b6b;
+  color: white;
+  border-radius: 50px;
+  padding: 15px 25px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Generic modal overlay */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.35); /* dim backdrop */
+  z-index: 1100;
+  padding: 0;
+  box-sizing: border-box;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Modal content box */
+.modal-content {
+  position: relative;
+  background: #fff;
+  color: #000;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.18);
+  width: min(800px, 95vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  margin-top: 0;
+}
+
+/* Close button for all modals */
+.close-button,
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #344054;
+  cursor: pointer;
+  z-index: 1200;
+}
+.close-button:hover,
+.modal-close:hover {
+  background: #f2f4f7;
+  color: #000;
+}
+
+/* Create Menu buttons */
+.modal-options-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.modal-options-row button {
+  background: #2a3b4c;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  flex: 1 1 auto;
+  min-width: 100px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.modal-options-row button:hover { background: #3a4b5c; }
+
+/* === Feed / My Tasks modal === */
+.tasks-modal .modal-content {
+  width: min(1100px, 96vw);
+  max-height: 85vh;
+  padding: 16px;
+}
+
+/* === Opportunity modal fixes === */
+.opportunity-modal .modal-content {
+  width: min(900px, 96vw);
+  padding-bottom: 30px;
+}
+
+/* Make form fields align properly (remove global flex overrides) */
+.opportunity-modal .modal-content .slds-form-element,
+.opportunity-modal .modal-content lightning-input-field,
+.opportunity-modal .modal-content lightning-input,
+.opportunity-modal .modal-content lightning-combobox {
+  width: 100%;
+}
+.opportunity-modal .modal-content .slds-form-element {
+  margin-bottom: 0.75rem;
+}
+
+/* Only align Account Lookup + New row */
+.inline-account-row .slds-col {
+  display: flex;
+  align-items: center;
+}
+.inline-account-row .slds-button {
+  margin-left: .5rem;
+  white-space: nowrap;
+}
+
+/* Page padding */
+.main-content {
+  min-height: 50vh;
+  padding-bottom: 100px; /* extra space for fixed Create button */
+}

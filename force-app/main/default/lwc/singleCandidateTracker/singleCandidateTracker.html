@@ -1,0 +1,66 @@
+<template>
+    <lightning-card class="profile-card">
+        <div class="slds-grid slds-wrap slds-p-around_small">
+            <!-- Avatar Image -->
+            <div class="slds-col slds-size_1-of-4">
+                <!-- <img src={avatarUrl} alt="Profile Picture" class="avatar-img" /> -->
+                
+               <div class="image-wrapper">
+    <lightning-formatted-rich-text class="image-container" value={image}></lightning-formatted-rich-text>
+
+    <lightning-icon
+        class="upload-icon"
+        icon-name="utility:upload"
+        size="x-small"
+        alternative-text="upload"
+        onclick={handleUploadClick}>
+    </lightning-icon>
+</div>
+            </div>
+
+            <!-- Member Info -->
+            <div class="slds-col slds-size_3-of-4">
+                <p class="name">{name}</p>
+                 <p class="empid"><span class="emid">Employee ID:</span>{employeeId}</p>
+                <div class="detail-container">
+                <p>
+                    <lightning-icon icon-name="utility:email" size="x-small" alternative-text="Email"></lightning-icon>
+                    {email}
+                </p>
+                <p>
+                    <lightning-icon icon-name="utility:call" size="x-small" alternative-text="Phone"></lightning-icon>
+                    <a href={phone} class="slds-m-left_xx-small">{phone}</a>
+                </p>
+                
+                </div>
+                
+               
+            </div>
+           
+        </div>
+             <div class="slds-m-top_x-small">
+                    <lightning-badge label={ageLabel}></lightning-badge>
+                    <!--<lightning-badge label={gender}></lightning-badge> -->
+                    <lightning-badge label={designation}></lightning-badge>
+                </div>
+    </lightning-card>
+
+
+     <template if:true={showModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Upload Profile Picture</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-input type="file" accept=".jpg,.png,.jpeg" label="Upload Profile Picture" onchange={openfileUpload}></lightning-input>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="brand" label="Submit" onclick={handleSubmit}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleModalClose}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

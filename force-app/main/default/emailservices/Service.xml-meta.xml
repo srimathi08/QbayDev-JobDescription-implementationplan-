@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailServicesFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apexClass>parseEmail</apexClass>
+    <attachmentOption>All</attachmentOption>
+    <authenticationFailureAction>Bounce</authenticationFailureAction>
+    <authorizationFailureAction>Bounce</authorizationFailureAction>
+    <authorizedSenders>murali@quadrobay.com,afrose0719@gmail.com,deonajohndj@gmail.com,swapnapriya2110@gmail.com,deona.sherine@quadrobay.com,muru@quadrobay.com,subathra.mathialagan@quadrobay.com,swapnapriya.r@quadrobay.com,sathish.perumal@quadrobay.com,balamurugeswari.g@quadrobay.com</authorizedSenders>
+    <errorRoutingAddress>deonajohndj@gmail.com</errorRoutingAddress>
+    <functionInactiveAction>Discard</functionInactiveAction>
+    <functionName>Service</functionName>
+    <isActive>true</isActive>
+    <isAuthenticationRequired>false</isAuthenticationRequired>
+    <isErrorRoutingEnabled>true</isErrorRoutingEnabled>
+    <isTextAttachmentsAsBinary>false</isTextAttachmentsAsBinary>
+    <isTlsRequired>false</isTlsRequired>
+    <overLimitAction>Requeue</overLimitAction>
+</EmailServicesFunction>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Leave Type</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Leave Types</value>
+    </caseValues>
+    <layouts>
+        <layout>Leave Type Layout</layout>
+        <sections>
+            <label><!-- Approval &amp; Policy Rules --></label>
+            <section>Approval &amp; Policy Rules</section>
+        </sections>
+        <sections>
+            <label><!-- Basic Information --></label>
+            <section>Basic Information</section>
+        </sections>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+        <sections>
+            <label><!-- Description &amp; Notes --></label>
+            <section>Description &amp; Notes</section>
+        </sections>
+        <sections>
+            <label><!-- Eligibility Criteria --></label>
+            <section>Eligibility Criteria</section>
+        </sections>
+        <sections>
+            <label><!-- Leave Type &amp; Category --></label>
+            <section>Leave Type &amp; Category</section>
+        </sections>
+        <sections>
+            <label><!-- Limits &amp; Caps --></label>
+            <section>Limits &amp; Caps</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+    <validationRules>
+        <errorMessage><!-- Please enter as capital only for leave code --></errorMessage>
+        <name>Capital_as_Leave_Code</name>
+    </validationRules>
+</CustomObjectTranslation>

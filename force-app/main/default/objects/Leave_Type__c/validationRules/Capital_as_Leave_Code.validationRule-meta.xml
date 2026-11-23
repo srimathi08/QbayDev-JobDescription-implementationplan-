@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Capital_as_Leave_Code</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+    NOT(ISBLANK(Leave_Code__c)),
+    Leave_Code__c &lt;&gt; UPPER(Leave_Code__c)
+)</errorConditionFormula>
+    <errorMessage>Please enter as capital only for leave code</errorMessage>
+</ValidationRule>

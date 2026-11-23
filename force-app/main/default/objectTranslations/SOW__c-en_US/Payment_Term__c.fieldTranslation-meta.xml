@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Payment Term --></label>
+    <name>Payment_Term__c</name>
+    <picklistValues>
+        <masterLabel>Less than 30 Days</masterLabel>
+        <translation><!-- Less than 30 Days --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Within 30 Days</masterLabel>
+        <translation><!-- Within 30 Days --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Within 45 Days</masterLabel>
+        <translation><!-- Within 45 Days --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

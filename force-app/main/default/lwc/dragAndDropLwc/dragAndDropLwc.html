@@ -1,0 +1,37 @@
+<template>
+    
+            <lightning-input class="slds-m-top_xx-small" type="text" placeholder="Search..." value={searchKey}  onchange={handleInputChange}></lightning-input>
+     <div class="result_wrapper">
+        <p class="p_text">{results}</p>
+        <!-- <p class="p_text">
+            Sorted by <span onclick={toggleDropdown} class="sort_span">{selectedSort}</span>
+        </p> -->
+
+        <template if:true={showDropdown}>
+            <ul class="dropdown">
+                <li onclick={selectSort} data-value="Name">Name</li>
+                <li onclick={selectSort} data-value="Amount">Amount</li>
+                <li onclick={selectSort} data-value="CloseDate">CloseDate</li>
+            </ul>
+        </template>
+    </div>       
+
+  
+   <div class="card_wrapper">
+        <template for:each={stageTotals} for:item="item">
+            <div class="stageContainer" key={item} >
+                <h1 class="column_heading">{item.stageName}
+                <div class="meta_info">     
+                <span>{item.recordCount} </span> | <span>${item.totalAmount}</span> 
+            </div></h1>
+
+                <c-drag-and-drop-list records={records} stage={item.stageName}
+                 onlistitemdrag={handleListItemDrag}
+                 onitemdrop={handleItemDrop}
+                 ></c-drag-and-drop-list>
+            </div>
+            
+        </template>
+    </div>  
+     
+</template>

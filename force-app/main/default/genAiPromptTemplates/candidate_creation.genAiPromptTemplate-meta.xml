@@ -1,0 +1,4154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <developerName>candidate_creation</developerName>
+    <masterLabel>candidate creation</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge | Languages&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_1</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge | Languages&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_2</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_3</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_4</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Draft</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_5</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_6</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Advanced&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_7</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>p1Hpn7r65hOjdeIB7V0d8NgFgC0Zv3nzATM+juBHu50=_8</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Do not include UnKnown or null If value Is empty Keep empty 
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_9</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Do not include UnKnown or null If value Is empty Keep empty 
+• Any character outside the JSON braces makes the response invalid.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_10</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Do not include UnKnown or null If value Is empty Keep empty 
+• Any character outside the JSON braces makes the response invalid.
+if name not present do not take from email
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_11</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+• Any character outside the JSON braces makes the response invalid.
+if name not present do not take from email
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_12</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+if name not present do not take from email
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_13</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+if name not present do not take from email
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_14</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, ex 4 years
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- Use the company/project name as &quot;projectName&quot;.
+- If a role/title is given → put in &quot;projectRole&quot;.
+- Extract description into &quot;situation&quot;, &quot;task&quot;, &quot;action&quot;, &quot;result&quot;, &quot;learningOutcome&quot; if present.
+- Capture &quot;skillsApplied&quot; and &quot;toolsUsed&quot; if mentioned.
+- Normalize &quot;startDate&quot; and &quot;endDate&quot; using date rules (YYYY-MM-DD).
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_15</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, 
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- Use the company/project name as &quot;projectName&quot;.
+- If a role/title is given → put in &quot;projectRole&quot;.
+- Extract description into &quot;situation&quot;, &quot;task&quot;, &quot;action&quot;, &quot;result&quot;, &quot;learningOutcome&quot; if present.
+- Capture &quot;skillsApplied&quot; and &quot;toolsUsed&quot; if mentioned.
+- Normalize &quot;startDate&quot; and &quot;endDate&quot; using date rules (YYYY-MM-DD).
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_16</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, 
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name.
+- projectRole → If a role/title is given, populate here.
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture high-level project context (business domain, client, environment, modules, objectives).
+- task → Capture detailed responsibilities and day-to-day duties (the bullet points).
+- action → Capture specific steps/actions taken by the candidate (verbs like implemented, led, migrated, coordinated).
+- result → Capture measurable outcomes or achievements (e.g., reduced downtime by 20%, migrated 3M records with zero issues).
+- learningOutcome → Capture what the candidate gained or learned from the project (e.g., gained expertise in Salesforce integration).
+- skillsApplied → Capture technical and functional skills applied in this project.
+- toolsUsed → Capture tools/technologies explicitly mentioned (e.g., Oracle EBS, Salesforce CRM, Avaya, REST APIs).
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_17</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;firstName&quot;: &quot;&quot;,
+  &quot;lastName&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;:&quot;&quot;,
+  &quot;currentLocation&quot;:&quot;&quot;,
+  &quot;languagesKnown&quot;:&quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;, 
+  &quot;linkedin&quot;: &quot;&quot;
+  &quot;filename&quot;:&quot;&quot;
+  &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;lastUsed&quot;: &quot;&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_18</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+ &quot;account&quot;: {
+ &quot;firstName&quot;: &quot;&quot;,
+ &quot;lastName&quot;: &quot;&quot;,
+ &quot;dateofBirth&quot;:&quot;&quot;,
+ &quot;currentLocation&quot;:&quot;&quot;,
+ &quot;languagesKnown&quot;:&quot;&quot;,
+ &quot;email&quot;: &quot;&quot;,
+ &quot;phone&quot;: &quot;&quot;,
+ &quot;summary&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;, 
+ &quot;linkedin&quot;: &quot;&quot;
+ &quot;filename&quot;:&quot;&quot;
+ &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - If both firstName and lastName are present → keep as is.
+- If lastName is blank and firstName is not blank → move the firstName value into lastName
+- clear firstName.
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name.
+- projectRole → If a role/title is given, populate here.
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture high-level project context (business domain, client, environment, modules, objectives).
+- task → Capture detailed responsibilities and day-to-day duties (the bullet points).
+- action → Capture specific steps/actions taken by the candidate (verbs like implemented, led, migrated, coordinated).
+- result → Capture measurable outcomes or achievements (e.g., reduced downtime by 20%, migrated 3M records with zero issues).
+- learningOutcome → Capture what the candidate gained or learned from the project (e.g., gained expertise in Salesforce integration).
+- skillsApplied → Capture technical and functional skills applied in this project.
+- toolsUsed → Capture tools/technologies explicitly mentioned (e.g., Oracle EBS, Salesforce CRM, Avaya, REST APIs).
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_19</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+ &quot;account&quot;: {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;dateofBirth&quot;:&quot;&quot;,
+ &quot;currentLocation&quot;:&quot;&quot;,
+ &quot;languagesKnown&quot;:&quot;&quot;,
+ &quot;email&quot;: &quot;&quot;,
+ &quot;phone&quot;: &quot;&quot;,
+ &quot;summary&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;, 
+ &quot;linkedin&quot;: &quot;&quot;
+ &quot;filename&quot;:&quot;&quot;
+ &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name.
+- projectRole → If a role/title is given, populate here.
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture high-level project context (business domain, client, environment, modules, objectives).
+- task → Capture detailed responsibilities and day-to-day duties (the bullet points).
+- action → Capture specific steps/actions taken by the candidate (verbs like implemented, led, migrated, coordinated).
+- result → Capture measurable outcomes or achievements (e.g., reduced downtime by 20%, migrated 3M records with zero issues).
+- learningOutcome → Capture what the candidate gained or learned from the project (e.g., gained expertise in Salesforce integration).
+- skillsApplied → Capture technical and functional skills applied in this project.
+- toolsUsed → Capture tools/technologies explicitly mentioned (e.g., Oracle EBS, Salesforce CRM, Avaya, REST APIs).
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_20</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+ &quot;account&quot;: {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;dateofBirth&quot;:&quot;&quot;,
+ &quot;currentLocation&quot;:&quot;&quot;,
+ &quot;languagesKnown&quot;:&quot;&quot;,
+ &quot;email&quot;: &quot;&quot;,
+ &quot;phone&quot;: &quot;&quot;,
+ &quot;summary&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;, 
+ &quot;linkedin&quot;: &quot;&quot;
+ &quot;filename&quot;:&quot;&quot;
+ &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).
+- projectRole → If a role/title is given, populate here (e.g., &quot;Consultant&quot;, &quot;Technical Developer&quot;).
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture ONLY the high-level project context (e.g., client industry, project phase, agile/sprint culture, modules, environment, business objective).
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), such as requirement gathering, document preparation, unit testing, attending client calls.
+- action → Capture ONLY the methods/approaches used (the “how it was done”), such as following standards, preparing design/technical docs, applying CR process, using agile methods, creating integrations.
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), such as UAT support, sign-off obtained, successful migration, reduced issues, improved performance.
+- learningOutcome → Capture ONLY the candidate’s personal learning or takeaway from the project (e.g., gained agile delivery experience, learned sprint-based execution, strengthened client communication).
+- skillsApplied → List technical/functional skills explicitly applied in the project (e.g., OIC, BI Publisher, FBDI, OTBI).
+- toolsUsed → List tools/technologies explicitly mentioned (e.g., OIC, Oracle EBS, REST APIs, SOAP, FTP, FBDI, HDL).
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_21</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+ &quot;account&quot;: {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;dateofBirth&quot;:&quot;&quot;,
+ &quot;currentLocation&quot;:&quot;&quot;,
+ &quot;languagesKnown&quot;:&quot;&quot;,
+ &quot;email&quot;: &quot;&quot;,
+ &quot;phone&quot;: &quot;&quot;,
+ &quot;summary&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;, 
+ &quot;linkedin&quot;: &quot;&quot;
+ &quot;filename&quot;:&quot;&quot;
+ &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).
+- projectRole → If a role/title is given, populate here (e.g., &quot;Consultant&quot;, &quot;Technical Developer&quot;).
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture ONLY the high-level project context (e.g., client industry, project phase, agile/sprint culture, modules, environment, business objective).
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), such as requirement gathering, document preparation, unit testing, attending client calls.
+- action → Capture ONLY the methods/approaches used (the “how it was done”), such as following standards, preparing design/technical docs, applying CR process, using agile methods, creating integrations.
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), such as UAT support, sign-off obtained, successful migration, reduced issues, improved performance.
+- learningOutcome → Capture ONLY the candidate’s personal learning or takeaway from the project (e.g., gained agile delivery experience, learned sprint-based execution, strengthened client communication).
+- skillsApplied → List technical/functional skills explicitly applied in the project (e.g., OIC, BI Publisher, FBDI, OTBI).
+- toolsUsed → List tools/technologies explicitly mentioned (e.g., OIC, Oracle EBS, REST APIs, SOAP, FTP, FBDI, HDL).
+• For &quot;experience&quot; field: 
+ - Extract only the candidate’s **total years of professional experience**. 
+ - If multiple numbers are found, pick the **largest value** that clearly represents overall career experience. 
+ - Normalize the output as a number followed by &quot;years&quot; (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+ - Do NOT copy sentences or descriptive text. 
+ - If no explicit years are found, leave blank.
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_22</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+ &quot;account&quot;: {
+ &quot;name&quot;: &quot;&quot;,
+ &quot;dateofBirth&quot;:&quot;&quot;,
+ &quot;currentLocation&quot;:&quot;&quot;,
+ &quot;languagesKnown&quot;:&quot;&quot;,
+ &quot;email&quot;: &quot;&quot;,
+ &quot;phone&quot;: &quot;&quot;,
+ &quot;summary&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;, 
+ &quot;linkedin&quot;: &quot;&quot;
+ &quot;filename&quot;:&quot;&quot;
+ &quot;degree&quot;&quot;:&quot;&quot;
+&quot;designation&quot;&quot;:&quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).
+- projectRole → If a role/title is given, populate here (e.g., &quot;Consultant&quot;, &quot;Technical Developer&quot;).
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture ONLY the high-level project context (e.g., client industry, project phase, agile/sprint culture, modules, environment, business objective).
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), such as requirement gathering, document preparation, unit testing, attending client calls.
+- action → Capture ONLY the methods/approaches used (the “how it was done”), such as following standards, preparing design/technical docs, applying CR process, using agile methods, creating integrations.
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), such as UAT support, sign-off obtained, successful migration, reduced issues, improved performance.
+- learningOutcome → Capture ONLY the candidate’s personal learning or takeaway from the project (e.g., gained agile delivery experience, learned sprint-based execution, strengthened client communication).
+- skillsApplied → List technical/functional skills explicitly applied in the project (e.g., OIC, BI Publisher, FBDI, OTBI).
+- toolsUsed → List tools/technologies explicitly mentioned (e.g., OIC, Oracle EBS, REST APIs, SOAP, FTP, FBDI, HDL).
+Experience Extraction Rules
+Extract only the candidate’s total years of professional experience.
+Convert phrases like “2 decades” → &quot;20 years&quot;.
+Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+Do NOT copy descriptive sentences into this field.
+If no valid years are found, leave it empty.
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_23</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+&quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).
+- projectRole → If a role/title is given, populate here (e.g., &quot;Consultant&quot;, &quot;Technical Developer&quot;).
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture ONLY the high-level project context (e.g., client industry, project phase, agile/sprint culture, modules, environment, business objective).
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), such as requirement gathering, document preparation, unit testing, attending client calls.
+- action → Capture ONLY the methods/approaches used (the “how it was done”), such as following standards, preparing design/technical docs, applying CR process, using agile methods, creating integrations.
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), such as UAT support, sign-off obtained, successful migration, reduced issues, improved performance.
+- learningOutcome → Capture ONLY the candidate’s personal learning or takeaway from the project (e.g., gained agile delivery experience, learned sprint-based execution, strengthened client communication).
+- skillsApplied → List technical/functional skills explicitly applied in the project (e.g., OIC, BI Publisher, FBDI, OTBI).
+- toolsUsed → List tools/technologies explicitly mentioned (e.g., OIC, Oracle EBS, REST APIs, SOAP, FTP, FBDI, HDL).
+Experience Extraction Rules
+Extract only the candidate’s total years of professional experience.
+Convert phrases like “2 decades” → &quot;20 years&quot;.
+Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+Do NOT copy descriptive sentences into this field.
+If no valid years are found, leave it empty.
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_24</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+&quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).
+- projectRole → If a role/title is given, populate here (e.g., &quot;Consultant&quot;, &quot;Technical Developer&quot;).
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture ONLY the high-level project context (e.g., client industry, project phase, agile/sprint culture, modules, environment, business objective).
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), such as requirement gathering, document preparation, unit testing, attending client calls.
+- action → Capture ONLY the methods/approaches used (the “how it was done”), such as following standards, preparing design/technical docs, applying CR process, using agile methods, creating integrations.
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), such as UAT support, sign-off obtained, successful migration, reduced issues, improved performance.
+- learningOutcome → Capture ONLY the candidate’s personal learning or takeaway from the project (e.g., gained agile delivery experience, learned sprint-based execution, strengthened client communication).
+- skillsApplied → List technical/functional skills explicitly applied in the project (e.g., OIC, BI Publisher, FBDI, OTBI).
+- toolsUsed → List tools/technologies explicitly mentioned (e.g., OIC, Oracle EBS, REST APIs, SOAP, FTP, FBDI, HDL).
+• Experience Extraction Rules
+- Extract only the candidate’s total years of professional experience.
+- Convert phrases like “2 decades” → &quot;20 years&quot;.
+- Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+- If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+- Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+- Do NOT copy descriptive sentences into this field.
+- If no valid years are found, leave it empty.
+• Email Handling Rule
+- If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep it as-is.
+- If .com is missing, automatically append .com.
+Example: praveenkumbar16@gmail → praveenkumbar16@gmail.com.
+- If gmailcom or similar occurs (missing dot), insert the dot before the TLD.
+Example: praveenkumbar16@gmailcom → praveenkumbar16@gmail.com.
+- If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.
+Example: praveenkumbar16@gmail.co.in → praveenkumbar16@gmail.co.in.
+- If an email cannot be normalized into a valid format, leave it empty.
+- Never infer or generate an email if it is completely missing.
+
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Draft</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_25</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+&quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+  &quot;projectRole&quot;: &quot;&quot;,
+  &quot;situation&quot;: &quot;&quot;,
+  &quot;task&quot;: &quot;&quot;,
+  &quot;action&quot;: &quot;&quot;,
+  &quot;result&quot;: &quot;&quot;,
+  &quot;learningOutcome&quot;: &quot;&quot;,
+  &quot;skillsApplied&quot;: &quot;&quot;,
+  &quot;toolsUsed&quot;: &quot;&quot;,
+  &quot;startDate&quot;: &quot;&quot;,
+  &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).
+- projectRole → If a role/title is given, populate here (e.g., &quot;Consultant&quot;, &quot;Technical Developer&quot;).
+- startDate / endDate → Extract from duration and normalize using date rules (YYYY-MM-DD).
+- situation → Capture ONLY the high-level project context (e.g., client industry, project phase, agile/sprint culture, modules, environment, business objective).
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), such as requirement gathering, document preparation, unit testing, attending client calls.
+- action → Capture ONLY the methods/approaches used (the “how it was done”), such as following standards, preparing design/technical docs, applying CR process, using agile methods, creating integrations.
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), such as UAT support, sign-off obtained, successful migration, reduced issues, improved performance.
+- learningOutcome → Capture ONLY the candidate’s personal learning or takeaway from the project (e.g., gained agile delivery experience, learned sprint-based execution, strengthened client communication).
+- skillsApplied → List technical/functional skills explicitly applied in the project (e.g., OIC, BI Publisher, FBDI, OTBI).
+- toolsUsed → List tools/technologies explicitly mentioned (e.g., OIC, Oracle EBS, REST APIs, SOAP, FTP, FBDI, HDL).
+• Experience Extraction Rules
+- Extract only the candidate’s total years of professional experience.
+- Convert phrases like “2 decades” → &quot;20 years&quot;.
+- Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+- If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+- Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+- Do NOT copy descriptive sentences into this field.
+- If no valid years are found, leave it empty.
+• Email Handling Rule
+- If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep it as-is.
+- If .com is missing, automatically append .com.
+Example: praveenkumbar16@gmail → praveenkumbar16@gmail.com.
+- If gmailcom or similar occurs (missing dot), insert the dot before the TLD.
+Example: praveenkumbar16@gmailcom → praveenkumbar16@gmail.com.
+- If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.
+Example: praveenkumbar16@gmail.co.in → praveenkumbar16@gmail.co.in.
+- If an email cannot be normalized into a valid format, leave it empty.
+- Never infer or generate an email if it is completely missing.
+
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_26</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+&quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+     &quot;projectPhase&quot;: &quot;&quot;,
+     &quot;projectRole&quot;: &quot;&quot;,
+     &quot;designationJobTitle&quot;: &quot;&quot;,
+     &quot;clientName&quot;: &quot;&quot;,
+     &quot;projectLocation&quot;: &quot;&quot;,
+     &quot;situation&quot;: &quot;&quot;,
+     &quot;task&quot;: &quot;&quot;,
+     &quot;action&quot;: &quot;&quot;,
+     &quot;result&quot;: &quot;&quot;,
+     &quot;responsibilities&quot;: &quot;&quot;,
+     &quot;achievements&quot;: &quot;&quot;,
+     &quot;learningOutcome&quot;: &quot;&quot;,
+     &quot;skillsApplied&quot;: &quot;&quot;,
+     &quot;toolsUsed&quot;: &quot;&quot;,
+     &quot;environment&quot;: &quot;&quot;,
+     &quot;startDate&quot;: &quot;&quot;,
+     &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).  
+- projectRole → Capture the specific role in the project (e.g., &quot;Oracle PL/SQL Developer&quot;, &quot;Consultant&quot;).  
+- designationJobTitle → Capture the official job title or designation given in the work experience (e.g., &quot;Senior Software Engineer&quot;, &quot;Business Analyst&quot;).  
+- clientName → Capture the client or organization for which the project was executed (e.g., &quot;UTI Bank&quot;, &quot;Renault Nissan&quot;). If only an employer is mentioned, use that.  
+- projectLocation → Capture the location if specified (e.g., &quot;Chennai&quot;, &quot;Bangalore&quot;, &quot;Onsite – London&quot;).  
+- startDate / endDate → Extract from the timeline and normalize using ISO format (YYYY-MM-DD).  
+
+- situation → Capture ONLY the high-level project context (industry, domain, project type, business objective, agile/phase info).  
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), e.g., requirement gathering, testing, document preparation, client meetings.  
+- action → Capture ONLY the methods/approaches used (the “how it was done”), e.g., agile methodology, design standards, integrations, coding practices.  
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), e.g., UAT sign-off, reduced defects, performance improvement, migration success.  
+- responsibilities → Capture general responsibilities that are listed separately in the resume (if any).  
+- achievements → Capture explicit &quot;Achievements&quot; or &quot;Highlights&quot; mentioned in the resume.  
+
+- learningOutcome → Candidate’s personal learning or takeaway (e.g., gained agile delivery experience, improved communication, new technical exposure).  
+- skillsApplied → Capture the functional or technical skills actually applied during this project (e.g., PL/SQL, Data Modeling, BI Publisher).  
+- toolsUsed → Capture tools/technologies explicitly mentioned (e.g., Oracle 12c, SQL Developer, Git, JIRA, Erwin).  
+- environment → Capture the environment/platform stack if explicitly listed under &quot;Environment&quot; (e.g., Oracle 12c, SQL, Salesforce, SAP, AWS).  
+
+• Experience Extraction Rules
+- Extract only the candidate’s total years of professional experience.
+- Convert phrases like “2 decades” → &quot;20 years&quot;.
+- Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+- If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+- Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+- Do NOT copy descriptive sentences into this field.
+- If no valid years are found, leave it empty.
+• Email Handling Rule
+- If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep it as-is.
+- If .com is missing, automatically append .com.
+Example: praveenkumbar16@gmail → praveenkumbar16@gmail.com.
+- If gmailcom or similar occurs (missing dot), insert the dot before the TLD.
+Example: praveenkumbar16@gmailcom → praveenkumbar16@gmail.com.
+- If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.
+Example: praveenkumbar16@gmail.co.in → praveenkumbar16@gmail.co.in.
+- If an email cannot be normalized into a valid format, leave it empty.
+- Never infer or generate an email if it is completely missing.
+
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Draft</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_27</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+&quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+     &quot;projectPhase&quot;: &quot;&quot;,
+     &quot;projectRole&quot;: &quot;&quot;,
+     &quot;designationJobTitle&quot;: &quot;&quot;,
+     &quot;clientName&quot;: &quot;&quot;,
+     &quot;projectLocation&quot;: &quot;&quot;,
+     &quot;situation&quot;: &quot;&quot;,
+     &quot;task&quot;: &quot;&quot;,
+     &quot;action&quot;: &quot;&quot;,
+     &quot;result&quot;: &quot;&quot;,
+     &quot;responsibilities&quot;: &quot;&quot;,
+     &quot;achievements&quot;: &quot;&quot;,
+     &quot;learningOutcome&quot;: &quot;&quot;,
+     &quot;skillsApplied&quot;: &quot;&quot;,
+     &quot;toolsUsed&quot;: &quot;&quot;,
+     &quot;environment&quot;: &quot;&quot;,
+     &quot;startDate&quot;: &quot;&quot;,
+     &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).  
+- projectRole → Capture the specific role in the project (e.g., &quot;Oracle PL/SQL Developer&quot;, &quot;Consultant&quot;).  
+- designationJobTitle → Capture the official job title or designation given in the work experience (e.g., &quot;Senior Software Engineer&quot;, &quot;Business Analyst&quot;).  
+- clientName → Capture the client or organization for which the project was executed (e.g., &quot;UTI Bank&quot;, &quot;Renault Nissan&quot;). If only an employer is mentioned, use that.  
+- projectLocation → Capture the location if specified (e.g., &quot;Chennai&quot;, &quot;Bangalore&quot;, &quot;Onsite – London&quot;).  
+- startDate / endDate → Extract from the timeline and normalize using ISO format (YYYY-MM-DD).  
+
+- situation → Capture ONLY the high-level project context (industry, domain, project type, business objective, agile/phase info).  
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), e.g., requirement gathering, testing, document preparation, client meetings.  
+- action → Capture ONLY the methods/approaches used (the “how it was done”), e.g., agile methodology, design standards, integrations, coding practices.  
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), e.g., UAT sign-off, reduced defects, performance improvement, migration success.  
+- responsibilities → Capture general responsibilities that are listed separately in the resume (if any).  
+- achievements → Capture explicit &quot;Achievements&quot; or &quot;Highlights&quot; mentioned in the resume.  
+
+- learningOutcome → Candidate’s personal learning or takeaway (e.g., gained agile delivery experience, improved communication, new technical exposure).  
+- skillsApplied → Capture the functional or technical skills actually applied during this project (e.g., PL/SQL, Data Modeling, BI Publisher).  
+- toolsUsed → Capture tools/technologies explicitly mentioned (e.g., Oracle 12c, SQL Developer, Git, JIRA, Erwin).  
+- environment → Capture the environment/platform stack if explicitly listed under &quot;Environment&quot; (e.g., Oracle 12c, SQL, Salesforce, SAP, AWS).  
+
+• Experience Extraction Rules
+- Extract only the candidate’s total years of professional experience.
+- Convert phrases like “2 decades” → &quot;20 years&quot;.
+- Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+- If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+- Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+- Do NOT copy descriptive sentences into this field.
+- If no valid years are found, leave it empty.
+• Email Handling Rule
+- If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep it as-is.
+- If .com is missing, automatically append .com.
+Example: praveenkumbar16@gmail → praveenkumbar16@gmail.com.
+- If gmailcom or similar occurs (missing dot), insert the dot before the TLD.
+Example: praveenkumbar16@gmailcom → praveenkumbar16@gmail.com.
+- If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.
+Example: praveenkumbar16@gmail.co.in → praveenkumbar16@gmail.co.in.
+- If an email cannot be normalized into a valid format, leave it empty.
+- Never infer or generate an email if it is completely missing.
+
+• Candidate Summary Rule
+- Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section from the resume.
+- Do not truncate even if the section is long; capture up to 32,000 characters (fits Account.Description).
+- Include all bullet points and sentences exactly, joined by periods.
+- Do not stop early; continue until the end of the section (e.g., include certifications, tools, risks, etc.).
+- Do not merge with project details or responsibilities; only keep the high-level profile section.
+
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_28</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from  
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate. 
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well
+
+TASKS  
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.
+3. Get only latest completed degree
+only JSON format dont wrap inside ```json 
+dont include any ``` in the beginning
+
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+&quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+   &quot;currentLocation&quot;: &quot;&quot;,
+ &quot;currentCompany&quot;: &quot;&quot;,
+ &quot;pastCompanies&quot;: [],
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+ },
+ &quot;skills&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+  &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+ }
+ ],
+ &quot;certifications&quot;: [
+ {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;issuedBy&quot;: &quot;&quot;,
+  &quot;issueDate&quot;: &quot;&quot;,
+  &quot;expiryDate&quot;: &quot;&quot;
+ }
+ ],
+ &quot;projects&quot;: [
+ {
+  &quot;projectName&quot;: &quot;&quot;,
+     &quot;projectPhase&quot;: &quot;&quot;,
+     &quot;projectRole&quot;: &quot;&quot;,
+     &quot;designationJobTitle&quot;: &quot;&quot;,
+     &quot;clientName&quot;: &quot;&quot;,
+     &quot;projectLocation&quot;: &quot;&quot;,
+     &quot;situation&quot;: &quot;&quot;,
+     &quot;task&quot;: &quot;&quot;,
+     &quot;action&quot;: &quot;&quot;,
+     &quot;result&quot;: &quot;&quot;,
+     &quot;responsibilities&quot;: &quot;&quot;,
+     &quot;achievements&quot;: &quot;&quot;,
+     &quot;learningOutcome&quot;: &quot;&quot;,
+     &quot;skillsApplied&quot;: &quot;&quot;,
+     &quot;toolsUsed&quot;: &quot;&quot;,
+     &quot;environment&quot;: &quot;&quot;,
+     &quot;startDate&quot;: &quot;&quot;,
+     &quot;endDate&quot;: &quot;&quot;
+ }
+ ]
+ }
+ ]
+}
+
+STRICT RULES  
+• Output **must be ONLY the JSON object** (no code fences, headings, or commentary).  
+• Do **not** wrap the JSON in ``` or any other markup.  
+• Analyse Experience date and give experience 
+• Do **not** add newlines inside string values.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY‑MM‑DD).  
+•Date Normalization Rule:
+- If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.
+- If only yyyy is given → store as yyyy-01-01.
+- If mm-yyyy is given → store as yyyy-mm-01.
+• Do not include UnKnown or null If value Is empty Keep empty 
+•Name handling rule
+ - Extract full name from resume → put directly in &quot;name&quot;
+• Any character outside the JSON braces makes the response invalid.
+• if name not present do not take from email
+• Projects Extraction Rule
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+
+- projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).  
+- projectRole → Capture the specific role in the project (e.g., &quot;Oracle PL/SQL Developer&quot;, &quot;Consultant&quot;).  
+- designationJobTitle → Capture the official job title or designation given in the work experience (e.g., &quot;Senior Software Engineer&quot;, &quot;Business Analyst&quot;).  
+- clientName → Capture the client or organization for which the project was executed (e.g., &quot;UTI Bank&quot;, &quot;Renault Nissan&quot;). If only an employer is mentioned, use that.  
+- projectLocation → Capture the location if specified (e.g., &quot;Chennai&quot;, &quot;Bangalore&quot;, &quot;Onsite – London&quot;).  
+- startDate / endDate → Extract from the timeline and normalize using ISO format (YYYY-MM-DD).  
+
+- situation → Capture ONLY the high-level project context (industry, domain, project type, business objective, agile/phase info).  
+- task → Capture ONLY the responsibilities and day-to-day duties (the “what was done”), e.g., requirement gathering, testing, document preparation, client meetings.  
+- action → Capture ONLY the methods/approaches used (the “how it was done”), e.g., agile methodology, design standards, integrations, coding practices.  
+- result → Capture ONLY the outcomes/achievements (the “what was achieved”), e.g., UAT sign-off, reduced defects, performance improvement, migration success.  
+- responsibilities → Capture general responsibilities that are listed separately in the resume (if any).  
+- achievements → Capture explicit &quot;Achievements&quot; or &quot;Highlights&quot; mentioned in the resume.  
+
+- learningOutcome → Candidate’s personal learning or takeaway (e.g., gained agile delivery experience, improved communication, new technical exposure).  
+- skillsApplied → Capture the functional or technical skills actually applied during this project (e.g., PL/SQL, Data Modeling, BI Publisher).  
+- toolsUsed → Capture tools/technologies explicitly mentioned (e.g., Oracle 12c, SQL Developer, Git, JIRA, Erwin).  
+- environment → Capture the environment/platform stack if explicitly listed under &quot;Environment&quot; (e.g., Oracle 12c, SQL, Salesforce, SAP, AWS).  
+
+• Experience Extraction Rules
+- Extract only the candidate’s total years of professional experience.
+- Convert phrases like “2 decades” → &quot;20 years&quot;.
+- Ignore software versions, product numbers, or unrelated numerics (e.g., &quot;R12&quot;, &quot;11i&quot;, &quot;24/7&quot;).
+- If multiple durations are mentioned, always select the largest value that clearly represents overall career span.
+- Output must be normalized as &lt;number&gt; years (e.g., &quot;4 years&quot;, &quot;10 years&quot;, &quot;20 years&quot;).
+- Do NOT copy descriptive sentences into this field.
+- If no valid years are found, leave it empty.
+• Email Handling Rule
+- If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep it as-is.
+- If .com is missing, automatically append .com.
+Example: praveenkumbar16@gmail → praveenkumbar16@gmail.com.
+- If gmailcom or similar occurs (missing dot), insert the dot before the TLD.
+Example: praveenkumbar16@gmailcom → praveenkumbar16@gmail.com.
+- If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.
+Example: praveenkumbar16@gmail.co.in → praveenkumbar16@gmail.co.in.
+- If an email cannot be normalized into a valid format, leave it empty.
+- Never infer or generate an email if it is completely missing.
+
+• Candidate Summary Rule
+- Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section from the resume.
+- Do not truncate even if the section is long; capture up to 32,000 characters (fits Account.Description).
+- Include all bullet points and sentences exactly, joined by periods.
+- Do not stop early; continue until the end of the section (e.g., include certifications, tools, risks, etc.).
+- Do not merge with project details or responsibilities; only keep the high-level profile section.
+
+• In &quot;account.currentCompany&quot;, capture the current organization name → 
+ The entry where the end date = &quot;Present&quot;, &quot;Till Date&quot;, &quot;Current&quot;, or missing.  
+
+• In &quot;account.currentLocation&quot;, capture the location from the same line 
+ as the current company.  
+
+• In &quot;account.pastCompanies&quot;, list all past company names only, 
+ without roles/designations, as an array of strings.  
+
+
+
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_29</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from 
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.  
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well.
+
+TASKS
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.  
+3. Get only latest completed degree.  
+4. Output must be **strictly valid JSON**.  
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;currentCompany&quot;: &quot;&quot;,
+  &quot;pastCompanies&quot;: [],
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectPhase&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;designationJobTitle&quot;: &quot;&quot;,
+   &quot;clientName&quot;: &quot;&quot;,
+   &quot;projectLocation&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;responsibilities&quot;: &quot;&quot;,
+   &quot;achievements&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;environment&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES
+• Output must be ONLY the JSON object (no code fences, headings, or commentary).  
+• Do NOT wrap the JSON in ``` or any other markup.  
+• JSON must be strictly valid and parsable:  
+ - No trailing commas inside arrays or objects.  
+ - Always close all { } and [ ] brackets.  
+ - Do not stop mid-way; the JSON must always be complete.  
+ - Do not include comments or text outside the braces.  
+• Do not add newlines inside string values.  
+• Analyse Experience date and give experience.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY-MM-DD).  
+• Date Normalization Rule:  
+ - If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.  
+ - If only yyyy is given → store as yyyy-01-01.  
+ - If mm-yyyy is given → store as yyyy-mm-01.  
+• Do not include &quot;Unknown&quot; or null. If value is empty, keep empty.  
+• Name handling rule:  
+ - Extract full name from resume → put directly in &quot;name&quot;.  
+ - If name not present, do not take from email.  
+• Any character outside the JSON braces makes the response invalid.  
+• Projects Extraction Rule:  
+ - For each work experience or project mentioned, extract into the &quot;projects&quot; array.  
+ - projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).  
+ - projectRole → Capture the specific role in the project (e.g., &quot;Oracle PL/SQL Developer&quot;, &quot;Consultant&quot;).  
+ - designationJobTitle → Capture the official job title or designation given in the work experience.  
+ - clientName → Capture the client or organization for which the project was executed.  
+ - projectLocation → Capture the location if specified.  
+ - startDate / endDate → Extract from the timeline and normalize using ISO format.  
+ - situation → Capture ONLY the high-level project context.  
+ - task → Capture ONLY the responsibilities and day-to-day duties.  
+ - action → Capture ONLY the methods/approaches used.  
+ - result → Capture ONLY the outcomes/achievements.  
+ - responsibilities → Capture general responsibilities listed separately.  
+ - achievements → Capture explicit &quot;Achievements&quot; or &quot;Highlights&quot;.  
+ - learningOutcome → Candidate’s personal learning or takeaway.  
+ - skillsApplied → Capture functional/technical skills actually applied.  
+ - toolsUsed → Capture tools/technologies explicitly mentioned.  
+ - environment → Capture the environment/platform stack if explicitly listed.  
+• Experience Extraction Rules:  
+ - Extract only the candidate’s total years of professional experience.  
+ - Convert phrases like “2 decades” → &quot;20 years&quot;.  
+ - Ignore software versions, product numbers, or unrelated numerics.  
+ - If multiple durations are mentioned, always select the largest value.  
+ - Output must be normalized as &quot;&lt;number&gt; years&quot;.  
+ - Do NOT copy descriptive sentences into this field.  
+ - If no valid years are found, leave it empty.  
+• Email Handling Rule:  
+ - If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep as-is.  
+ - If .com is missing, automatically append .com.  
+ - If gmailcom or similar occurs, insert the dot before the TLD.  
+ - If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.  
+ - If an email cannot be normalized into a valid format, leave it empty.  
+ - Never infer or generate an email if it is completely missing.  
+• Candidate Summary Rule:  
+ - Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section.  
+ - Do not truncate; capture up to 32,000 characters.  
+ - Include all bullet points and sentences exactly.  
+ - Do not merge with project details or responsibilities.  
+• In &quot;account.currentCompany&quot;, capture the current organization name (end date = Present/Till Date/Current or missing).  
+• In &quot;account.currentLocation&quot;, capture the location from the same line as the current company.  
+• In &quot;account.pastCompanies&quot;, list all past company names only, as an array of strings.  
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_30</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from 
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.  
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well.
+
+TASKS
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.  
+3. Get only latest completed degree.  
+4. Output must be **strictly valid JSON**.  
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;currentCompany&quot;: &quot;&quot;,
+  &quot;pastCompanies&quot;: [],
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectPhase&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;designationJobTitle&quot;: &quot;&quot;,
+   &quot;clientName&quot;: &quot;&quot;,
+   &quot;projectLocation&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;responsibilities&quot;: &quot;&quot;,
+   &quot;achievements&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;environment&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES
+• Output must be ONLY the JSON object (no code fences, headings, or commentary).  
+• Do NOT wrap the JSON in ``` or any other markup.  
+• JSON must be strictly valid and parsable:  
+ - No trailing commas inside arrays or objects.  
+ - Always close all { } and [ ] brackets.  
+ - Do not stop mid-way; the JSON must always be complete.  
+ - Do not include comments or text outside the braces.  
+• Do not add newlines inside string values.  
+• Analyse Experience date and give experience.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY-MM-DD).  
+• Date Normalization Rule:  
+ - If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.  
+ - If only yyyy is given → store as yyyy-01-01.  
+ - If mm-yyyy is given → store as yyyy-mm-01.  
+• Do not include &quot;Unknown&quot; or null. If value is empty, keep empty.  
+• Name handling rule:  
+ - Extract full name from resume → put directly in &quot;name&quot;.  
+ - If name not present, do not take from email.  
+• Any character outside the JSON braces makes the response invalid.  
+• Projects Extraction Rule:  
+ - For each work experience or project mentioned, extract into the &quot;projects&quot; array.  
+ - projectName → Use the company/project name (e.g., &quot;Consol Energy&quot;, &quot;Zimmo&quot;).  
+ - projectRole → Capture the specific role in the project (e.g., &quot;Oracle PL/SQL Developer&quot;, &quot;Consultant&quot;).  
+ - designationJobTitle → Capture the official job title or designation given in the work experience.  
+ - clientName → Capture the client or organization for which the project was executed.  
+ - projectLocation → Capture the location if specified.  
+ - startDate / endDate → Extract from the timeline and normalize using ISO format.  
+ - situation → Capture ONLY the high-level project context.  
+ - task → Capture ONLY the responsibilities and day-to-day duties.  
+ - action → Capture ONLY the methods/approaches used.  
+ - result → Capture ONLY the outcomes/achievements.  
+ - responsibilities → Capture general responsibilities listed separately.  
+ - achievements → Capture explicit &quot;Achievements&quot; or &quot;Highlights&quot;.  
+ - learningOutcome → Candidate’s personal learning or takeaway.  
+ - skillsApplied → Capture functional/technical skills actually applied.  
+ - toolsUsed → Capture tools/technologies explicitly mentioned.  
+ - environment → Capture the environment/platform stack if explicitly listed.  
+• Experience Extraction Rules:  
+ - Extract only the candidate’s total years of professional experience.  
+ - Convert phrases like “2 decades” → &quot;20 years&quot;.  
+ - Ignore software versions, product numbers, or unrelated numerics.  
+ - If multiple durations are mentioned, always select the largest value.  
+ - Output must be normalized as &quot;&lt;number&gt; years&quot;.  
+ - Do NOT copy descriptive sentences into this field.  
+ - If no valid years are found, leave it empty.  
+• Email Handling Rule:  
+ - If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep as-is.  
+ - If .com is missing, automatically append .com.  
+ - If gmailcom or similar occurs, insert the dot before the TLD.  
+ - If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.  
+ - If an email cannot be normalized into a valid format, leave it empty.  
+ - Never infer or generate an email if it is completely missing.  
+• Candidate Summary Rule:  
+ - Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section.  
+ - Do not truncate; capture up to 32,000 characters.  
+ - Include all bullet points and sentences exactly.  
+ - Do not merge with project details or responsibilities.  
+• In &quot;account.currentCompany&quot;, capture the current organization name (end date = Present/Till Date/Current or missing).  
+• In &quot;account.currentLocation&quot;, capture the location from the same line as the current company.  
+•  In &quot;account.pastCompanies&quot;, capture **company name, employment period, and designation/role** in one string.  
+ Example: Wipro Technologies (2019-06 to 2024-08) Senior Business Analyst,  
+      HCL (2018-01 to 2020-12) Team Lead.  
+ Always maintain the array of strings.
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_31</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from 
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.  
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well.
+
+TASKS
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.  
+3. Get only latest completed degree.  
+4. Output must be **strictly valid JSON**.  
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;currentCompany&quot;: &quot;&quot;,
+  &quot;pastCompanies&quot;: [],
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+ &quot;college&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectPhase&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;designationJobTitle&quot;: &quot;&quot;,
+   &quot;clientName&quot;: &quot;&quot;,
+   &quot;projectLocation&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;responsibilities&quot;: &quot;&quot;,
+   &quot;achievements&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;environment&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES
+• Output must be ONLY the JSON object (no code fences, headings, or commentary).  
+• Do NOT wrap the JSON in ``` or any other markup.  
+• JSON must be strictly valid and parsable:  
+ - No trailing commas inside arrays or objects.  
+ - Always close all { } and [ ] brackets.  
+ - Do not stop mid-way; the JSON must always be complete.  
+ - Do not include comments or text outside the braces.  
+• Do not add newlines inside string values.  
+• Analyse Experience date and give experience.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY-MM-DD).  
+• Date Normalization Rule:  
+ - If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.  
+ - If only yyyy is given → store as yyyy-01-01.  
+ - If mm-yyyy is given → store as yyyy-mm-01.  
+• Do not include &quot;Unknown&quot; or null. If value is empty, keep empty.  
+• Name handling rule:  
+ - Extract full name from resume → put directly in &quot;name&quot;.  
+ - If name not present, do not take from email.  
+• Any character outside the JSON braces makes the response invalid.  
+• Projects Extraction Rule:  
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the exact project heading/title in the resume (e.g., “Sales Process Automation”, “Selenium Automation Project”).
+- projectRole → If a role/designation is mentioned at the company level (e.g., “Role – Quality Analyst”), apply it to all projects under that company.
+Override only if a specific project explicitly lists a different role.
+- designationJobTitle → Capture the official job title or designation given in the work experience (same as “Role” in most resumes).
+- clientName → Always take the company name from the header (e.g., “Company – Quadrobay Technologies Pvt Ltd”).
+Apply it to all projects listed under that company.
+- Override only if the resume explicitly lists a different client (e.g., “Client – ABC Corp”).
+- Do not capture tools/platforms (e.g., Salesforce CPQ, SAP, Oracle, Azure) as client names. These belong in toolsUsed, skillsApplied, or environment.
+- For internal projects explicitly marked as “Internal Project”, keep clientName blank.
+- projectLocation → Capture location if explicitly written (e.g., Hyderabad, India).
+- startDate / endDate → Extract from the timeline and normalize using ISO format.
+- situation → Capture ONLY the high-level project context.
+- task → Capture ONLY the responsibilities and day-to-day duties.
+- action → Capture ONLY the methods/approaches used.
+- result → Capture ONLY the outcomes/achievements.
+- responsibilities → Capture general responsibilities listed separately.
+- achievements → Capture explicit “Achievements” or “Highlights.”
+- learningOutcome → Candidate’s personal learning or takeaway.
+- skillsApplied → Capture functional/technical skills actually applied.
+- toolsUsed → Capture tools/technologies explicitly mentioned.
+- environment → Capture the environment/platform stack if explicitly listed.
+
+• Experience Extraction Rules:  
+ - Extract only the candidate’s total years of professional experience.  
+ - Convert phrases like “2 decades” → &quot;20 years&quot;.  
+ - Ignore software versions, product numbers, or unrelated numerics.  
+ - If multiple durations are mentioned, always select the largest value.  
+ - Output must be normalized as &quot;&lt;number&gt; years&quot;.  
+ - Do NOT copy descriptive sentences into this field.  
+ - If no valid years are found, leave it empty.  
+• Email Handling Rule:  
+ - If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep as-is.  
+ - If .com is missing, automatically append .com.  
+ - If gmailcom or similar occurs, insert the dot before the TLD.  
+ - If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.  
+ - If an email cannot be normalized into a valid format, leave it empty.  
+ - Never infer or generate an email if it is completely missing.  
+• Candidate Summary Rule:  
+ - Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section.  
+ - Do not truncate; capture up to 32,000 characters.  
+ - Include all bullet points and sentences exactly.  
+ - Do not merge with project details or responsibilities.  
+• In &quot;account.currentCompany&quot;, capture the current organization name (end date = Present/Till Date/Current or missing).  
+• In &quot;account.currentLocation&quot;, capture the location from the same line as the current company.  
+•  In &quot;account.pastCompanies&quot;, capture **company name, employment period, and designation/role** in one string.  
+ Example: Wipro Technologies (2019-06 to 2024-08) Senior Business Analyst,  
+      HCL (2018-01 to 2020-12) Team Lead.  
+ Always maintain the array of strings.
+
+•  Education Extraction Rule:
+- Extract only the latest completed degree → populate &quot;degree&quot;.
+- Extract the college/university name associated with the latest degree → populate &quot;college&quot;.
+- If no college is mentioned for the latest degree → keep &quot;college&quot;: &quot;&quot;.
+- Do not extract colleges for older degrees.
+- Do not extract schools or certifications. Only formal university/college names.
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_32</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>
+{!$Input:Document.Id}
+
+You have received a set of image/PDF resumes from 
+{!$RelatedList:Document.CombinedAttachments.Records}.  
+Each file is one candidate.  
+
+AND {!$Input:Document.Email_Body__c} may also contain resume details so carefully get details from this as well.
+
+STRICT CONSISTENCY RULES
+• The output for the same input must always be identical every time this prompt is run.
+• Do not rephrase, reword, or restructure any extracted text across runs.
+• Always map the same sentence fragments to the same fields (e.g., situation, task, skillsApplied, toolsUsed).
+• Never randomize, infer, or vary output phrasing between runs.
+• Treat this as a deterministic data extraction task, not a generative writing task.
+• Project Experience Consistency Rule:
+  - Always extract the same project details into the same fields across runs.
+  - Do not alternate content between “situation”, “task”, “skillsApplied”, or “toolsUsed”.
+  - If the same resume file is uploaded again, reproduce the exact same JSON structure and field mapping as before.
+• This prompt must always produce identical JSON for identical input resumes.
+• Avoid paraphrasing or creative variation in descriptions — copy text exactly as extracted.
+• Maintain fixed key order and indentation structure for all outputs.
+
+TASKS
+1. Parse every resume and output one JSON object per file, using the exact schema below.  
+2. Populate real values; leave missing data blank or omit the field.  
+3. Get only latest completed degree.  
+4. Output must be **strictly valid JSON**.  
+
+SCHEMA
+{
+ &quot;resumes&quot;: [
+ {
+  &quot;account&quot;: {
+  &quot;name&quot;: &quot;&quot;,
+  &quot;dateofBirth&quot;: &quot;&quot;,
+  &quot;currentLocation&quot;: &quot;&quot;,
+  &quot;currentCompany&quot;: &quot;&quot;,
+  &quot;pastCompanies&quot;: [],
+  &quot;languagesKnown&quot;: &quot;&quot;,
+  &quot;email&quot;: &quot;&quot;,
+  &quot;phone&quot;: &quot;&quot;,
+  &quot;summary&quot;: &quot;&quot;,
+  &quot;experience&quot;: &quot;&quot;,
+  &quot;linkedin&quot;: &quot;&quot;,
+  &quot;filename&quot;: &quot;&quot;,
+  &quot;degree&quot;: &quot;&quot;,
+ &quot;college&quot;: &quot;&quot;,
+  &quot;designation&quot;: &quot;&quot;
+  },
+  &quot;skills&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;proficiency&quot;: &quot;Beginner | Intermediate | Expert&quot;,
+   &quot;Category&quot;: &quot;Technical | Tools &amp; Platforms | Soft Skills | Project &amp; Process Skills | Domain Knowledge&quot;
+  }
+  ],
+  &quot;certifications&quot;: [
+  {
+   &quot;name&quot;: &quot;&quot;,
+   &quot;issuedBy&quot;: &quot;&quot;,
+   &quot;issueDate&quot;: &quot;&quot;,
+   &quot;expiryDate&quot;: &quot;&quot;
+  }
+  ],
+  &quot;projects&quot;: [
+  {
+   &quot;projectName&quot;: &quot;&quot;,
+   &quot;projectPhase&quot;: &quot;&quot;,
+   &quot;projectRole&quot;: &quot;&quot;,
+   &quot;designationJobTitle&quot;: &quot;&quot;,
+   &quot;clientName&quot;: &quot;&quot;,
+   &quot;projectLocation&quot;: &quot;&quot;,
+   &quot;situation&quot;: &quot;&quot;,
+   &quot;task&quot;: &quot;&quot;,
+   &quot;action&quot;: &quot;&quot;,
+   &quot;result&quot;: &quot;&quot;,
+   &quot;responsibilities&quot;: &quot;&quot;,
+   &quot;achievements&quot;: &quot;&quot;,
+   &quot;learningOutcome&quot;: &quot;&quot;,
+   &quot;skillsApplied&quot;: &quot;&quot;,
+   &quot;toolsUsed&quot;: &quot;&quot;,
+   &quot;environment&quot;: &quot;&quot;,
+   &quot;startDate&quot;: &quot;&quot;,
+   &quot;endDate&quot;: &quot;&quot;
+  }
+  ]
+ }
+ ]
+}
+
+STRICT RULES
+• Output must be ONLY the JSON object (no code fences, headings, or commentary).  
+• Do NOT wrap the JSON in ``` or any other markup.  
+• JSON must be strictly valid and parsable:  
+ - No trailing commas inside arrays or objects.  
+ - Always close all { } and [ ] brackets.  
+ - Do not stop mid-way; the JSON must always be complete.  
+ - Do not include comments or text outside the braces.  
+• Do not add newlines inside string values.  
+• Analyse Experience date and give experience.  
+• If skill level unclear, default to &quot;Intermediate&quot;.  
+• Dates must be ISO (YYYY-MM-DD).  
+• Date Normalization Rule:  
+ - If extracted date is in dd-mm-yyyy → reformat to yyyy-mm-dd.  
+ - If only yyyy is given → store as yyyy-01-01.  
+ - If mm-yyyy is given → store as yyyy-mm-01.  
+• Do not include &quot;Unknown&quot; or null. If value is empty, keep empty.  
+• Name handling rule:  
+ - Extract full name from resume → put directly in &quot;name&quot;.  
+ - If name not present, do not take from email.  
+• Any character outside the JSON braces makes the response invalid.  
+• Projects Extraction Rule:  
+- For each work experience or project mentioned, extract into the &quot;projects&quot; array.
+- projectName → Use the exact project heading/title in the resume (e.g., “Sales Process Automation”, “Selenium Automation Project”).
+- projectRole → If a role/designation is mentioned at the company level (e.g., “Role – Quality Analyst”), apply it to all projects under that company.
+Override only if a specific project explicitly lists a different role.
+- designationJobTitle → Capture the official job title or designation given in the work experience (same as “Role” in most resumes).
+- clientName → Always take the company name from the header (e.g., “Company – Quadrobay Technologies Pvt Ltd”).
+Apply it to all projects listed under that company.
+- Override only if the resume explicitly lists a different client (e.g., “Client – ABC Corp”).
+- Do not capture tools/platforms (e.g., Salesforce CPQ, SAP, Oracle, Azure) as client names. These belong in toolsUsed, skillsApplied, or environment.
+- For internal projects explicitly marked as “Internal Project”, keep clientName blank.
+- projectLocation → Capture location if explicitly written (e.g., Hyderabad, India).
+- startDate / endDate → Extract from the timeline and normalize using ISO format.
+- situation → Capture ONLY the high-level project context.
+- task → Capture ONLY the responsibilities and day-to-day duties.
+- action → Capture ONLY the methods/approaches used.
+- result → Capture ONLY the outcomes/achievements.
+- responsibilities → Capture general responsibilities listed separately.
+- achievements → Capture explicit “Achievements” or “Highlights.”
+- learningOutcome → Candidate’s personal learning or takeaway.
+- skillsApplied → Capture functional/technical skills actually applied.
+- toolsUsed → Capture tools/technologies explicitly mentioned.
+- environment → Capture the environment/platform stack if explicitly listed.
+
+• Experience Extraction Rules:  
+ - Extract only the candidate’s total years of professional experience.  
+ - Convert phrases like “2 decades” → &quot;20 years&quot;.  
+ - Ignore software versions, product numbers, or unrelated numerics.  
+ - If multiple durations are mentioned, always select the largest value.  
+ - Output must be normalized as &quot;&lt;number&gt; years&quot;.  
+ - Do NOT copy descriptive sentences into this field.  
+ - If no valid years are found, leave it empty.  
+• Email Handling Rule:  
+ - If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep as-is.  
+ - If .com is missing, automatically append .com.  
+ - If gmailcom or similar occurs, insert the dot before the TLD.  
+ - If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.  
+ - If an email cannot be normalized into a valid format, leave it empty.  
+ - Never infer or generate an email if it is completely missing.  
+• Candidate Summary Rule:  
+ - Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section.  
+ - Do not truncate; capture up to 32,000 characters.  
+ - Include all bullet points and sentences exactly.  
+ - Do not merge with project details or responsibilities.  
+• In &quot;account.currentCompany&quot;, capture the current organization name (end date = Present/Till Date/Current or missing).  
+• In &quot;account.currentLocation&quot;, capture the location from the same line as the current company.  
+•  In &quot;account.pastCompanies&quot;, capture **company name, employment period, and designation/role** in one string.  
+ Example: Wipro Technologies (2019-06 to 2024-08) Senior Business Analyst,  
+      HCL (2018-01 to 2020-12) Team Lead.  
+ Always maintain the array of strings.
+
+•  Education Extraction Rule:
+- Extract only the latest completed degree → populate &quot;degree&quot;.
+- Extract the college/university name associated with the latest degree → populate &quot;college&quot;.
+- If no college is mentioned for the latest degree → keep &quot;college&quot;: &quot;&quot;.
+- Do not extract colleges for older degrees.
+- Do not extract schools or certifications. Only formal university/college names.
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini20Flash001</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_33</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

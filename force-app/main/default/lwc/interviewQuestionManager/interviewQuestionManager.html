@@ -1,0 +1,124 @@
+<!--<template>
+    <lightning-card title="Interview Questions">
+        <div class="slds-m-around_medium">
+            <template for:each={questions} for:item="question">
+                <div key={question.id} class="slds-grid slds-gutters slds-m-bottom_small slds-align_absolute-center">
+                    <div class="slds-col slds-size_2-of-3">
+                        <lightning-input
+                            label={question.label}
+                            data-id={question.id}
+                            value={question.text}
+                            onchange={handleQuestionChange}>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-top_large">
+                        <lightning-button-icon
+                            icon-name="utility:delete"
+                            alternative-text="Remove Question"
+                            title="Remove Question"
+                            onclick={removeQuestion}
+                            data-id={question.id}
+                            variant="bare"
+                            class="slds-m-left_small">
+                        </lightning-button-icon>
+                    </div>
+                </div>
+            </template>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="Add Question"
+                    onclick={addQuestion}
+                    variant="brand">
+                </lightning-button>
+
+                <lightning-button
+                    label="Save"
+                    onclick={saveQuestions}
+                    class="slds-m-left_small"
+                    variant="success">
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>  -->
+
+
+<template>
+    <lightning-card title="Submit Interview Questions" icon-name="utility:event">
+        <div class="slds-p-around_medium">
+            
+            <!-- Candidate Lookup -->
+            <lightning-record-edit-form object-api-name="Interview_Question__c">
+                <lightning-input-field 
+                    field-name="Candidate_Name__c"
+                    value={candidateId}
+                    onchange={handleCandidateChange}>
+                </lightning-input-field>
+            </lightning-record-edit-form>
+
+            <!-- Opportunity Lookup -->
+            <lightning-record-edit-form object-api-name="Interview_Question__c">
+                <lightning-input-field 
+                    field-name="Opportunity_Name__c"
+                    value={opportunityId}
+                    onchange={handleOpportunityChange}>
+                </lightning-input-field>
+            </lightning-record-edit-form>
+
+            <!-- Interview Date -->
+            <lightning-input 
+                type="date" 
+                label="Interview Date" 
+                value={interviewDate} 
+                onchange={handleDateChange}>
+            </lightning-input>
+
+            <!-- Questions Section -->
+            <div class="slds-m-top_medium slds-border_bottom slds-p-bottom_x-small">
+                <strong>Interview Questions</strong>
+            </div>
+
+            <template for:each={questions} for:item="question" for:index="index">
+                <div key={question.id} class="slds-grid slds-gutters slds-m-top_small">
+                    <div class="slds-col slds-size_10-of-12">
+                        <lightning-input 
+                            label={question.label}
+                            value={question.value}
+                            data-index={index}
+                            onchange={handleQuestionChange}>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_2-of-12 slds-align_absolute-center">
+                        <lightning-button-icon
+                            icon-name="utility:delete"
+                            alternative-text="Delete"
+                            title="Delete"
+                            onclick={removeQuestion}
+                            data-index={index}
+                            variant="bare"
+                            class="delete-icon">
+                        </lightning-button-icon>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Action Buttons -->
+            <div class="slds-m-top_medium">
+                <lightning-button-icon
+                    icon-name="utility:add"
+                    alternative-text="Add Question"
+                    title="Add Question"
+                    onclick={addQuestion}
+                    class="slds-m-right_small"
+                    variant="brand">
+                </lightning-button-icon>
+                <lightning-button 
+                    variant="brand" 
+                    label="Save" 
+                    onclick={saveQuestions}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

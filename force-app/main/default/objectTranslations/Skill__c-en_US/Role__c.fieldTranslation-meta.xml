@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Role --></label>
+    <name>Role__c</name>
+    <picklistValues>
+        <masterLabel>Admin</masterLabel>
+        <translation><!-- Admin --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Architect</masterLabel>
+        <translation><!-- Architect --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Automation Testing</masterLabel>
+        <translation><!-- Automation Testing --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Business Analysis</masterLabel>
+        <translation><!-- Business Analysis --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>CPQ Specialist</masterLabel>
+        <translation><!-- CPQ Specialist --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Consultant</masterLabel>
+        <translation><!-- Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>DBA (Database Administrator)</masterLabel>
+        <translation><!-- DBA (Database Administrator) --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Developer</masterLabel>
+        <translation><!-- Developer --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Einstein AI Specialist</masterLabel>
+        <translation><!-- Einstein AI Specialist --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Integration Testing</masterLabel>
+        <translation><!-- Integration Testing --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Manual Testing</masterLabel>
+        <translation><!-- Manual Testing --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle Apex</masterLabel>
+        <translation><!-- Oracle Apex --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle Apps Technical</masterLabel>
+        <translation><!-- Oracle Apps Technical --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle BI Developer</masterLabel>
+        <translation><!-- Oracle BI Developer --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle Cloud Infrastructure (OCI)</masterLabel>
+        <translation><!-- Oracle Cloud Infrastructure (OCI) --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle E-Business Suite (EBS)</masterLabel>
+        <translation><!-- Oracle E-Business Suite (EBS) --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle ERP Consultant</masterLabel>
+        <translation><!-- Oracle ERP Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle Financials</masterLabel>
+        <translation><!-- Oracle Financials --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Oracle Fusion Middleware</masterLabel>
+        <translation><!-- Oracle Fusion Middleware --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>PL/SQL Developer</masterLabel>
+        <translation><!-- PL/SQL Developer --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>QA Tester</masterLabel>
+        <translation><!-- QA Tester --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Sales Cloud Specialist</masterLabel>
+        <translation><!-- Sales Cloud Specialist --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Service Cloud Specialist</masterLabel>
+        <translation><!-- Service Cloud Specialist --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Test Management</masterLabel>
+        <translation><!-- Test Management --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>UI Testing</masterLabel>
+        <translation><!-- UI Testing --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

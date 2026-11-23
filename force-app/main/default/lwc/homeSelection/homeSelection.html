@@ -1,0 +1,24 @@
+<template>    
+    <lightning-card title="Make a Choice">
+
+        <!--Group Of lightning Tab Set-->
+    <lightning-tabset active-tab-value={activeTab}>
+         <div class="slds-m-around_x-small">
+        
+            <lightning-tab label="Add Job Description"  value="3" onactive={handleActive}>
+                 <c-job-Description-uploader></c-job-Description-uploader>  
+            </lightning-tab>
+
+            <lightning-tab label="Add Candidate"  value="1" onactive={handleActive}>
+                <c-candidate-pdf-upload></c-candidate-pdf-upload>                
+            </lightning-tab>
+
+             <lightning-tab label="Magic Search"  value="2" onactive={handleActive}>
+                <c-searchablity-using-ai></c-searchablity-using-ai>
+            </lightning-tab>
+           
+        </div>
+    </lightning-tabset>
+    
+</lightning-card>
+</template>

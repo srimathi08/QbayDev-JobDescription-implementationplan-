@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StreamingAppDataConnector xmlns="http://soap.sforce.com/2006/04/metadata">
+    <appIdentifier>6a79d0bc-b97a-4494-b112-b325f53638e2</appIdentifier>
+    <connectorParameters>
+        <paramName>moduleConfig</paramName>
+        <paramValue>[{&quot;moduleName&quot;:&quot;schema_metadata&quot;,&quot;path&quot;:&quot;&quot;,&quot;enabled&quot;:true,&quot;moduleConfiguration&quot;:&quot;{\&quot;keys\&quot;:[\&quot;OtherSources\&quot;],\&quot;developerName\&quot;:\&quot;Agent\&quot;}&quot;}]</paramValue>
+    </connectorParameters>
+    <connectorParameters>
+        <paramName>subtypeConfig</paramName>
+        <paramValue>{&quot;subtype&quot;:&quot;OtherSources&quot;}</paramValue>
+    </connectorParameters>
+    <dataConnectorType>StreamingApp</dataConnectorType>
+    <masterLabel>Agent</masterLabel>
+    <streamingAppDataConnectorType>ServerApp</streamingAppDataConnectorType>
+</StreamingAppDataConnector>

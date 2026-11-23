@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Primary / Secondary Skill --></label>
+    <name>Primary_Secondary_Skill__c</name>
+    <picklistValues>
+        <masterLabel>Primary Skill</masterLabel>
+        <translation><!-- Primary Skill --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Secondary Skill</masterLabel>
+        <translation><!-- Secondary Skill --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

@@ -1,0 +1,73 @@
+/* Container that holds the stage path and the Put On Hold button */
+.stage-path-container {
+  display: flex;
+  align-items: center;
+  /* Optional spacing & styling */
+  gap: 12px;
+  width: 100%;
+}
+
+/* The bar with all the steps (teal stages) */
+.stage-path-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  /* Let it take only required width, the button will be pushed to the far right */
+}
+
+/* Individual steps – tweak as per your design */
+.stage-step {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background-color: #a5f3fc;
+  margin-right: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.stage-step--active {
+  background-color: #0f766e;
+  color: #ffffff;
+}
+
+/* Put On Hold button */
+.put-on-hold-btn {
+  margin-left: auto;          /* This pushes the button to the far right */
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background-color: #ec4899;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease,
+              transform 0.08s ease;
+}
+
+.put-on-hold-btn:hover {
+  background-color: #db2777;
+  box-shadow: 0 6px 14px rgba(219, 39, 119, 0.4);
+  transform: translateY(-1px);
+}
+
+.put-on-hold-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(219, 39, 119, 0.35);
+
+}
+
+/* Put On Hold / Release container */
+.path-controls {
+    display: flex;           /* turn into flex row */
+    justify-content: flex-end; /* push children to the right */
+    align-items: center;
+    padding: 0 1rem 0 1rem;
+    margin-bottom: 0.6rem;  /* optional: match card padding */
+}
+
+/* Extra safety: ensure the button itself takes the rightmost spot */
+.path-controls lightning-button {
+    margin-left: auto;
+}

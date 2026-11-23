@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Basic Pay PF &amp; Retirement Benefits --></label>
+    <name>Basic_Pay_PF_Retirement_Benefits__c</name>
+</CustomFieldTranslation>

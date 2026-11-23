@@ -1,0 +1,29 @@
+/* Custom Table Styling to match Annexure Document */
+.annexure-table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid black;
+}
+
+.annexure-table th,
+.annexure-table td {
+    border: 1px solid black;
+    padding: 8px;
+    vertical-align: top;
+}
+
+.annexure-table th {
+    background-color: #f3f3f3;
+    font-weight: bold;
+    text-align: left;
+}
+
+.bold-row {
+    font-weight: bold;
+}
+
+.section-header {
+    font-weight: bold;
+    font-style: italic;
+    /* Optional, to distinguish */
+}

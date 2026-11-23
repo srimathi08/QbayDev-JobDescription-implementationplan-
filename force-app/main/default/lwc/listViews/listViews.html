@@ -1,0 +1,55 @@
+<template>
+   
+       <template lwc:if={records}>
+           <!-- <div class="slds-m-around_medium">
+               <template for:each={records} for:item="rec">
+                   <p key={rec.fields.Id.value}>{rec.fields.Name.value}</p>
+               </template>
+               <lightning-button-icon icon-name="utility:chevronright"
+                  variant="border-filled"
+                  alternative-text="Next"
+                  title="Settings"
+                  onclick={handleNextPage}></lightning-button-icon>
+           </div> -->
+
+           <!-- <lightning-layout multiple-rows="true" pull-to-boundary="small">
+					<template for:each={records} for:item="record">
+						<lightning-layout-item key={record.Id} size="3" class="slds-var-p-around_x-small">
+							
+							<div class="slds-col slds-size_1-of-1">
+              <lightning-card class="bear-tile">
+								<div class="slds-var-p-horizontal_small bear-tile-body">
+                  <h3 class="slds-truncate" >
+                  <a href="#" data-id={record.fields.Id.value} onclick={navigateOppHandler}>
+                   <span class="slds-truncate" data-id={record.fields.Id.value}>
+                    {record.fields.Name.value}
+                   </span>
+               </a>
+								</h3>			
+								</div>
+							</lightning-card>
+              </div>
+
+						</lightning-layout-item>
+					</template>
+				</lightning-layout> -->
+        	<template for:each={records} for:item="record">
+        <li class="slds-item slds-var-m-around_small" key={record.Id}>
+       <article class="slds-tile slds-tile_board">
+           <h3 class="slds-truncate" title={record.fields.Name.value}>
+               <a href="#" data-id={record.fields.Id.value} onclick={navigateOppHandler}>
+                   <span class="slds-truncate" data-id={record.fields.Name.value}>
+                    {record.fields.Name.value}
+                   </span>
+               </a>
+           </h3>
+        <div class="slds-tile__detail slds-text-body_small">
+               <p class="slds-text-heading_small">Amount: ${record.fields.Amount.value}</p>
+        </div>
+       </article>
+   </li>
+    </template>    
+
+       </template>
+  
+</template>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Project_Management_Alert_Emails</fullName>
+        <categories>Project Management</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Management Alert Emails for 75 Percent Estimated Hours</shortDescription>
+        <value>Subathra.mathialagan@quadrobay.com,muru@quadrobay.com</value>
+    </labels>
+    <labels>
+        <fullName>WHATSAPPACCESSTOKEN</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>WHATSAPPACCESSTOKEN</shortDescription>
+        <value>EAATSyZCoP1AMBP2qn4lHtBz0mOUgbgUGNxd1goAZBmN9WiqUftGmr0EI0yXCtkt5F9TjSp8WyPU0vHWqTs6UPOH3zUBiOX6yk63FImRPH2bBJaaDrsYOqeDyQWy6lsBL8Bsf7sDsbZCZBCTUUykG2y6b5nTj3bIswm5FqEzjf1svQEhQ3GlLJQOAxXcPwTEnLQZDZD</value>
+    </labels>
+    <labels>
+        <fullName>WHATSAPPSECRET</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>WHATSAPPSECRET</shortDescription>
+        <value>e42f20181e2df1877e587fdc14af22ec</value>
+    </labels>
+</CustomLabels>

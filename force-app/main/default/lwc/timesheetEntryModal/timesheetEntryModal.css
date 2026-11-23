@@ -1,0 +1,701 @@
+/*:host {
+    --slds-c-modal-content-spacing-block-start: 0;
+    --slds-c-modal-content-spacing-block-end: 0;
+    --slds-c-modal-content-background-color: #f3f3f3;
+    /* Add this line to remove footer-specific spacing 
+    --slds-c-modal-footer-spacing-block-start: 0;
+}
+
+/* ========== MODAL HEADER ========== 
+.modal-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-right: 20px;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: #181818;
+}
+
+.add-row-btn {
+    background: #0176d3;
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background 0.2s ease;
+}
+
+.add-row-btn:hover {
+    background: #014f9d;
+}
+
+/* ========== MODAL BODY ========== */
+/*lightning-modal-body {
+    background-color: #f3f3f3 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    max-height: calc(80vh - 140px);
+    min-height: 400px;
+}
+lightning-modal-body {
+    background-color: #f3f3f3 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    /* Changed from calc(80vh - 140px) to ensure it pushes to footer 
+    display: flex;
+    flex-direction: column;
+}
+/* ========== ERROR BANNER ========== 
+.error-banner {
+    margin: 1rem 1rem 0 1rem;
+    padding: 12px 16px;
+    background: #c23934;
+    color: white;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+/* ========== SCROLL CONTAINER ========== 
+.horizontal-scroll-container {
+    display: flex;
+    padding: 1rem;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: auto;
+    height: 100%;
+    max-height: calc(80vh - 140px);
+}
+
+.horizontal-scroll-container::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-track {
+     background: #e0e0e0;
+    border-radius: 4px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb {
+    background: #999;
+    border-radius: 4px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
+/* ========== ENTRY CARD (ROW BLOCK) ========== 
+.row-block {
+    flex: 0 0 340px;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: fit-content;
+}
+
+.single-edit {
+    margin: 1rem auto;
+    flex: 0 0 500px;
+    max-width: 90%;
+}
+
+/* ========== DELETE BUTTON ========== 
+.delete-button {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    z-index: 10;
+    background: white !important;
+    border-radius: 50%;
+}
+
+/* ========== GRID LAYOUT ========== 
+.grid-2-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* ========== TIME SECTION ========== 
+.time-section {
+    background: #f0f9ff;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #bfdbfe;
+}
+
+.total-hours-display {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #0176d3;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+/* ========== TASK FIELD - MATCH DESCRIPTION STYLE ========== 
+.task-field textarea {
+    min-height: 70px !important;
+    max-height: 120px !important;
+}
+
+/* ========== DESCRIPTION FIELD ========== 
+.description-field textarea {
+    min-height: 90px !important;
+    max-height: 150px !important;
+}
+
+/* ========== FORM INPUTS GENERAL ========== 
+.form-input {
+    --slds-c-input-shadow: none;
+    --slds-c-textarea-shadow: none;
+}
+
+/* ========== MODAL FOOTER - FIXED ========== */
+/*lightning-modal-footer {
+    border-top: 1px solid #d0d0d0;
+    padding: 12px 16px !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+}
+lightning-modal-footer {
+    /* Remove the top border if it's creating that 'line' effect 
+    border-top: none !important; 
+    padding: 12px 16px !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    /* Ensure no box shadow is adding perceived gap 
+    box-shadow: none !important; 
+    display: block; 
+}
+.action-row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* ========== BUTTONS ========== 
+.save-btn {
+    background: #22c55e;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.save-btn:hover {
+    background: #16a34a;
+}
+
+.save-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.cancel-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+    background: #e5e7eb;
+}
+
+/* ========== RESPONSIVE DESIGN ========== 
+@media (max-width: 768px) {
+    .horizontal-scroll-container {
+        flex-direction: column;
+        overflow-x: hidden;
+        padding: 1rem;
+    }
+    
+    .row-block {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+    
+    .modal-header-container {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .add-row-btn {
+        width: 100%;
+    }
+
+    .action-row {
+        width: 100%;
+    }
+
+    .save-btn,
+    .cancel-btn {
+        flex: 1;
+    }
+}*/
+:host {
+    /* Enhanced design tokens */
+    --slds-c-modal-content-spacing-block-start: 0;
+    --slds-c-modal-content-spacing-block-end: 0;
+    --slds-c-modal-footer-spacing-block-start: 0;
+    --slds-c-modal-content-background-color: #f8fafc;
+    --modal-primary-color: #3b82f6;
+    --modal-primary-hover: #2563eb;
+    --modal-success-color: #10b981;
+    --modal-success-hover: #059669;
+    --modal-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --modal-card-hover-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    /* Non-italic font */
+    font-style: normal;
+}
+
+/* ========== MODAL HEADER - GRADIENT DESIGN ========== */
+.modal-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #3b82f6 100%);
+    border-bottom: none;
+}
+
+.modal-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.add-row-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.add-row-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== MODAL BODY - ENHANCED ========== */
+lightning-modal-body {
+    background: #f8fafc !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(85vh - 140px);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Scrollable container with smooth scrolling */
+.horizontal-scroll-container {
+    display: flex;
+    flex-direction: row;
+    padding: 1.5rem;
+    gap: 1.5rem;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    width: 100%;
+    min-width: 100%;
+}
+
+/* ========== ENTRY CARDS - PREMIUM DESIGN ========== */
+.row-block,
+.single-edit {
+    flex: 0 0 380px !important;
+    width: 380px !important;
+    min-width: 380px !important;
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    box-shadow: var(--modal-card-shadow);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.single-edit {
+    margin: 2rem auto;
+    max-width: 500px;
+    flex: 0 0 auto;
+}
+
+.row-block:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--modal-card-hover-shadow);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* ========== DELETE BUTTON - ENHANCED ========== */
+.delete-button {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    z-index: 10;
+    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%) !important;
+    border: 2px solid #fecaca !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.delete-button:hover {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+    border-color: #f87171 !important;
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+}
+
+/* ========== TIME SECTION - PREMIUM LOOK ========== */
+.time-section {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #bfdbfe;
+    box-shadow: inset 0 2px 4px rgba(59, 130, 246, 0.05);
+}
+
+.total-hours-display {
+    text-align: right;
+    font-size: 0.9rem;
+    color: #1d4ed8;
+    margin-top: 5px;
+    font-weight: 700;
+}
+
+/* ========== INPUT FIELDS - ENHANCED STYLING ========== */
+.form-input {
+    --slds-c-input-radius-border: 8px;
+    --slds-c-textarea-radius-border: 8px;
+}
+
+/* Style all labels in the form */
+.row-block .slds-form-element__label,
+.single-edit .slds-form-element__label {
+    font-weight: 600 !important;
+    font-style: normal !important;
+    color: #334155 !important;
+    font-size: 0.8rem !important;
+    margin-bottom: 4px !important;
+}
+
+/* Input focus states */
+.row-block lightning-input input:focus,
+.single-edit lightning-input input:focus,
+.row-block lightning-combobox input:focus,
+.single-edit lightning-combobox input:focus {
+    border-color: var(--modal-primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+.task-field textarea {
+    min-height: 60px !important;
+}
+
+.description-field textarea {
+    min-height: 80px !important;
+}
+
+/* ========== MODAL FOOTER - PREMIUM DESIGN ========== */
+lightning-modal-footer {
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 1.25rem 1.5rem !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    display: block;
+}
+
+.action-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 10px 30px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    border: none;
+}
+
+.save-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(16, 185, 129, 0.45);
+}
+
+.save-btn:disabled {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.cancel-btn {
+    background: #ffffff;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+/* ========== GRID LAYOUT ========== */
+.grid-2-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.grid-3-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.hrs-worked-input {
+    --slds-c-input-spacing-block-start: 4px;
+}
+
+.custom-time-grid {
+    align-items: flex-end;
+}
+
+.input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.custom-label {
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    display: block;
+}
+
+/* ========== FIX DROPDOWN & DATE PICKER OVERLAPPING ========== */
+/* Each field needs proper z-index stacking to prevent overlap */
+
+/* Row block needs visible overflow for dropdowns */
+.row-block {
+    overflow: visible !important;
+}
+
+/* Horizontal scroll needs auto for X, visible for Y to allow dropdowns */
+.horizontal-scroll-container {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+
+/* Modal body allows visible overflow */
+lightning-modal-body {
+    overflow: visible !important;
+}
+
+/* Date field - highest z-index since it's at top */
+.date-field {
+    position: relative;
+    z-index: 300 !important;
+}
+
+/* Project dropdown - high z-index so it appears above status */
+.project-field {
+    position: relative;
+    z-index: 200 !important;
+}
+
+/* Status row - lower z-index than project */
+.status-row {
+    position: relative;
+    z-index: 100 !important;
+}
+
+.status-field {
+    position: relative;
+    z-index: 100 !important;
+}
+
+/* Task field */
+.task-field {
+    position: relative;
+    z-index: 50 !important;
+}
+
+/* SLDS dropdown elements need high z-index */
+.slds-dropdown,
+.slds-datepicker,
+.slds-combobox__dropdown,
+.slds-listbox {
+    z-index: 10000 !important;
+}
+
+/* Validation error messages styling */
+.row-block .slds-form-element__help,
+.single-edit .slds-form-element__help {
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin-top: 6px;
+    font-weight: 500;
+}
+
+/* ========== INLINE WARNING & ERROR BANNERS ========== */
+.warning-banner,
+.error-banner {
+    margin: 0.5rem 1.25rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.warning-banner {
+    background: linear-gradient(135deg, #fef3cd 0%, #fde68a 100%);
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.error-banner {
+    background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.info-banner {
+    margin: 0.5rem 1.25rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #0369a1;
+    border: 1px solid #0ea5e9;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+    .modal-header-container {
+        flex-direction: column;
+        gap: 14px;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .add-row-btn {
+        width: 100%;
+    }
+
+    .horizontal-scroll-container {
+        flex-direction: column;
+        overflow-x: hidden;
+        padding: 1.5rem;
+    }
+
+    .row-block {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    .action-row {
+        flex-direction: column;
+    }
+
+    .save-btn,
+    .cancel-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

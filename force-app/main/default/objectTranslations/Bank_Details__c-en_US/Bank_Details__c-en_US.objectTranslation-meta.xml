@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Bank Details</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Bank Details</value>
+    </caseValues>
+    <layouts>
+        <layout>Bank Details Layout</layout>
+        <sections>
+            <label><!-- Account Information --></label>
+            <section>Account Information</section>
+        </sections>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+        <sections>
+            <label><!-- Record Identification --></label>
+            <section>Record Identification</section>
+        </sections>
+        <sections>
+            <label><!-- Status &amp; Notes --></label>
+            <section>Status &amp; Notes</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+    <validationRules>
+        <errorMessage><!-- A bank account must be Verified/Active before it can be set as the Primary salary account. --></errorMessage>
+        <name>Primary_Account_must_be_Verified</name>
+    </validationRules>
+</CustomObjectTranslation>

@@ -1,0 +1,1267 @@
+<template>
+<div class="dash-root" onclick={handlePageClick}>
+
+    <!-- ═══ TOP NAV ═══ -->
+    <div class="top-nav">
+        <div class="nav-left">
+            <div class="brand-box">Q</div>
+            <span class="brand-txt">QBay HR</span>
+            <span class="brand-tag">Team Lead Portal</span>
+        </div>
+        <div class="nav-right">
+            <div class="mgr-info">
+                <span class="mgr-name">{managerName}</span>
+                <span class="mgr-sub">Team Lead · {teamCount} Members</span>
+            </div>
+            <div class="mgr-avatar">{managerInitials}</div>
+        </div>
+    </div>
+
+    <div class="dash-body">
+
+        <!-- ═══ PAGE HEADER + VIEW TOGGLE ═══ -->
+        <div class="pg-header">
+            <div class="pg-header-inner">
+                <div class="pg-title-block">
+                    <h1 class="pg-title">My Team</h1>
+                    <p class="pg-sub">Employees where <strong>Manager = {managerName}</strong> · {todayDisplay}</p>
+                </div>
+                <div class="view-toggle">
+                    <button class={summaryViewClass}  data-view="summary"   onclick={handleMainViewChange}><span class="vt-ico">▤</span> Team Lead Summary</button>
+                    <button class={employeeViewClass} data-view="employees" onclick={handleMainViewChange}><span class="vt-ico">◉</span> Employee List</button>
+                    <button class={pendingViewClass}  data-view="pending"   onclick={handleMainViewChange}>
+                        <span class="vt-ico">🔔</span> Pending Approvals
+                        <template if:true={hasAnyPending}>
+                            <span class="view-btn-badge">{totalPendingCount}</span>
+                        </template>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PENDING APPROVALS BAR -->
+        <div class={pendingBarClass}>
+            <span class="pb-label">Needs action</span>
+            <div class="pb-sep"></div>
+            <div class={leavePillClass} onclick={handlePendingLeaveClick} style="cursor:pointer;">
+                <span class="pb-dot"></span>
+                <span class="pb-pill-txt">Leave requests</span>
+                <span class="pb-count">{pendingLeaveCount}</span>
+            </div>
+            <div class={tsPillClass} onclick={handlePendingTsClick} style="cursor:pointer;">
+                <span class="pb-dot"></span>
+                <span class="pb-pill-txt">Timesheets</span>
+                <span class="pb-count">{pendingTsCount}</span>
+            </div>
+            <div class={pendingWfhClass} onclick={handlePendingWfhClick} style="cursor:pointer;">
+                <span class="pb-dot"></span>
+                <span class="pb-pill-txt">WFH requests</span>
+                <span class="pb-count">{pendingWfhCount}</span>
+            </div>
+            <div class="pb-sep"></div>
+            <template if:true={hasAnyPending}>
+                <span class="pb-total">Total pending: <strong>{totalPendingCount}</strong></span>
+            </template>
+            <template if:true={allCaughtUp}>
+                <span class="pb-all-clear">All caught up</span>
+            </template>
+            <template if:true={pendingCountsLoading}>
+                <span class="pb-loading">Loading…</span>
+            </template>
+            <button class="pb-refresh-btn" onclick={handleRefreshCounts}>↻ Refresh</button>
+        </div>
+
+        <!-- ══════════════════════════════════════════════
+             SUMMARY VIEW
+        ══════════════════════════════════════════════ -->
+        <template if:true={isSummaryView}>
+            <div class="summary-layout">
+                <div class="sum-tables-col">
+
+                    <!-- TOGGLE SWITCH -->
+                    <div class="summary-switcher">
+                        <div class="switcher-track" onclick={handleSummaryToggle}>
+                            <div class={switcherSliderClass}></div>
+                            <span class={switcherLabelAttClass}><span class="sw-ico">📅</span> Attendance</span>
+                            <span class={switcherLabelTsClass}><span class="sw-ico">⏱</span> Timesheet</span>
+                        </div>
+                        <div class="switcher-hint">{switcherHintText}</div>
+                    </div>
+
+                    <!-- ATTENDANCE SUMMARY CARD -->
+                    <template if:true={showAttSummary}>
+                        <div class="sum-card">
+                            <div class="sum-card-hdr att-hdr">
+                                <div class="sum-card-hdr-l">
+                                    <span class="sum-card-ico">📅</span>
+                                    <div>
+                                        <div class="sum-card-title">Team Attendance Summary</div>
+                                        <div class="sum-card-sub">Click any row to view detailed records</div>
+                                    </div>
+                                </div>
+
+                                <!-- ✅ CHANGE 1: Attendance period selector — Today / Week / Month dropdown -->
+                                <div class="sv-toggle sv-toggle-months">
+                                    <button class={attBtnToday}  data-tbl="att" data-view="today"  onclick={handleSummaryViewChange}>Today</button>
+                                    <button class={attBtnWeekly} data-tbl="att" data-view="weekly" onclick={handleSummaryViewChange}>This Week</button>
+
+                                    <!-- Month dropdown -->
+                                    <div class="month-dd-wrap" onclick={handleAttMonthDropdownToggle}>
+                                        <button class="month-dd-trigger sv-btn">
+                                            <span class="month-dd-label">{attActiveMonthLabel}</span>
+                                            <span class="month-dd-caret">▾</span>
+                                        </button>
+                                        <template if:true={showAttMonthDropdown}>
+                                            <div class="month-dd-panel" onclick={handleModalStopProp}>
+                                                <div class="month-dd-header">Select Month</div>
+                                                <template for:each={attMonthDropdownList} for:item="mn">
+                                                    <button key={mn.monthKey}
+                                                            class={mn.itemClass}
+                                                            data-view={mn.viewKey}
+                                                            onclick={handleAttMonthDropdownSelect}>
+                                                        {mn.label}
+                                                        <template if:true={mn.isActive}>
+                                                            <span class="month-dd-check">✓</span>
+                                                        </template>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <template if:true={summaryLoading}>
+                                <div class="card-loading"><div class="load-spinner"></div><span>Loading attendance data…</span></div>
+                            </template>
+                            <template if:false={summaryLoading}>
+                                <div class="card-tbl-scroll">
+                                    <table class="sum-tbl">
+                                        <thead><tr>
+                                            <th class="col-emp">Employee</th>
+                                            <th class="col-num">Working Days</th>
+                                            <th class="col-num th-green">P</th>
+                                            <th class="col-num th-amber">L</th>
+                                            <th class="col-num th-red">A</th>
+                                            <th class="col-num">Leave</th>
+                                            <th class="col-num th-red">LOP</th>
+                                            <th class="col-num">AR %</th>
+                                        </tr></thead>
+                                        <tbody>
+                                            <template for:each={summaryRows} for:item="sr">
+                                                <tr key={sr.contactId} class={sr.attRowClass} data-id={sr.contactId} data-type="att" onclick={handleSummaryRowClick}>
+                                                    <td class="col-emp">
+                                                        <div class="emp-cell">
+                                                            <div class="emp-ava-xs att-ava">{sr.initials}</div>
+                                                            <div class="emp-cell-info">
+                                                                <div class="sum-emp-name">{sr.name}</div>
+                                                                <div class="sum-emp-id">{sr.employeeId}</div>
+                                                            </div>
+                                                            <span class="row-arrow">›</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="col-num">{sr.workingDays}</td>
+                                                    <td class="col-num num-green">{sr.present}</td>
+                                                    <td class="col-num num-amber">{sr.late}</td>
+                                                    <td class="col-num num-red">{sr.absent}</td>
+                                                    <td class="col-num">{sr.leaveDisplay}</td>
+                                                    <td class="col-num num-red">{sr.lopDisplay}</td>
+                                                    <td class="col-num"><span class={sr.rateClass}>{sr.rateDisplay}</span></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="tfoot-total">
+                                                <td class="col-emp"><strong>Team Total / Avg</strong></td>
+                                                <td class="col-num"><strong>{attTotalWd}</strong></td>
+                                                <td class="col-num num-green"><strong>{attTotalPresent}</strong></td>
+                                                <td class="col-num num-amber"><strong>{attTotalLate}</strong></td>
+                                                <td class="col-num num-red"><strong>{attTotalAbsent}</strong></td>
+                                                <td class="col-num"><strong>{attTotalLeave}</strong></td>
+                                                <td class="col-num num-red"><strong>{attTotalLop}</strong></td>
+                                                <td class="col-num"><span class="sum-rate avg-pill">{attAvgRate}</span></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- TIMESHEET PRODUCTIVITY CARD -->
+                    <template if:true={showTsSummary}>
+                        <div class="sum-card ts-sum-card">
+                            <div class="sum-card-hdr ts-hdr">
+                                <div class="sum-card-hdr-l">
+                                    <span class="sum-card-ico">⏱</span>
+                                    <div>
+                                        <div class="sum-card-title">Team Timesheet Productivity</div>
+                                        <div class="sum-card-sub">Logged = Billable + Non-Billable + Shadow · Click row to drill down</div>
+                                    </div>
+                                </div>
+
+                                <!-- ✅ CHANGE 1: Timesheet period selector — Today / Week / Month dropdown -->
+                                <div class="sv-toggle ts-toggle">
+                                    <button class={tsBtnToday}  data-tbl="ts" data-view="today"  onclick={handleSummaryViewChange}>Today</button>
+                                    <button class={tsBtnWeekly} data-tbl="ts" data-view="weekly" onclick={handleSummaryViewChange}>Week</button>
+
+                                    <!-- Month dropdown -->
+                                    <div class="month-dd-wrap" onclick={handleTsMonthDropdownToggle}>
+                                        <button class="month-dd-trigger sv-btn ts-sv-btn">
+                                            <span class="month-dd-label">{tsActiveMonthLabel}</span>
+                                            <span class="month-dd-caret">▾</span>
+                                        </button>
+                                        <template if:true={showTsMonthDropdown}>
+                                            <div class="month-dd-panel month-dd-panel--ts" onclick={handleModalStopProp}>
+                                                <div class="month-dd-header">Select Month</div>
+                                                <template for:each={tsMonthDropdownList} for:item="mn">
+                                                    <button key={mn.monthKey}
+                                                            class={mn.itemClass}
+                                                            data-view={mn.viewKey}
+                                                            onclick={handleTsMonthDropdownSelect}>
+                                                        {mn.label}
+                                                        <template if:true={mn.isActive}>
+                                                            <span class="month-dd-check">✓</span>
+                                                        </template>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <template if:true={tsSummaryLoading}>
+                                <div class="card-loading"><div class="load-spinner ts-spinner"></div><span>Loading timesheet data…</span></div>
+                            </template>
+                            <template if:false={tsSummaryLoading}>
+                                <div class="card-tbl-scroll ts-tbl-scroll">
+                                    <table class="sum-tbl ts-tbl ts-wide-tbl">
+                                        <thead>
+                                            <tr class="ts-group-hdr-row">
+                                                <th class="col-emp" rowspan="2">Employee</th>
+                                                <th class="col-grp-hdr th-blue"   colspan="4">Logged Hours</th>
+                                                <th class="col-grp-hdr th-green"  colspan="4">Approved Hours</th>
+                                                <th class="col-grp-hdr th-red"    colspan="4">Rejected Hours</th>
+                                                <th class="col-grp-hdr th-purple" colspan="4">Productivity Rate</th>
+                                            </tr>
+                                            <tr class="ts-sub-hdr-row">
+                                                <th class="col-sub th-blue">Bill</th><th class="col-sub th-blue">Non-Bill</th><th class="col-sub th-blue">Shadow</th><th class="col-sub th-blue-dark">Total</th>
+                                                <th class="col-sub th-green">Bill</th><th class="col-sub th-green">Non-Bill</th><th class="col-sub th-green">Shadow</th><th class="col-sub th-green-dark">Total</th>
+                                                <th class="col-sub th-red">Bill</th><th class="col-sub th-red">Non-Bill</th><th class="col-sub th-red">Shadow</th><th class="col-sub th-red-dark">Total</th>
+                                                <th class="col-sub th-purple">Bill</th><th class="col-sub th-purple">Non-Bill</th><th class="col-sub th-purple">Shadow</th><th class="col-sub th-purple-dark">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={tsSummaryRows} for:item="ts">
+                                                <tr key={ts.contactId} class={ts.tsRowClass} data-id={ts.contactId} data-type="ts" onclick={handleSummaryRowClick}>
+                                                    <td class="col-emp">
+                                                        <div class="emp-cell">
+                                                            <div class="emp-ava-xs ts-ava">{ts.initials}</div>
+                                                            <div class="emp-cell-info">
+                                                                <div class="sum-emp-name">{ts.name}</div>
+                                                                <div class="sum-emp-id">{ts.employeeId}</div>
+                                                            </div>
+                                                            <span class="row-arrow ts-arrow">›</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="col-sub num-blue">{ts.loggedBillableDisplay}</td>
+                                                    <td class="col-sub num-blue">{ts.loggedNonBillableDisplay}</td>
+                                                    <td class="col-sub num-blue">{ts.loggedShadowDisplay}</td>
+                                                    <td class="col-sub fw6 num-blue-dark">{ts.loggedTotalDisplay}</td>
+                                                    <td class="col-sub num-green">{ts.approvedBillableDisplay}</td>
+                                                    <td class="col-sub num-green">{ts.approvedNonBillableDisplay}</td>
+                                                    <td class="col-sub num-green">{ts.approvedShadowDisplay}</td>
+                                                    <td class="col-sub fw6 num-green-dark">{ts.approvedTotalDisplay}</td>
+                                                    <td class="col-sub num-red">{ts.rejectedBillableDisplay}</td>
+                                                    <td class="col-sub num-red">{ts.rejectedNonBillableDisplay}</td>
+                                                    <td class="col-sub num-red">{ts.rejectedShadowDisplay}</td>
+                                                    <td class="col-sub fw6 num-red-dark">{ts.rejectedTotalDisplay}</td>
+                                                    <td class="col-sub"><span class="prod-chip">{ts.prodBillableDisplay}</span></td>
+                                                    <td class="col-sub"><span class="prod-chip">{ts.prodNonBillableDisplay}</span></td>
+                                                    <td class="col-sub"><span class="prod-chip">{ts.prodShadowDisplay}</span></td>
+                                                    <td class="col-sub"><span class={ts.prodTotalClass}>{ts.prodTotalDisplay}</span></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="tfoot-total ts-total">
+                                                <td class="col-emp"><strong>Team Total / Avg</strong></td>
+                                                <td class="col-sub num-blue"><strong>{tsTotalLogBill}</strong></td>
+                                                <td class="col-sub num-blue"><strong>{tsTotalLogNonBill}</strong></td>
+                                                <td class="col-sub num-blue"><strong>{tsTotalLogShadow}</strong></td>
+                                                <td class="col-sub fw6 num-blue-dark"><strong>{tsTotalLoggedHrs}</strong></td>
+                                                <td class="col-sub num-green"><strong>{tsTotalAppBill}</strong></td>
+                                                <td class="col-sub num-green"><strong>{tsTotalAppNonBill}</strong></td>
+                                                <td class="col-sub num-green"><strong>{tsTotalAppShadow}</strong></td>
+                                                <td class="col-sub fw6 num-green-dark"><strong>{tsTotalApproved}</strong></td>
+                                                <td class="col-sub num-red"><strong>{tsTotalRejBill}</strong></td>
+                                                <td class="col-sub num-red"><strong>{tsTotalRejNonBill}</strong></td>
+                                                <td class="col-sub num-red"><strong>{tsTotalRejShadow}</strong></td>
+                                                <td class="col-sub fw6 num-red-dark"><strong>{tsTotalRejectedHrs}</strong></td>
+                                                <td class="col-sub"><span class="prod-chip">{tsAvgProdBill}</span></td>
+                                                <td class="col-sub"><span class="prod-chip">{tsAvgProdNonBill}</span></td>
+                                                <td class="col-sub"><span class="prod-chip">{tsAvgProdShadow}</span></td>
+                                                <td class="col-sub"><span class="sum-rate avg-pill ts-avg-pill">{tsAvgProd}</span></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                </div>
+
+                <!-- ═══ DRILL-DOWN PANEL ═══ -->
+                <template if:true={drillEmp}>
+                    <div class={drillPanelClass}>
+
+                        <div class="drill-hdr">
+                            <div class="drill-hdr-info">
+                                <div class={drillAvaClass}>{drillEmp.initials}</div>
+                                <div>
+                                    <div class="drill-name">{drillEmp.name}</div>
+                                    <div class="drill-empid">{drillEmp.employeeId}</div>
+                                </div>
+                            </div>
+                            <button class="drill-close-btn" onclick={handleDrillClose}>✕ Close</button>
+                        </div>
+
+                        <!-- ✅ CHANGE 2: Drill nav — tabs + filter only, NO month buttons (period inherited from summary) -->
+                        <div class="drill-nav">
+                            <div class="drill-tab-bar">
+                                <button class={drillAttClass} data-tab="attendance" onclick={handleDrillTabChange}>📅 Attendance</button>
+                                <button class={drillTsClass}  data-tab="timesheet"  onclick={handleDrillTabChange}>⏱ Timesheet</button>
+                                <button class={drillLvClass}  data-tab="leave"      onclick={handleDrillTabChange}>🏖 Leave</button>
+                            </div>
+                            <div class="drill-nav-right">
+                                <!-- Period badge — shows inherited month, no controls -->
+                                <div class="drill-inherited-period">
+                                    <span class="drill-period-badge">📅 {drillPeriodLabel}</span>
+                                </div>
+
+                                <!-- FILTER BUTTON -->
+                                <div class="filter-btn-wrap">
+                                    <button class={filterIconBtnClass} onclick={handleFilterIconClick} title="Filter records">
+                                        <svg class="filter-funnel-ico" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M1.5 2h13l-5 6v5l-3-1.5V8L1.5 2z"/>
+                                        </svg>
+                                        <template if:true={activeFilterCount}>
+                                            <span class="filter-badge">{activeFilterCount}</span>
+                                        </template>
+                                    </button>
+
+                                    <template if:true={showFilterPopup}>
+                                        <div class="filter-popup-backdrop" onclick={handleFilterPopupClose}></div>
+                                        <div class={filterPopupClass}>
+                                            <div class="fp-header">
+                                                <div class="fp-header-left">
+                                                    <svg class="fp-header-ico" viewBox="0 0 16 16" fill="currentColor">
+                                                        <path d="M1.5 2h13l-5 6v5l-3-1.5V8L1.5 2z"/>
+                                                    </svg>
+                                                    <span class="fp-title">{filterPopupTitle}</span>
+                                                    <template if:true={activeFilterCount}>
+                                                        <span class="fp-active-badge">{activeFilterCount} active</span>
+                                                    </template>
+                                                </div>
+                                                <button class="fp-close-btn" onclick={handleFilterPopupClose}>✕</button>
+                                            </div>
+                                            <div class="fp-body">
+                                                <template if:true={isDrillAtt}>
+                                                    <div class="fp-field-group">
+                                                        <div class="fp-section-label">Status</div>
+                                                        <div class="fp-chip-group">
+                                                            <template for:each={attStatusOptions} for:item="opt">
+                                                                <button key={opt.value} class={opt.chipClass} data-filter="attFilterStatus" data-value={opt.value} onclick={handleChipClick}>{opt.label}</button>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template if:true={isDrillTs}>
+                                                    <div class="fp-field-group">
+                                                        <div class="fp-section-label fp-section-label--ts">Project</div>
+                                                        <select class="fp-select fp-select--ts" data-filter="tsFilterProject" onchange={handleSelectChange}>
+                                                            <option value="">All Projects</option>
+                                                            <template for:each={drillProjectOptions} for:item="opt">
+                                                                <option key={opt} value={opt}>{opt}</option>
+                                                            </template>
+                                                        </select>
+                                                    </div>
+                                                    <div class="fp-field-group">
+                                                        <div class="fp-section-label fp-section-label--ts">Billing Type</div>
+                                                        <div class="fp-chip-group">
+                                                            <template for:each={tsBillingOptions} for:item="opt">
+                                                                <button key={opt.value} class={opt.chipClass} data-filter="tsFilterBilling" data-value={opt.value} onclick={handleChipClick}>{opt.label}</button>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template if:true={isDrillLv}>
+                                                    <div class="fp-field-group">
+                                                        <div class="fp-section-label fp-section-label--lv">Leave Type</div>
+                                                        <select class="fp-select fp-select--lv" data-filter="lvFilterType" onchange={handleSelectChange}>
+                                                            <option value="">All Leave Types</option>
+                                                            <template for:each={drillLeaveTypeOptions} for:item="opt">
+                                                                <option key={opt} value={opt}>{opt}</option>
+                                                            </template>
+                                                        </select>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div class={fpFooterClass}>
+                                                <div class="fp-result-info">
+                                                    <span class={fpResultCountClass}>{activeRecordCount}</span>
+                                                    <span class="fp-result-label">records matched</span>
+                                                </div>
+                                                <div class="fp-footer-actions">
+                                                    <template if:true={hasActiveFilters}>
+                                                        <button class={fpClearBtnClass} onclick={handleClearAllFilters}>✕ Clear All</button>
+                                                    </template>
+                                                    <button class={fpApplyBtnClass} onclick={handleFilterPopupClose}>✓ Done</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="drill-count-bar">
+                            <template if:true={hasActiveFilters}>
+                                <span class={filterActiveTagClass}>⚡ {activeFilterCount} filter(s) active</span>
+                            </template>
+                        </div>
+
+                        <template if:true={drillLoading}>
+                            <div class="card-loading"><div class="load-spinner"></div><span>Loading records…</span></div>
+                        </template>
+
+                        <template if:false={drillLoading}>
+
+                            <!-- ✅ CHANGE 3: Attendance drill table WITH tfoot totals -->
+                            <template if:true={isDrillAtt}>
+                                <template if:true={hasDrillAttRecords}>
+                                    <div class="drill-tbl-wrap">
+                                        <template if:true={drillHasMultiplePages}>
+  <div class="drill-pagination">
+    <div class="drill-page-info">
+      Showing {drillPageStart}–{drillPageEnd} of {drillTotalRecords}
+      &nbsp;|&nbsp;
+      Rows per page:
+      <select class="drill-rows-select"
+              onchange={handleDrillPageSizeChange}>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="drill-page-btns">
+      <button class="drill-page-btn"
+              disabled={drillIsFirstPage}
+              onclick={handleDrillPrev}>‹</button>
+      <template for:each={drillPageNumbers} for:item="pg">
+        <button key={pg.num}
+                class={pg.cls}
+                data-page={pg.num}
+                disabled={pg.disabled}
+                onclick={handleDrillPageChange}>{pg.num}</button>
+      </template>
+      <button class="drill-page-btn"
+              disabled={drillIsLastPage}
+              onclick={handleDrillNext}>›</button>
+    </div>
+  </div>
+</template>
+                                        <div class="drill-count">{drillAttCount} records</div>
+                                        <table class="drill-tbl drill-tbl-full">
+                                            <thead><tr>
+                                                <th>Date</th><th>Day</th><th>Status</th>
+                                                <th>Check In</th><th>Check Out</th>
+                                                <th>Location</th><th>WFH</th><th>OD</th>
+                                            </tr></thead>
+                                            <tbody>
+                                                <template for:each={pagedDrillAttRecords} for:item="da">
+                                                    <tr key={da.Id}>
+                                                        <td class="fw6 date-col">{da.displayDate}</td>
+                                                        <td class="day-col muted-txt">{da.displayDay}</td>
+                                                        <td><span class={da.statusBadge}>{da.Status__c}</span></td>
+                                                        <td>{da.displayCheckIn}</td>
+                                                        <td>{da.displayCheckOut}</td>
+                                                        <td class="loc-col">{da.displayLocation}</td>
+                                                        <td><span class="mini-status">{da.wfhStatus}</span></td>
+                                                        <td><span class="mini-status">{da.odStatus}</span></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                            <!-- ✅ Attendance drill totals footer -->
+                                            <template if:true={drillAttHasTotals}>
+                                                <tfoot>
+                                                    <tr class="tfoot-total drill-tfoot">
+                                                        <td class="fw6" colspan="2">Total · {drillAttCount} records</td>
+                                                        <td>
+                                                            <div class="drill-tfoot-stats">
+                                                                <span class="drill-stat-chip drill-stat-present">{drillAttTotalPresent} P</span>
+                                                                <span class="drill-stat-chip drill-stat-late">{drillAttTotalLate} L</span>
+                                                                <span class="drill-stat-chip drill-stat-absent">{drillAttTotalAbsent} A</span>
+                                                                <template if:true={drillAttTotalWfh}>
+                                                                    <span class="drill-stat-chip drill-stat-wfh">{drillAttTotalWfh} WFH</span>
+                                                                </template>
+                                                            </div>
+                                                        </td>
+                                                        <td colspan="5"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </template>
+                                        </table>
+                                    </div>
+                                </template>
+                                <template if:false={hasDrillAttRecords}>
+                                    <div class="drill-empty"><div class="drill-empty-ico">📭</div><div>No attendance records found for this period.</div></div>
+                                </template>
+                            </template>
+
+                            <!-- ✅ CHANGE 3: Timesheet drill table WITH tfoot totals + productivity rate -->
+                            <template if:true={isDrillTs}>
+                                <template if:true={hasDrillTsRecords}>
+                                    <div class="drill-tbl-wrap">
+                                        <template if:true={drillHasMultiplePages}>
+  <div class="drill-pagination">
+    <div class="drill-page-info">
+      Showing {drillPageStart}–{drillPageEnd} of {drillTotalRecords}
+      &nbsp;|&nbsp;
+      Rows per page:
+      <select class="drill-rows-select"
+              onchange={handleDrillPageSizeChange}>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="drill-page-btns">
+      <button class="drill-page-btn"
+              disabled={drillIsFirstPage}
+              onclick={handleDrillPrev}>‹</button>
+      <template for:each={drillPageNumbers} for:item="pg">
+        <button key={pg.num}
+                class={pg.cls}
+                data-page={pg.num}
+                disabled={pg.disabled}
+                onclick={handleDrillPageChange}>{pg.num}</button>
+      </template>
+      <button class="drill-page-btn"
+              disabled={drillIsLastPage}
+              onclick={handleDrillNext}>›</button>
+    </div>
+  </div>
+</template>
+                                        <div class="drill-count">{drillTsCount} entries</div>
+                                        <table class="drill-tbl drill-tbl-full">
+                                            <thead><tr>
+                                                <th>Date</th><th>Project</th><th>Task</th>
+                                                <th>Time</th><th>Hrs</th><th>Billing</th>
+                                                <th>Status</th><th>Approval</th>
+                                            </tr></thead>
+                                            <tbody>
+                                          <template for:each={pagedDrillTsRecords} for:item="dt">
+                                                    <tr key={dt.Id}>
+                                                        <td class="fw6 date-col">{dt.displayDate}</td>
+                                                        <td class="proj-col-full">{dt.projectName}</td>
+                                                        <td class="task-col-full muted-txt">{dt.Task__c}</td>
+                                                        <td class="time-col">{dt.displayStart} – {dt.displayEnd}</td>
+                                                        <td class="fw6">{dt.totalHrs}</td>
+                                                        <td><span class={dt.billingBadge}>{dt.Billing_Status__c}</span></td>
+                                                        <td><span class={dt.statusBadge}>{dt.Status__c}</span></td>
+                                                        <td><span class={dt.approvalBadge}>{dt.Approval_Status__c}</span></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                            <!-- ✅ Timesheet drill totals footer -->
+                                            <template if:true={drillTsHasTotals}>
+                                                <tfoot>
+                                                    <tr class="tfoot-total drill-tfoot">
+                                                        <td class="fw6" colspan="2">Total · {drillTsCount} entries</td>
+                                                        <td colspan="2"></td>
+                                                        <td class="fw6 num-blue-dark">{drillTsTotalAllHrs}</td>
+                                                        <td>
+                                                            <div class="drill-tfoot-stats">
+                                                                <span class="drill-stat-chip drill-stat-bill">{drillTsTotalBillableHrs} Bill</span>
+                                                                <span class="drill-stat-chip drill-stat-nonbill">{drillTsTotalNonBillableHrs} Non-Bill</span>
+                                                                <template if:true={drillTsTotalShadowHrs}>
+                                                                    <span class="drill-stat-chip drill-stat-shadow">{drillTsTotalShadowHrs} Shadow</span>
+                                                                </template>
+                                                            </div>
+                                                        </td>
+                                                        <td></td>
+                                                        <td>
+                                                            <span class={drillTsProdClass}>{drillTsProdRate}</span>
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            </template>
+                                        </table>
+                                    </div>
+                                </template>
+                                <template if:false={hasDrillTsRecords}>
+                                    <div class="drill-empty"><div class="drill-empty-ico">📭</div><div>No timesheet entries found for this period.</div></div>
+                                </template>
+                            </template>
+
+                            <!-- Leave drill table (unchanged) -->
+                            <template if:true={isDrillLv}>
+                                <template if:true={hasDrillLeaveRecords}>
+                                    <div class="drill-tbl-wrap">
+                                        <template if:true={drillHasMultiplePages}>
+  <div class="drill-pagination">
+    <div class="drill-page-info">
+      Showing {drillPageStart}–{drillPageEnd} of {drillTotalRecords}
+      &nbsp;|&nbsp;
+      Rows per page:
+      <select class="drill-rows-select"
+              onchange={handleDrillPageSizeChange}>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="drill-page-btns">
+      <button class="drill-page-btn"
+              disabled={drillIsFirstPage}
+              onclick={handleDrillPrev}>‹</button>
+      <template for:each={drillPageNumbers} for:item="pg">
+        <button key={pg.num}
+                class={pg.cls}
+                data-page={pg.num}
+                disabled={pg.disabled}
+                onclick={handleDrillPageChange}>{pg.num}</button>
+      </template>
+      <button class="drill-page-btn"
+              disabled={drillIsLastPage}
+              onclick={handleDrillNext}>›</button>
+    </div>
+  </div>
+</template>
+                                        <div class="drill-count">{drillLeaveCount} leave record(s)</div>
+                                        <table class="drill-tbl drill-tbl-full">
+                                            <thead><tr>
+                                                <th>Leave #</th><th>Type</th><th>From</th>
+                                                <th>To</th><th>Days</th><th>Reason</th>
+                                                <th>Status</th><th>Applied</th>
+                                            </tr></thead>
+                                            <tbody>
+                                               <template for:each={pagedDrillLeaveRecords} for:item="lv">
+                                                    <tr key={lv.id}>
+                                                        <td class="fw6">{lv.leaveName}</td>
+                                                        <td>
+                                                            {lv.leaveType}
+                                                            <template if:true={lv.isHalfDay}>
+                                                                <span class="mini-status">{lv.halfDayLabel}</span>
+                                                            </template>
+                                                        </td>
+                                                        <td class="date-col">{lv.displayStartDate}</td>
+                                                        <td class="date-col">{lv.displayEndDate}</td>
+                                                        <td class="fw6">{lv.displayDays}</td>
+                                                        <td class="reason-col muted-txt">{lv.reason}</td>
+                                                        <td><span class={lv.statusBadge}>{lv.status}</span></td>
+                                                        <td class="muted-txt">{lv.displayApplied}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
+                                <template if:false={hasDrillLeaveRecords}>
+                                    <div class="drill-empty">
+                                        <div class="drill-empty-ico">🏖</div>
+                                        <div>No leave records found for this period.</div>
+                                    </div>
+                                </template>
+                            </template>
+
+                        </template>
+                    </div>
+                </template>
+
+            </div>
+        </template>
+
+        <!-- ══════════════════════════════════════════════
+             EMPLOYEE VIEW
+        ══════════════════════════════════════════════ -->
+        <template if:true={isEmployeeView}>
+            <div class="cards-row">
+                <template for:each={teamMembers} for:item="emp">
+                    <div key={emp.Id} class={emp.cardClass} data-id={emp.Id} onclick={handleEmpSelect}>
+                        <div class="card-head">
+                            <div class="card-ava">{emp.initials}</div>
+                            <div><div class="card-name">{emp.Name}</div><div class="card-id">ID: {emp.Employee_Id__c}</div></div>
+                        </div>
+                        <div class="card-mgr">Reports to <strong>{managerName}</strong></div>
+                    </div>
+                </template>
+            </div>
+            <template if:true={selectedEmp}>
+                <div class="detail-panel">
+                    <div class="panel-hdr">
+                        <div class="panel-emp">
+                            <div class="panel-ava">{selectedEmp.initials}</div>
+                            <div><div class="panel-name">{selectedEmp.Name}</div><div class="panel-sub">ID: {selectedEmp.Employee_Id__c} · {selectedEmp.Email}</div></div>
+                        </div>
+                        <div class="tab-bar">
+                            <button class={tabAttClass}  data-tab="attendance" onclick={handleTabClick}>Attendance</button>
+                            <button class={tabTsClass}   data-tab="timesheet"  onclick={handleTabClick}>Timesheet</button>
+                            <button class={tabLvClass}   data-tab="leave"      onclick={handleTabClick}>Leave</button>
+                            <button class={tabProjClass} data-tab="projects"   onclick={handleTabClick}>Projects</button>
+                        </div>
+                    </div>
+                    <template if:true={isAttendanceTab}>
+                        <div class="tbl-wrap"><table class="data-tbl">
+                            <thead><tr><th>Date</th><th>Status</th><th>Check In</th><th>Check Out</th><th>Location</th><th>WFH</th><th>OD</th></tr></thead>
+                            <tbody>
+                                <template for:each={attendanceRecords} for:item="rec">
+                                    <tr key={rec.Id}>
+                                        <td class="fw6">{rec.displayDate}</td>
+                                        <td><span class={rec.statusBadge}>{rec.Status__c}</span></td>
+                                        <td>{rec.displayCheckIn}</td><td>{rec.displayCheckOut}</td><td>{rec.displayLocation}</td>
+                                        <td><span class="mini-status">{rec.wfhStatus}</span></td>
+                                        <td><span class="mini-status">{rec.odStatus}</span></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table></div>
+                    </template>
+                    <template if:true={isTimesheetTab}>
+                        <div class="tbl-wrap"><table class="data-tbl">
+                            <thead><tr><th>Date</th><th>Project</th><th>Task</th><th>Time</th><th>Regular</th><th>Overtime</th><th>Total</th><th>Billing</th><th>Status</th><th>Approval</th></tr></thead>
+                            <tbody>
+                                <template for:each={timesheetRecords} for:item="ts">
+                                    <tr key={ts.Id}>
+                                        <td class="fw6">{ts.displayDate}</td><td>{ts.projectName}</td>
+                                        <td class="muted-txt small-txt">{ts.Task__c}</td>
+                                        <td class="small-txt">{ts.displayStart} – {ts.displayEnd}</td>
+                                        <td>{ts.regularHrs}</td><td>{ts.overtimeHrs}</td><td class="fw6">{ts.totalHrs}</td>
+                                        <td><span class={ts.billingBadge}>{ts.Billing_Status__c}</span></td>
+                                        <td><span class={ts.statusBadge}>{ts.Status__c}</span></td>
+                                        <td><span class={ts.approvalBadge}>{ts.Approval_Status__c}</span></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table></div>
+                    </template>
+                    <template if:true={isLeaveTab}>
+                        <div class="tbl-wrap"><div class="leave-scroll leave-list">
+                            <template for:each={leaveRequests} for:item="lv">
+                                <div key={lv.Id} class={lv.cardClass}>
+                                    <div class="lv-fields">
+                                        <div class="lv-f"><span class="lv-lbl">TYPE</span><span class="lv-val">{lv.displayLeaveType}</span></div>
+                                        <div class="lv-f"><span class="lv-lbl">FROM</span><span class="lv-val">{lv.displayFrom}</span></div>
+                                        <div class="lv-f"><span class="lv-lbl">TO</span><span class="lv-val">{lv.displayTo}</span></div>
+                                        <div class="lv-f"><span class="lv-lbl">DAYS</span><span class="lv-val">{lv.displayDays}</span></div>
+                                        <div class="lv-f wide"><span class="lv-lbl">REASON</span><span class="lv-val">{lv.displayReason}</span></div>
+                                        <div class="lv-f"><span class="lv-lbl">STATUS</span><span class={lv.statusBadge}>{lv.Status__c}</span></div>
+                                    </div>
+                                    <div class="lv-actions">
+                                        <template if:true={lv.isProcessing}><span class="processing-badge">Processing…</span></template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div></div>
+                    </template>
+                    <template if:true={isProjectsTab}>
+                        <div class="proj-section">
+                            <div class="proj-header">
+                                <span class="proj-title">Project Assignments</span>
+                                <button class="btn-assign" onclick={handleAssignProjectClick}>+ Assign Project</button>
+                            </div>
+                            <template if:true={hasAssignments}>
+                                <div class="proj-list">
+                                    <template for:each={projectAssignments} for:item="pa">
+                                        <div key={pa.Id} class="proj-card">
+                                            <div class="proj-info">
+                                                <div><div class="proj-name">{pa.projectName}</div><div class="proj-no">{pa.projectNo}</div></div>
+                                                <div class="proj-meta">
+                                                    <div class="proj-field"><span class="proj-flbl">TYPE</span><span class="proj-fval">{pa.projectType}</span></div>
+                                                    <div class="proj-field"><span class="proj-flbl">STATUS</span><span class="proj-fval">{pa.projectStatus}</span></div>
+                                                    <div class="proj-field"><span class="proj-flbl">ROLE</span><span class="proj-fval">{pa.Role__c}</span></div>
+                                                    <div class="proj-field"><span class="proj-flbl">START</span><span class="proj-fval">{pa.projectStart}</span></div>
+                                                    <div class="proj-field"><span class="proj-flbl">END</span><span class="proj-fval">{pa.projectEnd}</span></div>
+                                                </div>
+                                            </div>
+                                            <div class="proj-actions">
+                                                <button class="btn-edit-proj"   data-id={pa.Id} data-proj={pa.Project__c} data-role={pa.Role__c} data-status={pa.Employment_Status__c} onclick={handleEditAssignment}>Edit</button>
+                                                <button class="btn-remove-proj" data-id={pa.Id} data-name={pa.projectName} onclick={handleRemoveAssignment}>Remove</button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </template>
+
+        <!-- ══════════════════════════════════════════════
+             PENDING APPROVALS VIEW
+        ══════════════════════════════════════════════ -->
+        <template if:true={isPendingView}>
+            <div class="pending-approvals-root">
+                <div class="pending-tab-bar">
+                    <button class={pendingLvTabClass} data-tab="leave" onclick={handlePendingTabChange}>
+                        🏖 Leave Requests <span class="ptab-count">{pendingLeaveCount2}</span>
+                    </button>
+                    <button class={pendingTsTabClass} data-tab="timesheet" onclick={handlePendingTabChange}>
+                        ⏱ Timesheets <span class="ptab-count">{pendingTsCount2}</span>
+                    </button>
+                    <button class={pendingWfhTabClass} data-tab="wfh" onclick={handlePendingTabChange}>
+                        🏠 WFH Requests <span class="ptab-count">{pendingWfhCount2}</span>
+                    </button>
+                </div>
+
+                <template if:true={pendingViewLoading}>
+                    <div class="card-loading"><div class="load-spinner"></div><span>Loading pending approvals…</span></div>
+                </template>
+
+                <template if:false={pendingViewLoading}>
+
+                    <!-- PENDING LEAVE TABLE -->
+                    <template if:true={isPendingLvTab}>
+                        <template if:true={hasPendingLeave}>
+                            <div class="pending-tbl-wrap">
+                                <table class="pending-tbl">
+                                    <thead><tr>
+                                        <th>Employee</th><th>Type</th><th>From</th><th>To</th>
+                                        <th>Days</th><th>Reason</th><th>Status</th><th class="th-actions">Actions</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        <template for:each={pendingLeaveAll} for:item="lv">
+                                            <tr key={lv.id} class="pending-row">
+                                                <td>
+                                                    <div class="emp-cell-sm">
+                                                        <div class="emp-ava-xs att-ava">{lv.empInitials}</div>
+                                                        <div><div class="fw6">{lv.empName}</div><div class="muted-txt small-txt">{lv.empId}</div></div>
+                                                    </div>
+                                                </td>
+                                                <td class="fw6">{lv.displayType}</td>
+                                                <td>{lv.displayFrom}</td><td>{lv.displayTo}</td>
+                                                <td class="fw6">{lv.displayDays}</td>
+                                                <td class="reason-col muted-txt">{lv.displayReason}</td>
+                                                <td><span class="status-badge status-pending">Pending</span></td>
+                                                <td class="td-actions">
+                                                    <template if:true={lv.isPending}>
+                                                      <button class="btn-ok btn-sm btn-approve-full"
+                                                                data-id={lv.id} data-type="leave" data-name={lv.empName}
+                                                                data-empid={lv.empId} data-from={lv.displayFrom}
+                                                                data-to={lv.displayTo} data-days={lv.displayDays}
+                                                                data-leavetype={lv.displayType} data-reason={lv.displayReason}
+                                                                onclick={handleOpenApprovalPage}>✓ Review &amp; Approve</button>
+                                                        <button class="btn-no btn-sm" data-id={lv.id} onclick={handlePendingRejectClick}>Reject</button> 
+                                                    </template>
+                                                    <template if:true={lv.isProcessing}>
+                                                        <span class="processing-badge">Processing…</span>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                        <template if:false={hasPendingLeave}>
+                            <div class="pending-empty">
+                                <div class="pending-empty-ico">✅</div>
+                                <div class="pending-empty-txt">No pending leave requests</div>
+                                <div class="pending-empty-sub">All leave requests have been actioned</div>
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- PENDING TIMESHEET TABLE -->
+                    <template if:true={isPendingTsTab}>
+                        <template if:true={hasPendingTs}>
+                            <div class="ts-subtab-bar">
+                                <button class={tsSubTabEntriesClass} data-subtab="entries" onclick={handleTsSubTabChange}>
+                                    <span class="ts-subtab-ico">📋</span> Individual Entries
+                                    <span class="ts-subtab-count">{pendingTsCount2}</span>
+                                </button>
+                                <button class={tsSubTabWeeklyClass} data-subtab="weekly" onclick={handleTsSubTabChange}>
+                                    <span class="ts-subtab-ico">📅</span> Weekly Summary
+                                    <span class="ts-subtab-count">{weeklyGroupCount}</span>
+                                </button>
+                            </div>
+
+                            <template if:true={isTsSubTabEntries}>
+                                <div class="pending-tbl-wrap">
+                                    <table class="pending-tbl pending-tbl-wide">
+                                        <thead><tr>
+                                            <th>Employee</th><th>Date</th><th>Project</th><th>Task</th>
+                                            <th>Time</th><th>Regular</th><th>Overtime</th><th>Total</th>
+                                            <th>Billing</th><th>Status</th><th>Approval</th><!--<th class="th-actions">Actions</th>-->
+                                        </tr></thead>
+                                        <tbody>
+                                            <template for:each={pendingTsAll} for:item="ts">
+                                                <tr key={ts.id} class="pending-row">
+                                                    <td>
+                                                        <div class="emp-cell-sm">
+                                                            <div class="emp-ava-xs ts-ava">{ts.empInitials}</div>
+                                                            <div><div class="fw6">{ts.empName}</div><div class="muted-txt small-txt">{ts.empId}</div></div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="fw6 date-col">{ts.displayDate}</td>
+                                                    <td class="proj-col-full">{ts.projectName}</td>
+                                                    <td class="muted-txt small-txt">{ts.taskName}</td>
+                                                    <td class="small-txt">{ts.displayTime}</td>
+                                                    <td>{ts.regularHrs}</td><td>{ts.overtimeHrs}</td><td class="fw6">{ts.totalHrs}</td>
+                                                    <td><span class={ts.billingBadge}>{ts.billingStatus}</span></td>
+                                                    <td><span class={ts.statusBadge}>{ts.entryStatus}</span></td>
+                                                    <td><span class={ts.approvalBadge}>{ts.approvalStatus}</span></td>
+                                                    <td class="td-actions">
+                                                        <template if:true={ts.isPending}>
+                                                          <!--  <button class="btn-ok btn-sm btn-approve-full"
+                                                                    data-id={ts.id} data-type="timesheet" data-name={ts.empName}
+                                                                    data-empid={ts.empId} data-date={ts.displayDate}
+                                                                    data-project={ts.projectName} data-task={ts.taskName}
+                                                                    data-time={ts.displayTime} data-total={ts.totalHrs}
+                                                                    data-billing={ts.billingStatus}
+                                                                    onclick={handleOpenApprovalPage}>✓ Review &amp; Approve</button>
+                                                            <button class="btn-no btn-sm" data-id={ts.id} onclick={handlePendingTsRejectClick}>Reject</button> -->
+                                                        </template>
+                                                        <template if:true={ts.isProcessing}>
+                                                            <span class="processing-badge">Processing…</span>
+                                                        </template>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </template>
+
+                            <template if:true={isTsSubTabWeekly}>
+                                <div class="weekly-groups-wrap">
+                                    <template for:each={weeklyGroups} for:item="wg">
+                                        <div key={wg.weekKey} class="weekly-group-card">
+                                            <div class="weekly-group-hdr" data-weekkey={wg.weekKey} onclick={handleWeekGroupToggle}>
+                                                <div class="weekly-group-hdr-left">
+                                                    <span class="weekly-collapse-ico">{wg.collapseIcon}</span>
+                                                    <div class="weekly-group-label">
+                                                        <span class="weekly-group-name">{wg.weekLabel}</span>
+                                                        <span class="weekly-group-range">{wg.dateRange}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="weekly-group-hdr-right">
+                                                    <span class="weekly-stat-pill weekly-stat-emp">👤 {wg.empCount} emp</span>
+                                                    <span class="weekly-stat-pill weekly-stat-entries">📋 {wg.entryCount} entries</span>
+                                                    <span class="weekly-stat-pill weekly-stat-hrs">⏱ {wg.totalHrsDisplay}</span>
+                                                    <template if:true={wg.hasPending}>
+                                                        <span class="weekly-pending-badge">{wg.pendingCount} pending</span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <template if:true={wg.isExpanded}>
+                                                <div class="weekly-group-body">
+                                                    <template for:each={wg.employeeRows} for:item="er">
+                                                        <div key={er.empKey} class="weekly-emp-row">
+                                                            <div class="weekly-emp-hdr">
+                                                                <div class="weekly-emp-info">
+                                                                    <div class="emp-ava-xs ts-ava">{er.empInitials}</div>
+                                                                    <div><div class="fw6">{er.empName}</div><div class="muted-txt small-txt">{er.empId}</div></div>
+                                                                </div>
+                                                                <div class="weekly-emp-stats">
+                                                                    <div class="weekly-emp-stat"><span class="wes-lbl">Entries</span><span class="wes-val">{er.entryCount}</span></div>
+                                                                    <div class="weekly-emp-stat"><span class="wes-lbl">Total Hrs</span><span class="wes-val fw6">{er.totalHrsDisplay}</span></div>
+                                                                    <div class="weekly-emp-stat"><span class="wes-lbl">Billable</span><span class="wes-val num-green">{er.billableHrsDisplay}</span></div>
+                                                                    <div class="weekly-emp-stat"><span class="wes-lbl">Non-Bill</span><span class="wes-val num-blue">{er.nonBillHrsDisplay}</span></div>
+                                                                    <div class="weekly-emp-stat"><span class="wes-lbl">Shadow</span><span class="wes-val muted-txt">{er.shadowHrsDisplay}</span></div>
+                                                                </div>
+                                                                <div class="weekly-emp-actions">
+                                                                    <template if:true={er.hasPendingEntries}>
+                                                                        <button class="btn-ok btn-sm weekly-bulk-btn" data-empkey={er.empKey} onclick={handleWeeklyBulkApprove}>✓ Approve All ({er.pendingCount})</button>
+                                                                        <button class="btn-no btn-sm" data-empkey={er.empKey} onclick={handleWeeklyBulkReject}>Reject All</button>
+                                                                    </template>
+                                                                    <template if:true={er.isProcessing}>
+                                                                        <span class="processing-badge">Processing…</span>
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+                                                            <div class="weekly-entries-tbl-wrap">
+                                                                <table class="weekly-entries-tbl">
+                                                                    <thead><tr>
+                                                                        <th>Date</th><th>Project</th><th>Task</th>
+                                                                        <th>Time</th><th>Hrs</th><th>Billing</th>
+                                                                        <th>Status</th><th>Approval</th><!--<th>Action</th>-->
+                                                                    </tr></thead>
+                                                                    <tbody>
+                                                                        <template for:each={er.entries} for:item="te">
+                                                                            <tr key={te.id} class={te.entryRowClass}>
+                                                                                <td class="fw6 date-col">{te.displayDate}</td>
+                                                                                <td class="proj-col-full">{te.projectName}</td>
+                                                                                <td class="muted-txt small-txt">{te.taskName}</td>
+                                                                                <td class="small-txt">{te.displayTime}</td>
+                                                                                <td class="fw6">{te.totalHrs}</td>
+                                                                                <td><span class={te.billingBadge}>{te.billingStatus}</span></td>
+                                                                                <td><span class={te.statusBadge}>{te.entryStatus}</span></td>
+                                                                                <td><span class={te.approvalBadge}>{te.approvalStatus}</span></td>
+                                                                                <td class="td-actions">
+                                                                                    <template if:true={te.isPending}>
+                                                                                        <button class="btn-ok btn-sm btn-approve-full weekly-entry-approve"
+                                                                                                data-id={te.id} data-type="timesheet" data-name={te.empName}
+                                                                                                data-empid={te.empId} data-date={te.displayDate}
+                                                                                                data-project={te.projectName} data-task={te.taskName}
+                                                                                                data-time={te.displayTime} data-total={te.totalHrs}
+                                                                                                data-billing={te.billingStatus}
+                                                                                                onclick={handleOpenApprovalPage}>✓</button>
+                                                                                        <button class="btn-no btn-sm" data-id={te.id} onclick={handlePendingTsRejectClick}>✕</button>
+                                                                                    </template>
+                                                                                    <template if:true={te.isProcessing}>
+                                                                                        <span class="processing-badge">…</span>
+                                                                                    </template>
+                                                                                    <template if:true={te.isDone}>
+                                                                                        <span class={te.doneClass}>✓ {te.doneLabel}</span>
+                                                                                    </template>
+                                                                                </td>
+                                                                            </tr>
+                                                                        </template>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                        </template>
+                        <template if:false={hasPendingTs}>
+                            <div class="pending-empty">
+                                <div class="pending-empty-ico">✅</div>
+                                <div class="pending-empty-txt">No pending timesheet approvals</div>
+                                <div class="pending-empty-sub">All timesheets have been reviewed</div>
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- PENDING WFH TABLE -->
+                    <template if:true={isPendingWfhTab}>
+                        <template if:true={hasPendingWfh}>
+                            <div class="pending-tbl-wrap">
+                                <table class="pending-tbl">
+                                    <thead><tr>
+                                        <th>Employee</th><th>From</th><th>To</th>
+                                        <th>Reason</th><th>Status</th><th class="th-actions">Actions</th>
+
+
+
+                                    </tr></thead>
+                                    <tbody>
+                                        <template for:each={pendingWfhAll} for:item="wfh">
+                                            <tr key={wfh.id} class="pending-row">
+                                                <td>
+                                                    <div class="emp-cell-sm">
+                                                        <div class="emp-ava-xs att-ava">{wfh.empInitials}</div>
+                                                        <div><div class="fw6">{wfh.empName}</div><div class="muted-txt small-txt">{wfh.empId}</div></div>
+                                                    </div>
+                                                </td>
+                                                <td class="fw6 date-col">{wfh.displayFrom}</td>
+                                                <td class="fw6 date-col">{wfh.displayTo}</td>
+                                                <td class="reason-col muted-txt">{wfh.displayReason}</td>
+                                                <td><span class="status-badge status-pending">Pending</span></td>
+                                                <td class="td-actions">
+                                                    <template if:true={wfh.isPending}>
+                                                        <button class="btn-ok btn-sm btn-approve-full"
+                                                                data-id={wfh.id} data-type="wfh" data-name={wfh.empName}
+                                                                data-empid={wfh.empId} data-from={wfh.displayFrom}
+                                                                data-to={wfh.displayTo} data-reason={wfh.displayReason}
+                                                                onclick={handleOpenApprovalPage}>✓ Review &amp; Approve</button>
+                                                        <button class="btn-no btn-sm" data-id={wfh.id} onclick={handlePendingWfhRejectClick}>Reject</button> 
+                                                    </template>
+                                                    <template if:true={wfh.isProcessing}>
+                                                        <span class="processing-badge">Processing…</span>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                        <template if:false={hasPendingWfh}>
+                            <div class="pending-empty">
+                                <div class="pending-empty-ico">✅</div>
+                                <div class="pending-empty-txt">No pending WFH requests</div>
+                                <div class="pending-empty-sub">All WFH requests have been reviewed</div>
+                            </div>
+                        </template>
+                    </template>
+
+                </template>
+            </div>
+        </template>
+
+        <!-- ══════════════════════════════════════════════
+             APPROVAL PAGE
+        ══════════════════════════════════════════════ -->
+        <template if:true={isApprovalPageView}>
+            <div class="approval-page-root">
+                <div class="ap-top-bar">
+                    <button class="ap-back-btn" onclick={handleApprovalPageBack}>← Back to Pending Approvals</button>
+                    <div class="ap-breadcrumb">Pending Approvals &rsaquo; <span class="ap-breadcrumb-cur">{approvalPageTitle}</span></div>
+                </div>
+                <div class="ap-layout">
+                    <div class="ap-detail-card">
+                        <div class="ap-detail-header">
+                            <div class="ap-type-badge ap-type-badge--{approvalPageType}">{approvalPageTypeLabel}</div>
+                            <div class="ap-status-badge status-badge status-pending">Pending Approval</div>
+                        </div>
+                        <div class="ap-emp-row">
+                            <div class="ap-emp-ava">{approvalData.empInitials}</div>
+                            <div class="ap-emp-info">
+                                <div class="ap-emp-name">{approvalData.empName}</div>
+                                <div class="ap-emp-id">Employee ID: {approvalData.empId}</div>
+                            </div>
+                        </div>
+                        <div class="ap-divider"></div>
+                        <template if:true={isApprovalLeave}>
+                            <div class="ap-fields-grid">
+                                <div class="ap-field"><span class="ap-field-lbl">Leave Type</span><span class="ap-field-val ap-field-val--highlight">{approvalData.leaveType}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">Duration</span><span class="ap-field-val ap-field-val--highlight">{approvalData.days} day(s)</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">From Date</span><span class="ap-field-val">{approvalData.from}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">To Date</span><span class="ap-field-val">{approvalData.to}</span></div>
+                                <div class="ap-field ap-field--full"><span class="ap-field-lbl">Reason</span><span class="ap-field-val ap-reason-txt">{approvalData.reason}</span></div>
+                            </div>
+                        </template>
+                        <template if:true={isApprovalTimesheet}>
+                            <div class="ap-fields-grid">
+                                <div class="ap-field"><span class="ap-field-lbl">Date</span><span class="ap-field-val ap-field-val--highlight">{approvalData.date}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">Total Hours</span><span class="ap-field-val ap-field-val--highlight">{approvalData.totalHrs}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">Project</span><span class="ap-field-val">{approvalData.project}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">Time</span><span class="ap-field-val">{approvalData.time}</span></div>
+                                <div class="ap-field ap-field--full"><span class="ap-field-lbl">Task</span><span class="ap-field-val ap-reason-txt">{approvalData.task}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">Billing Status</span><span class="ap-field-val">{approvalData.billingStatus}</span></div>
+                            </div>
+                        </template>
+                        <template if:true={isApprovalWfh}>
+                            <div class="ap-fields-grid">
+                                <div class="ap-field"><span class="ap-field-lbl">From Date</span><span class="ap-field-val ap-field-val--highlight">{approvalData.from}</span></div>
+                                <div class="ap-field"><span class="ap-field-lbl">To Date</span><span class="ap-field-val ap-field-val--highlight">{approvalData.to}</span></div>
+                                <div class="ap-field ap-field--full"><span class="ap-field-lbl">Reason</span><span class="ap-field-val ap-reason-txt">{approvalData.reason}</span></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="ap-action-card">
+                        <div class="ap-section">
+                            <div class="ap-section-title"><span class="ap-section-ico">✉️</span> Reply Mail to Employee <span class="ap-optional-tag">optional</span></div>
+                            <div class="ap-mail-compose">
+                                <div class="ap-mail-field"><label class="ap-mail-lbl">To</label><input type="text" class="ap-mail-input ap-mail-input--readonly" value={approvalData.empName} readonly /></div>
+                                <div class="ap-mail-field"><label class="ap-mail-lbl">Subject</label><input type="text" class="ap-mail-input" value={approvalMailSubject} data-field="approvalMailSubject" onchange={handleApprovalFieldChange} placeholder="Enter email subject…" /></div>
+                                
+                            </div>
+                        </div>
+                        <div class="ap-divider"></div>
+                        <div class="ap-section">
+                            <div class="ap-section-title"><span class="ap-section-ico">💬</span> Manager Comments <span class="ap-optional-tag">optional</span></div>
+                            <textarea class="ap-comments-textarea" value={approvalComments} data-field="approvalComments" onchange={handleApprovalFieldChange} placeholder="Add any comments or notes for the record…" rows="3"></textarea>
+                        </div>
+                        <div class="ap-divider"></div>
+                        <div class="ap-section">
+                            <div class="ap-section-title"><span class="ap-section-ico">⚖️</span> Decision</div>
+                            <div class="ap-decision-row">
+                                <button class="ap-btn-approve" onclick={handleApprovalPageApprove}><span class="ap-btn-ico">✓</span> Approve {approvalPageTypeLabel}</button>
+                                <button class="ap-btn-reject" onclick={handleApprovalPageRejectOpen}><span class="ap-btn-ico">✕</span> Reject</button>
+                            </div>
+
+                               <!-- ✅ Reject reason NOW lives here, inside the card -->
+    <template if:true={showApprovalPageRejectReason}>
+        <div class="ap-reject-inline">
+            <div class="ap-reject-inline-inner">
+                <div class="ap-reject-inline-title">
+                    ⚠️ Rejection Reason
+                    <span class="ap-required-star">*</span>
+                </div>
+                <textarea class="ap-reject-textarea"
+                          value={approvalPageRejectReason}
+                          onchange={handleApprovalPageRejectReasonChange}
+                          placeholder="Please provide a clear reason for rejecting this request…"
+                          rows="4"></textarea>
+                <div class="ap-reject-inline-actions">
+                    <button class="ap-btn-cancel"
+                            onclick={handleApprovalPageRejectCancel}>Cancel</button>
+                    <button class="ap-btn-reject-confirm"
+                            onclick={handleApprovalPageRejectConfirm}>Confirm Rejection</button>
+                </div>
+            </div>
+        </div>
+    </template>
+                        </div>
+                    </div>
+                </div>
+              
+            </div>
+        </template>
+
+        <!-- PENDING REJECT MODAL -->
+        <template if:true={showRejectModalPending}>
+            <div class="modal-backdrop" onclick={handlePendingModalClose}>
+                <div class="modal-box" onclick={handleModalStopProp}>
+                    <div class="modal-hdr"><span class="modal-title">Reject Request</span><button class="modal-close" onclick={handlePendingModalClose}>✕</button></div>
+                    <div class="modal-body"><p class="modal-sub">Please provide a reason for rejection:</p><textarea class="modal-textarea" value={pendingRejectReason} onchange={handlePendingReasonChange} placeholder="Enter rejection reason…"></textarea></div>
+                    <div class="modal-footer"><button class="btn-cancel" onclick={handlePendingModalClose}>Cancel</button><button class="btn-no" onclick={handlePendingRejectConfirm}>Confirm Reject</button></div>
+                </div>
+            </div>
+        </template>
+
+        <div class="footer">🔒 Only employees where Contact.Manager__c = your User ID are visible</div>
+    </div>
+
+    <!-- REJECTION MODAL (employee view) -->
+    <template if:true={showRejectModal}>
+        <div class="modal-backdrop" onclick={handleModalClose}>
+            <div class="modal-box" onclick={handleModalStopProp}>
+                <div class="modal-hdr"><span class="modal-title">Reject Leave Request</span><button class="modal-close" onclick={handleModalClose}>✕</button></div>
+                <div class="modal-body"><p class="modal-sub">Please provide a reason for rejection:</p><textarea class="modal-textarea" value={rejectReason} onchange={handleReasonChange} placeholder="Enter rejection reason…"></textarea></div>
+                <div class="modal-footer"><button class="btn-cancel" onclick={handleModalClose}>Cancel</button><button class="btn-no" onclick={handleRejectConfirm}>Confirm Reject</button></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- PROJECT MODAL -->
+    <template if:true={showProjModal}>
+        <div class="modal-backdrop" onclick={handleProjModalClose}>
+            <div class="proj-modal-box" onclick={handleModalStopProp}>
+                <div class="modal-hdr"><span class="modal-title">{projModalTitle}</span><button class="modal-close" onclick={handleProjModalClose}>✕</button></div>
+                <div class="proj-form">
+                    <div class="form-row"><label class="form-lbl">Project *</label>
+                        <select class="form-sel" data-field="projFormProjectId" onchange={handleProjFormChange}>
+                            <option value="">— Select Project —</option>
+                            <template for:each={activeProjects} for:item="proj">
+                                <option key={proj.Id} value={proj.Id}>{proj.Name}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-row"><label class="form-lbl">Role *</label>
+                        <select class="form-sel" data-field="projFormRole" onchange={handleProjFormChange}>
+                            <option value="">— Select Role —</option>
+                            <template for:each={roleOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-row"><label class="form-lbl">Employment Status *</label>
+                        <select class="form-sel" data-field="projFormStatus" onchange={handleProjFormChange}>
+                            <option value="">— Select Status —</option>
+                            <template for:each={employmentStatusOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn-cancel" onclick={handleProjModalClose}>Cancel</button><button class="btn-assign" onclick={handleProjModalSave}>{projModalSaveLabel}</button></div>
+            </div>
+        </div>
+    </template>
+
+</div>
+</template>

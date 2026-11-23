@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Status --></label>
+    <name>Status__c</name>
+    <picklistValues>
+        <masterLabel>Client Interview Completed</masterLabel>
+        <translation><!-- Client Interview Completed --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Client Interview Scheduled</masterLabel>
+        <translation><!-- Client Interview Scheduled --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Duplicate</masterLabel>
+        <translation><!-- Duplicate --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Identified</masterLabel>
+        <translation><!-- Identified --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Joined</masterLabel>
+        <translation><!-- Joined --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Presented</masterLabel>
+        <translation><!-- Presented --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Rejected</masterLabel>
+        <translation><!-- Rejected --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Screened - Not Selected</masterLabel>
+        <translation><!-- Screened - Not Selected --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Screening Rejected</masterLabel>
+        <translation><!-- Screening Rejected --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Selected</masterLabel>
+        <translation><!-- Selected --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Selected Not Interested</masterLabel>
+        <translation><!-- Selected Not Interested --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Withdrawn</masterLabel>
+        <translation><!-- Withdrawn --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

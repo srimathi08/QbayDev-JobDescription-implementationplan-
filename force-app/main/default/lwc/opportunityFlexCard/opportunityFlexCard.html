@@ -1,0 +1,160 @@
+<!--<template>
+    <template if:true={summary}>
+        <lightning-card title={summary.opportunityName}>
+            <div class="slds-p-around_medium">
+                <p><strong>Interviews Scheduled:</strong> {summary.interviewCount}</p>
+                <p><strong>Eligible Candidates:</strong> {summary.eligibleCount}</p>
+                <p><strong>Represented to Client:</strong> {summary.representedCount}</p>
+            </div>
+        </lightning-card>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error slds-p-around_medium">
+            Error: {error}
+        </div>
+    </template>
+</template> -->
+
+
+<!--  WORKING
+<template>
+    <template if:true={summary}>
+       <lightning-card title={summary.opportunityName} icon-name="standard:opportunity">
+            <div class="slds-p-around_medium slds-box slds-theme_default slds-card_boundary">
+                <div class="slds-grid slds-wrap slds-gutters">
+
+                  
+
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="slds-box slds-theme_success slds-text-align_center slds-p-around_small">
+                            <lightning-icon icon-name="utility:user" alternative-text="Eligible Candidates" size="small" class="slds-m-bottom_x-small"></lightning-icon>
+                            <p class="slds-text-heading_medium">{summary.eligibleCount}</p>
+                            <p class="slds-text-body_small">Eligible Candidates</p>
+                        </div>
+                    </div>
+
+                
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="slds-box slds-theme_info slds-text-align_center slds-p-around_small">
+                            <lightning-icon icon-name="utility:event" alternative-text="Interviews" size="small" class="slds-m-bottom_x-small"></lightning-icon>
+                            <p class="slds-text-heading_medium">{summary.interviewCount}</p>
+                            <p class="slds-text-body_small">Interviews Scheduled</p>
+                        </div>
+                    </div>
+
+
+                  
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="slds-box slds-theme_warning slds-text-align_center slds-p-around_small">
+                            <lightning-icon icon-name="utility:upload" alternative-text="Represented" size="small" class="slds-m-bottom_x-small"></lightning-icon>
+                            <p class="slds-text-heading_medium">{summary.representedCount}</p>
+                            <p class="slds-text-body_small">Represented to Client</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </lightning-card>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error slds-p-around_medium">
+            ⚠️ Error: {error}
+        </div>
+    </template>
+</template>
+-->
+
+<template>
+  <template if:true={summary}>
+    <lightning-card title={summary.opportunityName} icon-name="standard:opportunity">
+      <div class="slds-p-around_medium slds-box slds-theme_default slds-card_boundary">
+        <div class="slds-grid slds-wrap slds-gutters">
+          <!-- Eligible Candidates -->
+          <div class="slds-col slds-size_1-of-3">
+            <div class="slds-box slds-theme_success slds-text-align_center slds-p-around_small"
+                 onclick={handleClickEligible}>
+              <lightning-icon icon-name="utility:user" alternative-text="Eligible Candidates" size="small"
+                              class="slds-m-bottom_x-small"></lightning-icon>
+              <p class="slds-text-heading_medium">{summary.eligibleCount}</p>
+              <p class="slds-text-body_small">Eligible Candidates</p>
+            </div>
+          </div>
+
+          <!-- Interviews Scheduled -->
+          <div class="slds-col slds-size_1-of-3">
+            <div class="slds-box slds-theme_info slds-text-align_center slds-p-around_small"
+                 onclick={handleClickInterview}>
+              <lightning-icon icon-name="utility:event" alternative-text="Interviews" size="small"
+                              class="slds-m-bottom_x-small"></lightning-icon>
+              <p class="slds-text-heading_medium">{summary.interviewCount}</p>
+              <p class="slds-text-body_small">Interviews Scheduled</p>
+            </div>
+          </div>
+
+          <!-- Represented to Client -->
+          <div class="slds-col slds-size_1-of-3">
+            <div class="slds-box slds-theme_warning slds-text-align_center slds-p-around_small"
+                 onclick={handleClickRepresented}>
+              <lightning-icon icon-name="utility:upload" alternative-text="Represented" size="small"
+                              class="slds-m-bottom_x-small"></lightning-icon>
+              <p class="slds-text-heading_medium">{summary.representedCount}</p>
+              <p class="slds-text-body_small">Represented to Client</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </lightning-card>
+  </template>
+
+  <template if:true={error}>
+    <div class="slds-text-color_error slds-p-around_medium">
+      ⚠️ Error: {error}
+    </div>
+  </template>
+
+  <!-- Modal -->
+  <template if:true={showModal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+      <div class="slds-modal__container modal-container">
+        <!-- Close (X) button -->
+        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                title="Close" onclick={closeModal}>
+          <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+          <span class="slds-assistive-text">Close</span>
+        </button>
+
+        <!-- Header -->
+        <header class="slds-modal__header">
+          <h2 class="slds-modal__title slds-hyphenate">{modalTitle}</h2>
+        </header>
+
+        <!-- Scrollable Body -->
+        <div class="slds-modal__content slds-p-around_medium modal-scroll">
+          <template if:true={modalData}>
+            <div class="custom-table-container">
+              <lightning-datatable
+                key-field="Id"
+                data={modalData}
+                columns={columns}
+                hide-checkbox-column
+                class="custom-table"
+                onrowaction={handleRowAction}>
+              </lightning-datatable>
+            </div>
+          </template>
+          <template if:false={modalData}>
+            <p>No records to display.</p>
+          </template>
+        </div>
+
+        <!-- Footer -->
+        <footer class="slds-modal__footer">
+          <lightning-button label="Close" onclick={closeModal}></lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+</template>

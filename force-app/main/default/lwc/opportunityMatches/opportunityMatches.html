@@ -1,0 +1,78 @@
+<template>
+    <template if:true={hasMatches}>
+        <lightning-card title="">
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                <thead>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Score</th>
+                        <th>Explanation</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={matches} for:item="match">
+                        <tr key={match.Id}>
+                            <td>
+                                <a href={match.accountUrl} target="_blank">{match.accountName}</a>
+                            </td>
+                            <td>
+    <div class="score-bar">
+        <div class={match.barClass} style={match.barStyle}>
+            {match.Match_Score__c}
+        </div>
+    </div>
+</td>
+
+                            <td class="wrap-text">{match.Explanation__c}</td>
+                            <td>
+                                <lightning-button 
+                                    label="Schedule Interview" 
+                                    variant="brand-outline" 
+                                    data-id={match.accountId}
+                                    data-name={match.accountName}
+                                    onclick={handleScheduleClick}>
+                                </lightning-button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </lightning-card>
+    </template>
+
+    <template if:false={hasMatches}>
+        <p>No matches found.</p>
+    </template>
+
+    <template if:true={showModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-modal__title">Schedule Interview</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-record-edit-form 
+                        object-api-name="Interview__c"
+                        onsuccess={handleSuccess}
+                        onerror={handleError}
+                    >
+                        <lightning-messages></lightning-messages>
+
+                        <lightning-input-field field-name="Candidate_Name__c" class="candidateField"></lightning-input-field>
+                        <lightning-input-field field-name="Opportunity__c" class="opportunityField"></lightning-input-field>
+                        <lightning-input-field field-name="Job_Description__c" class="jobDescField"></lightning-input-field>
+                        <lightning-input-field field-name="Interviewer_Name__c"></lightning-input-field>
+                        <lightning-input-field field-name="Scheduled_Date_Time__c" required></lightning-input-field>
+
+                        <div class="slds-m-top_medium slds-text-align_right">
+                            <lightning-button label="Save" variant="brand" onclick={handleSave}></lightning-button>
+                            <lightning-button variant="neutral" label="Cancel" onclick={handleCloseModal} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

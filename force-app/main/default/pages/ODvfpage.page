@@ -1,0 +1,452 @@
+<!-- ODApprovalPage.vfp -->
+<apex:page controller="ODApprovalController" showHeader="false" sidebar="false" standardStylesheets="false" docType="html-5.0">
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>OD Approval — {!recordName}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            width: 100%;
+            max-width: 680px;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .card-header {
+            background: linear-gradient(135deg, #1a6bbf 0%, #0f4a8a 100%);
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-icon {
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .header-icon svg { width: 24px; height: 24px; fill: #ffffff; }
+        .header-text h1 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .header-text p { color: #cce0ff; font-size: 13px; }
+
+        /* Status Banner */
+        .status-banner {
+            padding: 12px 32px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-banner.pending  { background: #fff8e1; color: #856404; border-bottom: 1px solid #fde8a0; }
+        .status-banner.approved { background: #e6f4ea; color: #1e6b3c; border-bottom: 1px solid #a8d5b5; }
+        .status-banner.rejected { background: #fdecea; color: #a93226; border-bottom: 1px solid #f5c6c3; }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .status-banner.pending  .status-dot { background: #f59e0b; }
+        .status-banner.approved .status-dot { background: #16a34a; }
+        .status-banner.rejected .status-dot { background: #dc2626; }
+
+        /* Body */
+        .card-body { padding: 28px 32px; }
+
+        /* Error / Success message */
+        .alert {
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-success { background: #e6f4ea; color: #1e6b3c; border: 1px solid #a8d5b5; }
+        .alert-error   { background: #fdecea; color: #a93226; border: 1px solid #f5c6c3; }
+        .alert svg { width: 18px; height: 18px; flex-shrink: 0; fill: currentColor; }
+
+        /* Employee info */
+        .employee-card {
+            background: #f8faff;
+            border: 1px solid #dce8f8;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .avatar {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: #1a6bbf;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .emp-name { font-size: 16px; font-weight: 600; color: #1a2b4a; }
+        .emp-sub  { font-size: 13px; color: #6b7a99; margin-top: 2px; }
+
+        /* Details grid */
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #1a6bbf;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            border: 1px solid #e8edf5;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .detail-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8edf5;
+        }
+        .detail-item:nth-child(odd)  { border-right: 1px solid #e8edf5; }
+        .detail-item:nth-last-child(-n+2) { border-bottom: none; }
+        .detail-label { font-size: 11px; color: #8a94aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .detail-value { font-size: 14px; color: #1a2b4a; font-weight: 500; }
+
+        /* Reason box */
+        .reason-box {
+            background: #fffbf0;
+            border: 1px solid #fde8a0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+        }
+        .reason-box .section-title { color: #92600a; }
+        .reason-text { font-size: 14px; color: #444; line-height: 1.7; }
+
+        /* Comments */
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a2b4a;
+            margin-bottom: 8px;
+        }
+        .form-label span { color: #e53e3e; margin-left: 2px; }
+        textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 12px 14px;
+            border: 1px solid #d0d8e8;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #1a2b4a;
+            resize: vertical;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        textarea:focus { outline: none; border-color: #1a6bbf; box-shadow: 0 0 0 3px rgba(26,107,191,0.1); }
+        textarea:disabled { background: #f5f7fa; color: #8a94aa; cursor: not-allowed; }
+
+        /* Action buttons */
+        .action-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-approve {
+            background: #16a34a;
+            color: #ffffff;
+        }
+        .btn-approve:hover:not(:disabled) { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+
+        .btn-reject {
+            background: #dc2626;
+            color: #ffffff;
+        }
+        .btn-reject:hover:not(:disabled) { background: #b91c1c; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: #e8edf5;
+            margin: 24px 0;
+        }
+
+        /* Already actioned state */
+        .actioned-banner {
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .actioned-banner.approved { background: #e6f4ea; border: 1px solid #a8d5b5; }
+        .actioned-banner.rejected { background: #fdecea; border: 1px solid #f5c6c3; }
+        .actioned-banner h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .actioned-banner.approved h3 { color: #1e6b3c; }
+        .actioned-banner.rejected h3 { color: #a93226; }
+        .actioned-banner p { font-size: 13px; color: #6b7a99; }
+
+        /* Footer */
+        .card-footer {
+            background: #f8faff;
+            border-top: 1px solid #e8edf5;
+            padding: 16px 32px;
+            text-align: center;
+            font-size: 12px;
+            color: #8a94aa;
+        }
+
+        @media (max-width: 480px) {
+            .card-body { padding: 20px 16px; }
+            .card-header { padding: 20px 16px; }
+            .details-grid { grid-template-columns: 1fr; }
+            .detail-item:nth-child(odd) { border-right: none; }
+            .detail-item:nth-last-child(-n+2) { border-bottom: 1px solid #e8edf5; }
+            .detail-item:last-child { border-bottom: none; }
+            .action-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<apex:form >
+<div class="card">
+
+    <!-- Header -->
+    <div class="card-header">
+        <div class="header-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        </div>
+        <div class="header-text">
+            <h1>OD Attendance Approval</h1>
+            <p>Review and take action on this On Duty request</p>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    <apex:outputPanel rendered="{!odStatus == 'Pending'}">
+        <div class="status-banner pending">
+            <span class="status-dot"></span>
+            Awaiting your approval — this request is pending
+        </div>
+    </apex:outputPanel>
+    <apex:outputPanel rendered="{!odStatus == 'Approved'}">
+        <div class="status-banner approved">
+            <span class="status-dot"></span>
+            This OD request has been approved
+        </div>
+    </apex:outputPanel>
+    <apex:outputPanel rendered="{!odStatus == 'Rejected'}">
+        <div class="status-banner rejected">
+            <span class="status-dot"></span>
+            This OD request has been rejected
+        </div>
+    </apex:outputPanel>
+
+    <div class="card-body">
+
+        <!-- Success message -->
+        <apex:outputPanel rendered="{!successMessage != ''}">
+            <div class="alert alert-success">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>{!successMessage}</span>
+            </div>
+        </apex:outputPanel>
+
+        <!-- Error message -->
+        <apex:outputPanel rendered="{!errorMessage != ''}">
+            <div class="alert alert-error">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>{!errorMessage}</span>
+            </div>
+        </apex:outputPanel>
+
+        <!-- Record not found -->
+        <apex:outputPanel rendered="{!recordNotFound}">
+            <div class="alert alert-error">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>Record not found or you do not have permission to view this request.</span>
+            </div>
+        </apex:outputPanel>
+
+        <apex:outputPanel rendered="{!!recordNotFound}">
+
+            <!-- Employee Card -->
+            <div class="employee-card">
+                <div class="avatar">{!employeeInitial}</div>
+                <div>
+                    <div class="emp-name">{!employeeName}</div>
+                    <div class="emp-sub">OD Request • {!recordName}</div>
+                </div>
+            </div>
+
+            <!-- Request Details -->
+            <div class="section-title">Request Details</div>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Date</div>
+                    <div class="detail-value">{!odDate}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Work Location</div>
+                    <div class="detail-value">{!workLocation}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Check-in Time</div>
+                    <div class="detail-value">{!checkInTime}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Check-out Time</div>
+                    <div class="detail-value">{!checkOutTime}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Hours Worked</div>
+                    <div class="detail-value">{!hoursWorked}h</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">{!attendanceStatus}</div>
+                </div>
+            </div>
+
+            <!-- Reason -->
+            <div class="reason-box">
+                <div class="section-title">Reason for OD</div>
+                <div class="reason-text">{!odReason}</div>
+            </div>
+
+            <!-- Already actioned -->
+            <apex:outputPanel rendered="{!odStatus == 'Approved'}">
+                <div class="actioned-banner approved">
+                    <h3>✓ Already Approved</h3>
+                    <p>This OD request was approved. No further action needed.</p>
+                    <apex:outputPanel rendered="{!approvalComments != ''}">
+                        <p style="margin-top:8px;font-weight:500;color:#1e6b3c;">Comments: {!approvalComments}</p>
+                    </apex:outputPanel>
+                </div>
+            </apex:outputPanel>
+
+            <apex:outputPanel rendered="{!odStatus == 'Rejected'}">
+                <div class="actioned-banner rejected">
+                    <h3>✗ Already Rejected</h3>
+                    <p>This OD request was rejected. No further action needed.</p>
+                    <apex:outputPanel rendered="{!approvalComments != ''}">
+                        <p style="margin-top:8px;font-weight:500;color:#a93226;">Reason: {!approvalComments}</p>
+                    </apex:outputPanel>
+                </div>
+            </apex:outputPanel>
+
+            <!-- Action form — only shown when Pending -->
+            <apex:outputPanel rendered="{!odStatus == 'Pending'}">
+                <div class="divider"></div>
+
+                <div class="form-group">
+                    <label class="form-label" for="comments">
+                        Manager Comments
+                        <span title="Required for rejection">*</span>
+                    </label>
+                    <apex:inputTextarea id="comments"
+                        value="{!managerComments}"
+                        styleClass=""
+                        style="width:100%;min-height:90px;padding:12px 14px;border:1px solid #d0d8e8;border-radius:8px;font-size:14px;font-family:inherit;color:#1a2b4a;resize:vertical;"
+                        html-placeholder="Add your comments (required for rejection, optional for approval)..."
+                        cols="50"
+                        rows="4"
+                    />
+                </div>
+
+                <div class="action-row">
+                    <apex:commandButton value=" Approve"
+                        action="{!approveOD}"
+                        styleClass="btn btn-approve"
+                        onclick="return confirmAction('approve');"
+                    >
+                        <apex:param name="action" value="approve" assignTo="{!selectedAction}"/>
+                    </apex:commandButton>
+
+                    <apex:commandButton value=" Reject"
+                        action="{!rejectOD}"
+                        styleClass="btn btn-reject"
+                        onclick="return confirmAction('reject');"
+                    >
+                        <apex:param name="action" value="reject" assignTo="{!selectedAction}"/>
+                    </apex:commandButton>
+                </div>
+            </apex:outputPanel>
+
+        </apex:outputPanel>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer">
+        Attendance Management System &nbsp;•&nbsp; {!recordName} &nbsp;•&nbsp;
+        <apex:outputText value="{!NOW()}" />
+    </div>
+
+</div>
+</apex:form>
+
+<script>
+function confirmAction(action) {
+    var msg = action === 'approve'
+        ? 'Are you sure you want to APPROVE this OD request?'
+        : 'Are you sure you want to REJECT this OD request? Please add a reason in the comments.';
+    return confirm(msg);
+}
+</script>
+
+</body>
+</html>
+</apex:page>

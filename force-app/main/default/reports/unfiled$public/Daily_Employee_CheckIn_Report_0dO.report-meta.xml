@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <buckets>
+        <bucketType>picklist</bucketType>
+        <developerName>BucketField_26048384</developerName>
+        <masterLabel>Daily Work Status</masterLabel>
+        <nullTreatment>n</nullTreatment>
+        <otherBucketLabel>Other</otherBucketLabel>
+        <sourceColumnName>User.Employee_Attendances__r$Work_Location__c</sourceColumnName>
+        <useOther>true</useOther>
+        <values>
+            <sourceValues>
+                <sourceValue>Work from office</sourceValue>
+            </sourceValues>
+            <value>WFO</value>
+        </values>
+        <values>
+            <sourceValues>
+                <sourceValue>Work from Home</sourceValue>
+            </sourceValues>
+            <value>WFH</value>
+        </values>
+        <values>
+            <sourceValues>
+                <sourceValue>Client Place</sourceValue>
+            </sourceValues>
+            <sourceValues>
+                <sourceValue>Field Work</sourceValue>
+            </sourceValues>
+            <sourceValues>
+                <sourceValue>Business Travel</sourceValue>
+            </sourceValues>
+            <value>On Duty/Travel</value>
+        </values>
+        <values>
+            <value>Missing Check in</value>
+        </values>
+    </buckets>
+    <columns>
+        <field>User$Name</field>
+    </columns>
+    <columns>
+        <field>User.Employee_Attendances__r$Employee_Id__c</field>
+    </columns>
+    <columns>
+        <field>User$Department</field>
+    </columns>
+    <columns>
+        <field>User.Employee_Attendances__r$Check_In_Time__c</field>
+    </columns>
+    <columns>
+        <field>User.Employee_Attendances__r$Status__c</field>
+    </columns>
+    <columns>
+        <field>User.Employee_Attendances__r$Check_Out_Time__c</field>
+    </columns>
+    <columns>
+        <field>User.Employee_Attendances__r$Work_Location__c</field>
+    </columns>
+    <currency>INR</currency>
+    <description>Daily Employee Check-In Report</description>
+    <filter>
+        <criteriaItems>
+            <column>User$IsActive</column>
+            <columnToColumn>false</columnToColumn>
+            <isUnlocked>true</isUnlocked>
+            <operator>equals</operator>
+            <value>1</value>
+        </criteriaItems>
+        <criteriaItems>
+            <column>User.Employee_Attendances__r$Date__c</column>
+            <columnToColumn>false</columnToColumn>
+            <isUnlocked>true</isUnlocked>
+            <operator>equals</operator>
+            <value>LAST_WEEK</value>
+        </criteriaItems>
+        <criteriaItems>
+            <column>User*User$Employee_IDs__c</column>
+            <columnToColumn>false</columnToColumn>
+            <isUnlocked>true</isUnlocked>
+            <operator>notEqual</operator>
+            <value></value>
+        </criteriaItems>
+    </filter>
+    <format>Summary</format>
+    <groupingsDown>
+        <dateGranularity>Day</dateGranularity>
+        <field>BucketField_26048384</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <groupingsDown>
+        <field>User.Employee_Attendances__r$Date__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <name>Daily Employee Check-In Report</name>
+    <params>
+        <name>co</name>
+        <value>1</value>
+    </params>
+    <reportType>Users_with_or_without_Attendance__c</reportType>
+    <scope>organization</scope>
+    <showDetails>true</showDetails>
+    <showGrandTotal>true</showGrandTotal>
+    <showSubTotals>true</showSubTotals>
+    <timeFrameFilter>
+        <dateColumn>User$ChatterAdoptionStageModifiedDate</dateColumn>
+        <interval>INTERVAL_CUSTOM</interval>
+    </timeFrameFilter>
+</Report>

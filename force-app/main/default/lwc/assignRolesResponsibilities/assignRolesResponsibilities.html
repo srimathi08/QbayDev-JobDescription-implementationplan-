@@ -1,0 +1,58 @@
+<template>
+
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading"></lightning-spinner>
+    </template>
+
+    <lightning-card title="Assign Roles & Responsibilities">
+
+        <!-- Role Categories -->
+        <div class="slds-p-around_medium">
+
+            <lightning-checkbox-group
+                label="Role Categories"
+                options={roleOptions}
+                value={selectedRoles}
+                onchange={handleRoleChange}>
+            </lightning-checkbox-group>
+
+        </div>
+
+        <!-- Responsibilities Accordion ⭐⭐⭐⭐⭐ -->
+        <template if:true={groupedResponsibilities}>
+
+            <lightning-accordion allow-multiple-sections-open>
+
+                <template for:each={groupedResponsibilities} for:item="group">
+
+                    <lightning-accordion-section
+                        key={group.roleName}
+                        name={group.roleName}
+                        label={group.roleName}>
+
+                        <lightning-checkbox-group
+                            options={group.responsibilities}
+                            value={selectedResponsibilities}
+                            onchange={handleResponsibilityChange}>
+                        </lightning-checkbox-group>
+
+                    </lightning-accordion-section>
+
+                </template>
+
+            </lightning-accordion>
+
+        </template>
+
+        <!-- Save -->
+        <div class="slds-p-around_medium">
+            <lightning-button
+                variant="brand"
+                label="Save"
+                onclick={handleSave}>
+            </lightning-button>
+        </div>
+
+    </lightning-card>
+
+</template>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Seniority Level --></label>
+    <name>Seniority__c</name>
+    <picklistValues>
+        <masterLabel>Architect</masterLabel>
+        <translation><!-- Architect --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Early career</masterLabel>
+        <translation><!-- Early career --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Leader</masterLabel>
+        <translation><!-- Leader --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Mid level</masterLabel>
+        <translation><!-- Mid level --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Senior</masterLabel>
+        <translation><!-- Senior --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

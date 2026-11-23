@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>PresentedCand</fullName>
+    <fields>Candidate_Name__c</fields>
+    <fields>Opportunity__c</fields>
+    <fields>Internal_Interview_Done__c</fields>
+    <fields>Client_Interview_Date__c</fields>
+    <fields>Status__c</fields>
+    <fields>Presented_By__c</fields>
+    <label>PresentedCand</label>
+</CompactLayout>

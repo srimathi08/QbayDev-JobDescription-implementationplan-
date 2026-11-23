@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <help><!-- To store small description or cryptic information typically associated with the JD . Example: LWC developer, SF developer with Sales Cloud etc --></help>
+    <label><!-- Job Tagline --></label>
+    <name>Job_Tagline__c</name>
+</CustomFieldTranslation>

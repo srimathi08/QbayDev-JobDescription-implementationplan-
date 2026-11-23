@@ -1,0 +1,87 @@
+/* ===== MODAL CONTAINER ===== */
+.slds-modal__container {
+    max-width: 75rem !important;
+    width: 75%;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    animation: modalFadeIn 0.25s ease-in-out;
+}
+
+/* ===== HEADER (UPDATED COLOR) ===== */
+.slds-modal__header {
+    background: linear-gradient(135deg, #ff962e, #ff962e);
+    color: #ffffff;
+    padding: 1.25rem 1.5rem;
+}
+
+.slds-modal__header h2 {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #ffffff;
+}
+
+/* Close icon */
+.slds-modal__close lightning-icon {
+    fill: #ffffff;
+}
+
+/* ===== BODY (UNCHANGED) ===== */
+.slds-modal__content {
+    background-color: #f8f9fb;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+/* ===== FOOTER (UNCHANGED) ===== */
+.slds-modal__footer {
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* ===== TABLE STYLING ===== */
+.slds-table {
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Topic / Column names (UPDATED COLOR) */
+.slds-table thead th {
+    background-color: #eef4ff;
+    font-weight: 600;
+    color: #e97438;
+    padding: 0.75rem;
+}
+
+.slds-table tbody tr:hover {
+    background-color: #f1f5ff;
+}
+
+.slds-table td {
+    padding: 0.65rem 0.75rem;
+}
+
+/* ===== EMPTY STATE TEXT (UNCHANGED) ===== */
+.slds-modal__content p {
+    font-size: 0.95rem;
+    color: #555;
+    text-align: center;
+}
+
+/* ===== BACKDROP (UNCHANGED) ===== */
+.slds-backdrop_open {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* ===== ANIMATION ===== */
+@keyframes modalFadeIn {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

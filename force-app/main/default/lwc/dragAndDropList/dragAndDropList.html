@@ -1,0 +1,19 @@
+<template>
+     <ul class="slds-has-dividers_around-space dropZone" 
+    ondrop={handleDrop}
+    ondragover={handleDragOver}
+    style="height:70vh; overflow-y:auto;">
+        <template if:true={hasRecords}>
+        <template for:each={records} for:item="recordItem">
+            <c-drag-and-drop-card stage={stage} record={recordItem} key={recordItem.Id} onitemdrag={handleItemDrag}></c-drag-and-drop-card>
+        </template>
+        </template>
+        <template if:false={hasRecords}>
+            <div class="no-records slds-var-m-top_xx-large">
+                    <!-- <lightning-icon icon-name="utility:case" size="large" alternative-text="No Opportunities" ></lightning-icon> -->
+                     <img class="img-bg" src={resource} alt="suitecase">
+                    <p class="column-heading">No Opportunities in {stage}</p>
+            </div>
+    </template>
+    </ul>
+</template>

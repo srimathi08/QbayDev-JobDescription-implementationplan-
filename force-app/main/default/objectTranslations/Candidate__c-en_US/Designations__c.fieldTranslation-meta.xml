@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Designations --></label>
+    <name>Designations__c</name>
+    <picklistValues>
+        <masterLabel>Associate consultant</masterLabel>
+        <translation><!-- Associate consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Asst Manager-Finance &amp; Compliance</masterLabel>
+        <translation><!-- Asst Manager-Finance &amp; Compliance --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Consultant</masterLabel>
+        <translation><!-- Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Consultant - QA</masterLabel>
+        <translation><!-- Consultant - QA --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Delivery Head</masterLabel>
+        <translation><!-- Delivery Head --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Delivery Lead</masterLabel>
+        <translation><!-- Delivery Lead --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Finance Executive</masterLabel>
+        <translation><!-- Finance Executive --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>HR Executive</masterLabel>
+        <translation><!-- HR Executive --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>HR Generalist</masterLabel>
+        <translation><!-- HR Generalist --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>HR Manager</masterLabel>
+        <translation><!-- HR Manager --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Junior Consultant</masterLabel>
+        <translation><!-- Junior Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Manager</masterLabel>
+        <translation><!-- Manager --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Managing Director</masterLabel>
+        <translation><!-- Managing Director --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Office Assistant</masterLabel>
+        <translation><!-- Office Assistant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Operations Manager</masterLabel>
+        <translation><!-- Operations Manager --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Project Lead</masterLabel>
+        <translation><!-- Project Lead --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Salesforce Consultant</masterLabel>
+        <translation><!-- Salesforce Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Senior Consultant</masterLabel>
+        <translation><!-- Senior Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Senior Software Testing Engineer</masterLabel>
+        <translation><!-- Senior Software Testing Engineer --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Software Engineer</masterLabel>
+        <translation><!-- Software Engineer --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Software Testing Engineer</masterLabel>
+        <translation><!-- Software Testing Engineer --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Software consultant</masterLabel>
+        <translation><!-- Software consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Sr. Finance Executive</masterLabel>
+        <translation><!-- Sr. Finance Executive --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Sr. Manager</masterLabel>
+        <translation><!-- Sr. Manager --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Sr. Oracle Functional Consultant</masterLabel>
+        <translation><!-- Sr. Oracle Functional Consultant --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Sr.Manager HR &amp; Finance</masterLabel>
+        <translation><!-- Sr.Manager HR &amp; Finance --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Team Lead</masterLabel>
+        <translation><!-- Team Lead --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Tech Lead</masterLabel>
+        <translation><!-- Tech Lead --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Trainee - Oracle</masterLabel>
+        <translation><!-- Trainee - Oracle --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Trainee - RPA</masterLabel>
+        <translation><!-- Trainee - RPA --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Trainee - SFDC</masterLabel>
+        <translation><!-- Trainee - SFDC --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Trainee Consultant</masterLabel>
+        <translation><!-- Trainee Consultant --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

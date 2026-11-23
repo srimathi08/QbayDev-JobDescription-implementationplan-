@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Daily_Status__c</fullName>
+    <externalId>false</externalId>
+    <formula>IF(TEXT(Status__c) = &quot;Leave&quot;, &quot;🏖️ On Leave&quot;,
+IF(ISBLANK(Check_In_Time__c), &quot;⚠️ Missing Check-in&quot;,
+IF(TEXT(Status__c) = &quot;Late&quot;, &quot;⏰ Late Check-in&quot;,
+IF(TEXT(Work_Location__c) = &quot;Work from Home&quot;, &quot;🏠 Work From Home&quot;,
+IF(TEXT(Work_Location__c) = &quot;Work from office&quot;, &quot;🏢 Work From Office&quot;,
+TEXT(Work_Location__c))))))</formula>
+    <label>Daily Status</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

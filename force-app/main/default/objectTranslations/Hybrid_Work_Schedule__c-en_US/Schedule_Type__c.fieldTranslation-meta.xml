@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Schedule Type --></label>
+    <name>Schedule_Type__c</name>
+    <picklistValues>
+        <masterLabel>Custom</masterLabel>
+        <translation><!-- Custom --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Fixed Days</masterLabel>
+        <translation><!-- Fixed Days --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Flexible</masterLabel>
+        <translation><!-- Flexible --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

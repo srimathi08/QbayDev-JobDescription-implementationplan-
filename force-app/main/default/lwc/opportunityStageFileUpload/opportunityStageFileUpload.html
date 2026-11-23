@@ -1,0 +1,100 @@
+<!--<template>
+    <lightning-card title="Stage File Upload" icon-name="doctype:attachment">
+        <div class="slds-p-around_medium">
+            <p class="slds-text-title_bold">Current Stage: {stageName}</p>
+
+            <template if:true={fileData}>
+                <p>
+                    <b>Uploaded Document:</b>
+                    <a href="javascript:void(0);"
+                       onclick={handleFileClick}
+                       class="slds-text-link">
+                        {fileData.Title}.{fileData.FileExtension}
+                    </a>
+                    <br/>
+                    <a href={fileDownloadUrl}
+                       target="_blank"
+                       class="slds-button slds-button_neutral slds-m-top_small">
+                       Download
+                    </a>
+                </p>
+            </template>
+
+            
+            <template if:true={showUpload}>
+                <lightning-file-upload
+                    label="Upload Document for this Stage"
+                    name="fileUploader"
+                    record-id={recordId}
+                    onuploadfinished={handleUploadFinished}>
+                </lightning-file-upload>
+            </template>
+        </div>
+    </lightning-card>
+</template>  -->
+
+
+<template>
+    <lightning-card title="Documents" icon-name="doctype:attachment">
+        <div class="slds-p-around_medium slds-theme_default">
+
+            <!-- Current Stage -->
+            <div class="slds-text-title_caps slds-text-color_weak slds-m-bottom_x-small">
+                <strong>Current Stage:</strong>
+                <span class="slds-text-color_default slds-text-body_regular">
+                    {stageName}
+                </span>
+            </div>
+
+            <!-- ✅ Show All Uploaded Files -->
+            <template if:true={fileList}>
+                <template for:each={fileList} for:item="file">
+                    <div key={file.Id}
+                         class="slds-box slds-box_xx-small slds-theme_shade slds-m-top_small slds-grid slds-grid_vertical-align-center">
+
+                        <lightning-icon
+                            icon-name="doctype:attachment"
+                            size="small"
+                            class="slds-m-right_small slds-shrink-none">
+                        </lightning-icon>
+
+                        <div class="slds-truncate slds-grow">
+                            <a href="javascript:void(0);"
+                               data-id={file.ContentDocumentId}
+                               onclick={handleFileClick}
+                               class="slds-text-link_reset slds-text-color_brand">
+                                <strong>{file.Title}.{file.FileExtension}</strong>
+                            </a>
+                            <p class="slds-text-color_weak slds-text-body_small">
+                                Click to preview or download.
+                            </p>
+                        </div>
+
+                        <div class="slds-m-left_small">
+                            <lightning-button
+                                variant="neutral"
+                                icon-name="utility:download"
+                                data-versionid={file.Id}
+                                onclick={handleDownloadClick}
+                                title="Download"
+                                label="Download">
+                            </lightning-button>
+                        </div>
+                    </div>
+                </template>
+            </template>
+
+            <!-- ✅ Always Show Upload Section -->
+            <div class="slds-box slds-border_dashed slds-border_brand slds-p-around_medium slds-align_absolute-center slds-m-top_medium">
+                <lightning-file-upload
+                    label="Upload Supporting Document"
+                    name="fileUploader"
+                    record-id={recordId}
+                    onuploadfinished={handleUploadFinished}
+                    multiple>
+                </lightning-file-upload>
+            </div>
+
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,8 @@
+.slds-border_bottom {
+    border-bottom: 1px solid #ddd;
+}
+
+li {
+    display: flex;
+    align-items: center;
+}

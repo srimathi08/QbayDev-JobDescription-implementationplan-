@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Related_Stage__c</fullName>
+    <label>Related Stage</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Discovery</fullName>
+                <default>false</default>
+                <label>Discovery</label>
+            </value>
+            <value>
+                <fullName>Qualified</fullName>
+                <default>false</default>
+                <label>Qualified</label>
+            </value>
+            <value>
+                <fullName>Resourcing</fullName>
+                <default>false</default>
+                <label>Resourcing</label>
+            </value>
+            <value>
+                <fullName>Pre-Sales</fullName>
+                <default>false</default>
+                <label>Pre-Sales</label>
+            </value>
+            <value>
+                <fullName>Internal Eval</fullName>
+                <default>false</default>
+                <label>Internal Eval</label>
+            </value>
+            <value>
+                <fullName>Cust Eval</fullName>
+                <default>false</default>
+                <label>Cust Eval</label>
+            </value>
+            <value>
+                <fullName>Solution</fullName>
+                <default>false</default>
+                <label>Solution</label>
+            </value>
+            <value>
+                <fullName>Demo</fullName>
+                <default>false</default>
+                <label>Demo</label>
+            </value>
+            <value>
+                <fullName>Quote</fullName>
+                <default>false</default>
+                <label>Quote</label>
+            </value>
+            <value>
+                <fullName>Negotiate</fullName>
+                <default>false</default>
+                <label>Negotiate</label>
+            </value>
+            <value>
+                <fullName>Awaiting</fullName>
+                <default>false</default>
+                <label>Awaiting</label>
+            </value>
+            <value>
+                <fullName>Signature</fullName>
+                <default>false</default>
+                <label>Signature</label>
+            </value>
+            <value>
+                <fullName>Closed Won</fullName>
+                <default>false</default>
+                <label>Closed Won</label>
+            </value>
+            <value>
+                <fullName>Closed Lost</fullName>
+                <default>false</default>
+                <label>Closed Lost</label>
+            </value>
+            <value>
+                <fullName>Opportunity Identification &amp; Qualification</fullName>
+                <default>false</default>
+                <label>Opportunity Identification &amp; Qualification</label>
+            </value>
+            <value>
+                <fullName>Requirement Discovery &amp; Scoping</fullName>
+                <default>false</default>
+                <label>Requirement Discovery &amp; Scoping</label>
+            </value>
+            <value>
+                <fullName>Solutioning &amp; Architecture Design</fullName>
+                <default>false</default>
+                <label>Solutioning &amp; Architecture Design</label>
+            </value>
+            <value>
+                <fullName>Effort Estimation &amp; Resource Planning</fullName>
+                <default>false</default>
+                <label>Effort Estimation &amp; Resource Planning</label>
+            </value>
+            <value>
+                <fullName>Costing &amp; Pricing</fullName>
+                <default>false</default>
+                <label>Costing &amp; Pricing</label>
+            </value>
+            <value>
+                <fullName>Proposal Development</fullName>
+                <default>false</default>
+                <label>Proposal Development</label>
+            </value>
+            <value>
+                <fullName>Internal Review</fullName>
+                <default>false</default>
+                <label>Internal Review</label>
+            </value>
+            <value>
+                <fullName>Client Presentation</fullName>
+                <default>false</default>
+                <label>Client Presentation</label>
+            </value>
+            <value>
+                <fullName>Contract Finalization</fullName>
+                <default>false</default>
+                <label>Contract Finalization</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

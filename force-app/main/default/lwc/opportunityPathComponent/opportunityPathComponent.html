@@ -1,0 +1,350 @@
+<!--<template>
+    <lightning-card title="Opportunity Stage Path">
+        <div class="path-controls">
+            <lightning-button
+                label={holdButtonLabel}
+                variant={holdButtonVariant}
+                onclick={handleHoldToggle}>
+            </lightning-button>
+        </div>
+
+        <div class="path-container">
+            <template for:each={computedPath} for:item="item">
+                <div
+                    key={item.label}
+                    data-stage={item.label}
+                    data-disabled={item.isHoldDisabled}
+                    class={item.combinedClass}
+                    onclick={handleStageClick}
+                >
+                    <template if:true={item.isCompleted}>
+                        <span class="tick-icon">✔</span>
+                    </template>
+                    <span>{item.label}</span>
+
+                    <template if:false={item.isLast}>
+                        <div class={item.connectorClass}></div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template> -->
+
+
+
+<!-- working code
+<template>
+    <lightning-card title="Stage Path">
+        <div class="path-controls">
+            <lightning-button
+                label={holdButtonLabel}
+                variant={holdButtonVariant}
+                onclick={handleHoldToggle}>
+            </lightning-button>
+        </div>
+
+        <div class="path-container">
+            <template for:each={computedPath} for:item="item">
+                <div
+                    key={item.label}
+                    data-stage={item.label}
+                    data-disabled={item.isHoldDisabled}
+                    class={item.combinedClass}
+                    onclick={handleStageClick}
+                >
+                    <template if:true={item.isCompleted}>
+                        <span class="tick-icon">✔</span>
+                    </template>
+                    <span>{item.label}</span>
+
+                    <template if:false={item.isLast}>
+                        <div class={item.connectorClass}></div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+
+    <template if:true={showModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            class="slds-modal slds-fade-in-open"
+        >
+            <div class="slds-modal__container">
+                
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">
+                        Stage Change Confirmation
+                    </h2>
+                </header>
+
+              
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p>
+                        This Opportunity is currently
+                        <strong>Closed Won</strong>.<br />
+                        Please provide a valid reason to change its stage:
+                    </p>
+
+                    <lightning-textarea
+                        label="Reason for Change"
+                        value={reasonText}
+                        onchange={handleReasonChange}
+                        placeholder="Enter your reason..."
+                        class="slds-m-top_medium"
+                    ></lightning-textarea>
+                </div>
+
+               
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        variant="neutral"
+                        label="Cancel"
+                        onclick={closeModal}
+                    ></lightning-button>
+                    <lightning-button
+                        variant="brand"
+                        label="Submit"
+                        onclick={submitReason}
+                    ></lightning-button>
+                </footer>
+            </div>
+        </section>
+
+        
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>   -->
+
+
+<!-- Working code 1
+<template>
+    <lightning-card title="Stage Path">
+        
+        
+        <div class="path-controls">
+            <lightning-button
+                label={holdButtonLabel}
+                variant={holdButtonVariant}
+                onclick={handleHoldToggle}>
+            </lightning-button>
+        </div>
+
+       
+        <div class="slds-path">
+            <div class="slds-grid slds-path__track">
+                <div class="slds-path__scroller">
+                    <div class="slds-path__scroller_inner">
+                        
+                        <ul class="slds-path__nav" role="listbox">
+                            <template for:each={computedPath} for:item="item">
+                                
+                                <li 
+                                    key={item.label}
+                                    role="presentation"
+                                    class={item.sldsClass}
+                                    data-stage={item.label}
+                                    data-disabled={item.isHoldDisabled}
+                                    onclick={handleStageClick}
+                                >
+                                    <a class="slds-path__link" role="option">
+                                        <span class="slds-path__title">
+                                            {item.label}
+                                        </span>
+                                    </a>
+                                </li>
+
+                            </template>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+       
+
+    </lightning-card>
+
+
+    <template if:true={showModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            class="slds-modal slds-fade-in-open"
+        >
+            <div class="slds-modal__container">
+                
+                
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">
+                        Stage Change Confirmation
+                    </h2>
+                </header>
+
+               
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p>
+                        This Opportunity is currently
+                        <strong>Closed Won</strong>.<br />
+                        Please provide a valid reason to change its stage:
+                    </p>
+
+                    <lightning-textarea
+                        label="Reason for Change"
+                        value={reasonText}
+                        onchange={handleReasonChange}
+                        placeholder="Enter your reason..."
+                        class="slds-m-top_medium"
+                    ></lightning-textarea>
+                </div>
+
+                
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        variant="neutral"
+                        label="Cancel"
+                        onclick={closeModal}
+                    ></lightning-button>
+
+                    <lightning-button
+                        variant="brand"
+                        label="Submit"
+                        onclick={submitReason}
+                    ></lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>  -->
+
+<template>
+    <lightning-card title="Stage Path">
+        
+        <!-- Hold / Release Button -->
+        <div class="path-controls">
+            <lightning-button
+                label={holdButtonLabel}
+                variant={holdButtonVariant}
+                onclick={handleHoldToggle}>
+            </lightning-button>
+        </div>
+
+        <!-- ⭐ STANDARD SLDS PATH -->
+        <div class="slds-path">
+            <div class="slds-grid slds-path__track">
+                <div class="slds-path__scroller">
+                    <div class="slds-path__scroller_inner">
+
+                        <ul class="slds-path__nav" role="listbox">
+                            <template for:each={computedPath} for:item="item">
+                                
+                                <li 
+                                    key={item.label}
+                                    role="presentation"
+                                    class={item.sldsClass}
+                                    data-stage={item.label}
+                                    data-disabled={item.isHoldDisabled}
+                                    onclick={handleStageClick}
+                                >
+                                    <a class="slds-path__link" role="option">
+                                        <span class="slds-path__title">
+                                            {item.label}
+                                        </span>
+                                    </a>
+                                </li>
+
+                            </template>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ⭐ END STANDARD SLDS PATH -->
+
+    </lightning-card>
+
+
+    <!-- ============================= -->
+    <!-- ⭐ MODAL (Updated with Dynamic Text) -->
+    <!-- ============================= -->
+    <template if:true={showModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            class="slds-modal slds-fade-in-open"
+        >
+            <div class="slds-modal__container">
+                
+             <header class="slds-modal__header">
+    <h2 class="slds-text-heading_medium">
+        <template if:true={isHoldAction}>
+            Confirmation Required
+        </template>
+
+        <template if:false={isHoldAction}>
+           Reason for changing stage from <strong>{currentStage}</strong> 
+&nbsp;to&nbsp;<strong>{newStage}</strong>
+        </template>
+    </h2>
+</header>
+
+
+                <!-- Body -->
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <!-- ⭐ Dynamic message based on action -->
+                    <p>
+                        <template if:true={isHoldAction}>
+                            Please provide the reason for <strong>Hold / Release</strong>:
+                        </template>
+
+                        <template if:false={isHoldAction}>
+                            This Opportunity is currently <strong>{currentStage}</strong>.<br />
+                            Please provide a valid reason to change its stage:
+                         </template>
+
+
+                    </p>
+
+                    <lightning-textarea
+                        label="Reason"
+                        value={reasonText}
+                        onchange={handleReasonChange}
+                        placeholder="Enter your reason..."
+                        class="slds-m-top_medium"
+                    ></lightning-textarea>
+
+                </div>
+
+                <!-- Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        variant="neutral"
+                        label="Cancel"
+                        onclick={closeModal}
+                    ></lightning-button>
+
+                    <lightning-button
+                        variant="brand"
+                        label="Submit"
+                        onclick={submitReason}
+                    ></lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <!-- Dim Background -->
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

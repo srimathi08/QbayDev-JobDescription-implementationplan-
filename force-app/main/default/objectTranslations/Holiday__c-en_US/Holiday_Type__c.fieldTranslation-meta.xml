@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Holiday Type --></label>
+    <name>Holiday_Type__c</name>
+    <picklistValues>
+        <masterLabel>Festival</masterLabel>
+        <translation><!-- Festival --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Optional Holiday</masterLabel>
+        <translation><!-- Optional Holiday --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Public Holiday</masterLabel>
+        <translation><!-- Public Holiday --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Regional Holiday</masterLabel>
+        <translation><!-- Regional Holiday --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

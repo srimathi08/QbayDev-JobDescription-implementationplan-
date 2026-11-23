@@ -1,0 +1,315 @@
+<template>
+    
+    
+         
+
+        <!-- HEADER ACTION BUTTON -->
+        <div class="header-section">
+            <div class="header-left">
+                <lightning-icon icon-name="utility:event" size="large"></lightning-icon>
+                <div class="header-text">
+                    <h1 class="page-title">Work From Home Management</h1>
+                    <p class="page-subtitle">Manage your Work Frome Home requests and view balances</p>
+                </div>
+            </div>
+             <div class="header-actions">
+            <lightning-button
+                label="Refresh"
+                icon-name="utility:refresh"
+                onclick={handleRefresh}
+                class="slds-m-right_small refresh-btn">
+            </lightning-button>
+            
+            <lightning-button
+                label="New Request"
+                variant="brand"
+                icon-name="utility:add"
+                onclick={handleNewRequest}>
+            </lightning-button>
+        </div>
+</div>
+        <div class="slds-p-around_medium">
+
+            <!-- FORM (Hidden by default) -->
+            <template if:true={showForm}>
+                
+                    <!-- Employee Info Section -->
+                    
+                        <div class="form-row-three">
+    <lightning-input label="Employee Name" value={employeeName} disabled></lightning-input>
+    <lightning-input label="Employment Type" value={employmentType} disabled></lightning-input>
+    <lightning-input label="Manager" value={managerName} disabled></lightning-input>
+</div>
+
+                    <!-- Request Details Section -->
+                    <div class="form-row-date">
+    <lightning-input type="date" label="Start Date" min={today} name="startDate" value={startDate} onchange={handleChange} required></lightning-input>
+    <lightning-input type="date" label="End Date" min={today} name="endDate" value={endDate} onchange={handleChange} required></lightning-input>
+</div>
+
+                        <!-- ⚠️ OVERLAP WARNING MESSAGE -->
+                    <template if:true={hasOverlap}>
+                        <div class="overlap-warning">
+                            <lightning-icon 
+                                icon-name="utility:warning" 
+                                alternative-text="Warning" 
+                                size="small"
+                                class="warning-icon">
+                            </lightning-icon>
+                            <div class="overlap-message">
+                                <div class="overlap-title">Overlapping Request Found</div>
+                                <div class="overlap-text">{overlapMessage}</div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 🔴 MANAGEMENT WARNING — 6+ days  ✅ ADD HERE -->
+    <template if:true={showManagementWarning}>
+        <div style="background:#ffe4e4; border-left:4px solid #ba0517; padding:12px 16px;
+                    border-radius:4px; margin-top:12px; display:flex;
+                    align-items:flex-start; gap:10px;">
+            <lightning-icon
+                icon-name="utility:error"
+                alternative-text="Error"
+                size="small">
+            </lightning-icon>
+            <div>
+                <div style="font-weight:700; color:#7a0e0e; margin-bottom:4px;">
+                    Management Approval Required — Cannot Submit Online
+                </div>
+                <div style="color:#7a0e0e; font-size:13px;">
+                    WFH requests <strong>above 5 days</strong> cannot be submitted here.
+                    Please contact your <strong>Manager and HR via email</strong> 
+                    to get approval first.
+                </div>
+                <div style="margin-top:8px; font-size:12px; color:#991b1b;
+                            background:#fecaca; padding:6px 10px; border-radius:4px;">
+                    &#9432; Once Management approves, resubmit in batches of up to 5 days.
+                </div>
+            </div>
+        </div>
+    </template>
+
+                         <!-- ✅ WORKING DAYS CALCULATION DISPLAY -->
+                    <template if:true={showCalculation}>
+                        <div class="calculation-box">
+                            <div class="calculation-header">
+                                <lightning-icon icon-name="utility:date_input" size="small"></lightning-icon>
+                                <span class="calculation-title">Date Range Summary</span>
+                            </div>
+                            
+                            <div class="calculation-grid">
+                                <div class="calc-item">
+                                    <div class="calc-label">Total Days</div>
+                                    <div class="calc-value total">{totalDays}</div>
+                                </div>
+                                
+                                <div class="calc-item highlight">
+                                    <div class="calc-label">Working Days</div>
+                                    <div class="calc-value working">{workingDays}</div>
+                                </div>
+                                
+                                <div class="calc-item">
+                                    <div class="calc-label">Weekends</div>
+                                    <div class="calc-value weekend">{weekendDays}</div>
+                                </div>
+                                
+                                <div class="calc-item">
+                                    <div class="calc-label">Holidays</div>
+                                    <div class="calc-value holiday">{holidayDays}</div>
+                                </div>
+                            </div>
+
+                            <!-- Excluded Dates List -->
+                            <template if:true={hasExcludedDates}>
+                                <div class="excluded-section">
+                                    <div class="excluded-title">
+                                        <lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>
+                                        Excluded Dates:
+                                    </div>
+                                    <div class="excluded-tags">
+                                        <template for:each={excludedDates} for:item="excluded">
+                                            <span key={excluded.date} class={excluded.class}>
+                                                {excluded.date} - {excluded.reason}
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                        <lightning-textarea
+                            label="Reason for WFH Request"
+                            name="reason"
+                            value={reason}
+                            onchange={handleChange}
+                            placeholder="Please provide a detailed reason for your work from home request..."
+                            required>
+                        </lightning-textarea>
+                   
+
+                    <!-- Info Message -->
+                    <div class="info-message">
+                        <div class="info-message-text">
+                            Your request will be sent to your manager for approval. You will receive an email notification once a decision is made.
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="slds-m-top_medium slds-align_absolute-center">
+                        <lightning-button
+                            variant="brand"
+                            label="Submit Request"
+                            icon-name="utility:check"
+                            onclick={handleSubmit}>
+                        </lightning-button>
+
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            icon-name="utility:close"
+                            class="slds-m-left_small"
+                            onclick={handleCancel}>
+                        </lightning-button>
+                    </div>
+
+               
+            </template>
+
+            <!-- SUBMITTED REQUESTS TABLE -->
+            <template if:true={hasRequests}>
+                <div class="slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_small" style="color: #181818; font-weight: 600;">
+                        My Requests
+                    </h3>
+                    <lightning-datatable
+                        key-field="Id"
+                        data={paginatedRequests}
+                        columns={columns}
+                        onrowaction={handleRowAction}
+                        hide-checkbox-column>
+                    </lightning-datatable>
+
+                    <!-- ====== PAGINATION CONTROLS ====== -->
+                    <div class="pagination-container">
+                        <!-- Left: Records Info -->
+                        <div class="pagination-info">
+                            <span>Showing {paginationStart} to {paginationEnd} of {totalRecords} records</span>
+                            <span class="pagination-divider">•</span>
+                            <span>Page {currentPage} of {totalPages}</span>
+                        </div>
+
+                        <!-- Right: Pagination Controls -->
+                        <div class="pagination-controls">
+                            <!-- Records Per Page Dropdown -->
+                            <div class="records-per-page">
+                                <span>Records per page:</span>
+                                <lightning-combobox
+                                    name="recordsPerPage"
+                                    label=""
+                                    value={recordsPerPage}
+                                    options={recordsPerPageOptions}
+                                    onchange={handleRecordsPerPageChange}
+                                    class="records-dropdown">
+                                </lightning-combobox>
+                            </div>
+
+                            <!-- Navigation Buttons -->
+                            <div class="pagination-buttons">
+                                <lightning-button-icon
+                                    icon-name="utility:left"
+                                    alternative-text="First"
+                                    title="First Page"
+                                    onclick={handleFirstPage}
+                                    disabled={isFirstPage}
+                                    class="pagination-btn">
+                                </lightning-button-icon>
+
+                                <lightning-button-icon
+                                    icon-name="utility:chevronleft"
+                                    alternative-text="Previous"
+                                    title="Previous Page"
+                                    onclick={handlePreviousPage}
+                                    disabled={isFirstPage}
+                                    class="pagination-btn">
+                                </lightning-button-icon>
+
+                                <!-- Page Number Display -->
+                                <div class="page-display">
+                                    <span class="current-page">{currentPage}</span>
+                                    <span class="page-divider">of</span>
+                                    <span class="total-pages">{totalPages}</span>
+                                </div>
+
+                                <lightning-button-icon
+                                    icon-name="utility:chevronright"
+                                    alternative-text="Next"
+                                    title="Next Page"
+                                    onclick={handleNextPage}
+                                    disabled={isLastPage}
+                                    class="pagination-btn">
+                                </lightning-button-icon>
+
+                                <lightning-button-icon
+                                    icon-name="utility:right"
+                                    alternative-text="Last"
+                                    title="Last Page"
+                                    onclick={handleLastPage}
+                                    disabled={isLastPage}
+                                    class="pagination-btn">
+                                </lightning-button-icon>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </template>
+
+            <!-- EMPTY STATE -->
+            <template if:false={hasRequests}>
+                <template if:false={showForm}>
+                    <div class="slds-text-align_center slds-text-color_weak">
+                        No Work From Home requests submitted yet. Click "New Request" to get started.
+                    </div>
+                </template>
+            </template>
+
+        </div>
+
+        <!-- CANCEL CONFIRMATION MODAL -->
+        <template if:true={showCancelModal}>
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_small" aria-labelledby="cancel-modal-heading" aria-modal="true">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header" style="background:#fef2f2; border-bottom: 1px solid #fee2e2;">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeCancelModal}>
+                            <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                        <h2 id="cancel-modal-heading" class="slds-text-heading_medium slds-hyphenate" style="color: #b91c1c; font-weight: 600;">
+                            Cancel Work From Home Request
+                        </h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" id="cancel-modal-content">
+                        <p class="slds-m-bottom_small" style="font-size: 14px; color: #374151;">
+                            Are you sure you want to cancel your WFH request for 
+                            <strong>{cancelModalDateRange}</strong> ({cancelModalDays} working day{cancelModalDaysPlural})?
+                        </p>
+                        <lightning-textarea
+                            label="Reason for Cancellation"
+                            placeholder="Enter reason for cancelling (e.g., coming to office to attend meetings)..."
+                            value={cancelReason}
+                            onchange={handleCancelReasonChange}
+                            required>
+                        </lightning-textarea>
+                    </div>
+                    <footer class="slds-modal__footer" style="background: #f9fafb;">
+                        <lightning-button label="Keep Request" onclick={closeCancelModal} class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button variant="destructive" label="Confirm Cancellation" onclick={confirmCancelRequest} is-loading={isCancelling}></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+  
+</template>

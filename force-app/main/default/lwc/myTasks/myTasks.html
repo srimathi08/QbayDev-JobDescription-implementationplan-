@@ -1,0 +1,451 @@
+<!-- grid
+<template>
+  <lightning-card>
+    
+    <div slot="title">Tasks</div>
+    <div slot="actions">
+      <lightning-button label="+ Create Task" onclick={openNewTask}></lightning-button>
+    </div>
+
+   
+    <lightning-tabset active-tab-value={activeTab} variant="scoped">
+     
+      <lightning-tab label="Open" value="OPEN" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <ul class="task-grid">
+              <template for:each={rows} for:item="t">
+                <li key={t.Id} class="task-card slds-card">
+                  <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                    <div class="slds-truncate slds-text-heading_small">
+                      <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                        {t.Subject}
+                      </a>
+                    </div>
+                    <span class={t.priorityClass}>{t.Priority}</span>
+                  </div>
+
+                  <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                    <div class="row">
+                      <span class="label">Status</span>
+                      <span class="value">{t.Status}</span>
+                    </div>
+                    <div class="row">
+                      <span class="label">Due</span>
+                      <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                    </div>
+                    <template if:true={t.OwnerName}>
+                      <div class="row">
+                        <span class="label">Owner</span>
+                        <span class="value">{t.OwnerName}</span>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div class="slds-card__footer slds-p-around_small">
+                    <lightning-button
+                      variant="base"
+                      label="Open"
+                      data-id={t.Id}
+                      onclick={handleOpenRecord}>
+                    </lightning-button>
+                  </div>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+
+    
+      <lightning-tab label="Open – High" value="OPEN_HIGH" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <ul class="task-grid">
+              <template for:each={rows} for:item="t">
+                <li key={t.Id} class="task-card slds-card">
+                  <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                    <div class="slds-truncate slds-text-heading_small">
+                      <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                        {t.Subject}
+                      </a>
+                    </div>
+                    <span class={t.priorityClass}>{t.Priority}</span>
+                  </div>
+                  <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                    <div class="row">
+                      <span class="label">Status</span>
+                      <span class="value">{t.Status}</span>
+                    </div>
+                    <div class="row">
+                      <span class="label">Due</span>
+                      <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                    </div>
+                    <template if:true={t.OwnerName}>
+                      <div class="row">
+                        <span class="label">Owner</span>
+                        <span class="value">{t.OwnerName}</span>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="slds-card__footer slds-p-around_small">
+                    <lightning-button variant="base" label="Open" data-id={t.Id} onclick={handleOpenRecord}></lightning-button>
+                  </div>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+
+  
+      <lightning-tab label="Open – Normal" value="OPEN_NORMAL" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <ul class="task-grid">
+              <template for:each={rows} for:item="t">
+                <li key={t.Id} class="task-card slds-card">
+                  <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                    <div class="slds-truncate slds-text-heading_small">
+                      <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                        {t.Subject}
+                      </a>
+                    </div>
+                    <span class={t.priorityClass}>{t.Priority}</span>
+                  </div>
+                  <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                    <div class="row">
+                      <span class="label">Status</span>
+                      <span class="value">{t.Status}</span>
+                    </div>
+                    <div class="row">
+                      <span class="label">Due</span>
+                      <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                    </div>
+                    <template if:true={t.OwnerName}>
+                      <div class="row">
+                        <span class="label">Owner</span>
+                        <span class="value">{t.OwnerName}</span>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="slds-card__footer slds-p-around_small">
+                    <lightning-button variant="base" label="Open" data-id={t.Id} onclick={handleOpenRecord}></lightning-button>
+                  </div>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+
+     
+      <lightning-tab label="Overdue" value="OVERDUE" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <ul class="task-grid">
+              <template for:each={rows} for:item="t">
+                <li key={t.Id} class="task-card slds-card">
+                  <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                    <div class="slds-truncate slds-text-heading_small">
+                      <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                        {t.Subject}
+                      </a>
+                    </div>
+                    <span class={t.priorityClass}>{t.Priority}</span>
+                  </div>
+                  <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                    <div class="row">
+                      <span class="label">Status</span>
+                      <span class="value">{t.Status}</span>
+                    </div>
+                    <div class="row">
+                      <span class="label">Due</span>
+                      <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                    </div>
+                    <template if:true={t.OwnerName}>
+                      <div class="row">
+                        <span class="label">Owner</span>
+                        <span class="value">{t.OwnerName}</span>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="slds-card__footer slds-p-around_small">
+                    <lightning-button variant="base" label="Open" data-id={t.Id} onclick={handleOpenRecord}></lightning-button>
+                  </div>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+    </lightning-tabset>
+  </lightning-card>
+</template>  -->
+
+
+
+<template>
+  <lightning-card>
+    <!-- Header -->
+    <div slot="title">Tasks</div>
+    <div slot="actions">
+      <lightning-button label="+ Create Task" onclick={openNewTask}></lightning-button>
+    </div>
+
+    <!-- Body -->
+    <lightning-tabset active-tab-value={activeTab} variant="scoped">
+      <!-- 1) Open -->
+      <lightning-tab label="Open" value="OPEN" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <div class="slds-grid slds-wrap card-grid">
+              <template for:each={rows} for:item="t">
+                <div key={t.Id}
+                     class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-around_x-small">
+                  <article class="slds-card task-card">
+                    <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                      <div class="slds-truncate slds-text-heading_small">
+                        <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                          {t.Subject}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                      <div class="row">
+                        <span class="label">Status</span>
+                        <span class="value">{t.Status}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Due</span>
+                        <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Priority</span>
+                        <span class="value">
+                          <span class={t.priorityClass}>{t.Priority}</span>
+                        </span>
+                      </div>
+                      <template if:true={t.OwnerName}>
+                        <div class="row">
+                          <span class="label">Owner</span>
+                          <span class="value">{t.OwnerName}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </article>
+                </div>
+              </template>
+            </div>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+
+      <!-- 2) Open – High -->
+      <lightning-tab label="Open – High" value="OPEN_HIGH" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <div class="slds-grid slds-wrap card-grid">
+              <template for:each={rows} for:item="t">
+                <div key={t.Id}
+                     class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-around_x-small">
+                  <article class="slds-card task-card">
+                    <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                      <div class="slds-truncate slds-text-heading_small">
+                        <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                          {t.Subject}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                      <div class="row">
+                        <span class="label">Status</span>
+                        <span class="value">{t.Status}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Due</span>
+                        <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Priority</span>
+                        <span class="value">
+                          <span class={t.priorityClass}>{t.Priority}</span>
+                        </span>
+                      </div>
+                      <template if:true={t.OwnerName}>
+                        <div class="row">
+                          <span class="label">Owner</span>
+                          <span class="value">{t.OwnerName}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </article>
+                </div>
+              </template>
+            </div>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+
+      <!-- 3) Open – Normal -->
+      <lightning-tab label="Open – Normal" value="OPEN_NORMAL" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <div class="slds-grid slds-wrap card-grid">
+              <template for:each={rows} for:item="t">
+                <div key={t.Id}
+                     class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-around_x-small">
+                  <article class="slds-card task-card">
+                    <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                      <div class="slds-truncate slds-text-heading_small">
+                        <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                          {t.Subject}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                      <div class="row">
+                        <span class="label">Status</span>
+                        <span class="value">{t.Status}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Due</span>
+                        <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Priority</span>
+                        <span class="value">
+                          <span class={t.priorityClass}>{t.Priority}</span>
+                        </span>
+                      </div>
+                      <template if:true={t.OwnerName}>
+                        <div class="row">
+                          <span class="label">Owner</span>
+                          <span class="value">{t.OwnerName}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </article>
+                </div>
+              </template>
+            </div>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+
+      <!-- 4) Overdue -->
+      <lightning-tab label="Overdue" value="OVERDUE" onactive={handleTabChange}>
+        <template if:true={loaded}>
+          <template if:true={rows.length}>
+            <div class="slds-grid slds-wrap card-grid">
+              <template for:each={rows} for:item="t">
+                <div key={t.Id}
+                     class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-around_x-small">
+                  <article class="slds-card task-card">
+                    <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-around_small">
+                      <div class="slds-truncate slds-text-heading_small">
+                        <a href={t.link} target="_blank" onclick={handleOpenRecord} data-id={t.Id}>
+                          {t.Subject}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="slds-card__body slds-p-horizontal_small slds-p-bottom_small">
+                      <div class="row">
+                        <span class="label">Status</span>
+                        <span class="value">{t.Status}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Due</span>
+                        <span class={t.dueClass}>{t.ActivityDateDisplay}</span>
+                      </div>
+                      <div class="row">
+                        <span class="label">Priority</span>
+                        <span class="value">
+                          <span class={t.priorityClass}>{t.Priority}</span>
+                        </span>
+                      </div>
+                      <template if:true={t.OwnerName}>
+                        <div class="row">
+                          <span class="label">Owner</span>
+                          <span class="value">{t.OwnerName}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </article>
+                </div>
+              </template>
+            </div>
+          </template>
+          <template if:false={rows.length}>
+            <div class="empty-state slds-p-around_small slds-align_absolute-center">
+              No tasks found for this view.
+            </div>
+          </template>
+        </template>
+        <template if:false={loaded}>
+          <lightning-spinner size="small"></lightning-spinner>
+        </template>
+      </lightning-tab>
+    </lightning-tabset>
+  </lightning-card>
+</template>

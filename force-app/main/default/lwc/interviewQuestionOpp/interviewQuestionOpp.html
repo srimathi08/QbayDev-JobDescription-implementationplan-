@@ -1,0 +1,63 @@
+<template>
+    <lightning-card title="Question Asked" icon-name="utility:question">
+        <!-- Display first 5 questions -->
+        <template if:true={questions.length}>
+            <ol class="slds-list_ordered slds-m-around_medium">
+                <template for:each={limitedQuestions} for:item="q">
+                    <li key={q} class="slds-p-vertical_x-small slds-border_bottom">
+                        <lightning-icon 
+                            icon-name="utility:record" 
+                            size="x-small" 
+                            alternative-text="Question" 
+                            class="slds-m-right_small">
+                        </lightning-icon>
+                        {q}
+                    </li>
+                </template>
+            </ol>
+
+            <!-- Show more button -->
+            <template if:true={hasMore}>
+                <div class="slds-p-around_medium">
+                    <lightning-button label="Show More" onclick={openModal}></lightning-button>
+                </div>
+            </template>
+        </template>
+
+        <template if:false={questions.length}>
+            <p class="slds-p-around_medium slds-text-color_weak">
+                No interview questions found for this opportunity.
+            </p>
+        </template>
+    </lightning-card>
+
+    <!-- Modal for all questions -->
+    <template if:true={showModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">All Interview Questions</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium" style="max-height: 300px; overflow-y: auto;">
+                    <ol class="slds-list_ordered">
+                        <template for:each={questions} for:item="q">
+                            <li key={q} class="slds-p-vertical_x-small slds-border_bottom">
+                                <lightning-icon 
+                                    icon-name="utility:record" 
+                                    size="x-small" 
+                                    alternative-text="Question" 
+                                    class="slds-m-right_small">
+                                </lightning-icon>
+                                {q}
+                            </li>
+                        </template>
+                    </ol>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

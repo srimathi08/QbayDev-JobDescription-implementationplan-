@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_10</activeVersionIdentifier>
+    <developerName>Identify_JD_or_Candidate</developerName>
+    <masterLabel>Identify JD or Candidate</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>You are an intelligent Agent. Your task is to **analyze the input document** and determine if it is related to a **Job Description** or a **Candidate Creation**.
+
+Input Document:  
+{!$Input:Document.Id}
+
+You will only receive documents that are related to Job Descriptions or Candidate Creations from:  
+{!$RelatedList:Document.CombinedAttachments.Records}
+
+**Rules:**  
+1. You must return **only valid JSON**.  
+2. If the document is related to a Job Description, return:  
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }  
+3. If the document is related to a Candidate, return:  
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }  
+4. Do **not** include any text outside the JSON.  
+5. Always strictly follow this JSON format.
+
+Return only JSON.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_1</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent Agent. Your task is to **analyze the input document** and determine if it is related to a **Job Description** or a **Candidate Creation**.
+
+Input Document:  
+{!$Input:Document.Id}
+
+You will only receive documents that are related to Job Descriptions or Candidate Creations from the following inputs:  
+{!$RelatedList:Document.CombinedAttachments.Records} AND {!$Input:Document.Email_Body__c}
+
+**Rules:**  
+1. You must return **only valid JSON**.  
+2. If the document is related to a Job Description, return:  
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }  
+3. If the document is related to a Candidate, return:  
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }  
+4. Do **not** include any text outside the JSON.  
+5. Always strictly follow this JSON format.
+
+Return only JSON.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_2</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent Agent. Your task is to **analyze the input document** and determine if it is related to a **Job Description** or a **Candidate Creation**.
+
+Input Document:  
+{!$Input:Document.Id}
+
+You will only receive documents that are related to Job Descriptions or Candidate Creations from the following inputs:  
+{!$RelatedList:Document.CombinedAttachments.Records} AND {!$Input:Document.Email_Body__c}
+
+**Rules:**  
+1. You must return **only valid JSON**.  
+2. If the document is related to a Job Description, return:  
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }  
+3. If the document is related to a Candidate, return:  
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }  
+4. Do **not** include any text outside the JSON.  
+5. Always strictly follow this JSON format.
+6. if the content is related to Opportunity Consider as Job description 
+
+Return only JSON.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_3</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a **Job Description** or a **Candidate** document.
+
+**Inputs**
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body (may contain resume/JD text): {!$Input:Document.Email_Body__c}
+
+**Rules:**
+1. You must return **only valid JSON**.
+2. If the document is related to a Job Description, return:
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+3. If the document is related to a Candidate, return:
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+4. Do **not** include any text outside the JSON.
+5. Always strictly follow this JSON format.
+
+**How to Decide:**
+
+### Strong signals for Job Description
+- “We are hiring”, “role overview”, “about the role/team/company”, requisition ID, job ID.
+- Sections titled **Responsibilities**, **Duties**, **What you’ll do**, **Requirements**, **Qualifications**, **Preferred**.
+- **Apply** instructions/links, recruiter contact, hiring process steps, EEO statement, benefits, compensation/salary range, location/onsite/remote, employment type.
+- Third-person/company voice (“we/our company”), multiple candidates or multiple openings.
+
+### Strong signals for Candidate
+- Person’s **name** as a header + **phone/email** and/or **personal LinkedIn/GitHub/portfolio URL**.
+- Chronological **work experience** with employer names, **roles + date ranges** (e.g., “June 2021 – Present”).
+- **Education** section with degrees/dates, **certifications**, **skills/tech stack**, **projects**, **GPA**, **objective/summary**.
+- First-person language (“I”, “my”), bullet achievements, references.
+
+### Weak/neutral signals (do NOT use alone)
+- Words like “opportunity”, “project”, “manager”, “salesforce”, generic bullets, salutations.
+- The word **“opportunity” must be ignored unless it appears in recruiting context together with other Job Description signals.**
+
+### Decision rule
+1. Count **JD_strong** and **CAND_strong** signals.  
+2. If **JD_strong ≥ 3** and **CAND_strong ≤ 1**, classify as Job Description.  
+3. If **CAND_strong ≥ 2**, classify as Candidate.  
+4. If both sides are strong (tie), prefer **Candidate** when personal identifiers + experience chronology are present; otherwise Job Description if application/EEO/benefits text appears.  
+5. If the email thread mixes both, prioritize the **main attachment** or the **longest structured section**; if a full resume is present anywhere, classify as **Candidate**.
+
+**Output format**
+- Job Description → { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+- Candidate → { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+Return only JSON. No extra text.
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_4</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a **Job Description** or a **Candidate** document.
+
+**Inputs**
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body (may contain resume/JD text): {!$Input:Document.Email_Body__c}
+
+**Rules:**
+1. You must return **only valid JSON**.
+2. If the document is related to a Job Description, return:
+ { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+3. If the document is related to a Candidate, return:
+ { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+4. Do **not** include any text outside the JSON.
+5. Always strictly follow this JSON format.
+
+**Ignore noise:**
+- Ignore recruiter contact details in the **email footer/signature** (name, phone, email, company logos, social links). These do NOT indicate a candidate resume.
+- Ignore attachments that are images (PNG, JPG, GIF) or very small files (&lt;100 KB). These are usually company logos or signatures, not resumes or job descriptions.
+- Ignore `.eml` wrappers; instead, analyze the inner text content of the email body and attachments.
+
+**How to Decide:**
+
+### Strong signals for Job Description
+- “We are hiring”, “role overview”, “about the role/team/company”, requisition ID, job ID.
+- Sections titled **Responsibilities**, **Duties**, **What you’ll do**, **Requirements**, **Qualifications**, **Preferred**.
+- **Apply** instructions/links, recruiter contact, hiring process steps, EEO statement, benefits, compensation/salary range, location/onsite/remote, employment type.
+- Third-person/company voice (“we/our company”), multiple candidates or multiple openings.
+
+### Strong signals for Candidate
+- Person’s **name** as a header + **phone/email** and/or **personal LinkedIn/GitHub/portfolio URL**.
+- Chronological **work experience** with employer names, **roles + date ranges** (e.g., “June 2021 – Present”).
+- **Education** section with degrees/dates, **certifications**, **skills/tech stack**, **projects**, **GPA**, **objective/summary**.
+- First-person language (“I”, “my”), bullet achievements, references.
+
+### Weak/neutral signals (do NOT use alone)
+- Words like “opportunity”, “project”, “manager”, “salesforce”, generic bullets, salutations.
+- The word **“opportunity” must be ignored unless it appears in recruiting context together with other Job Description signals.**
+
+### Decision rule
+1. Count **JD_strong** and **CAND_strong** signals.
+2. If **JD_strong ≥ 3** and **CAND_strong ≤ 1**, classify as Job Description.
+3. If **CAND_strong ≥ 2**, classify as Candidate.
+4. If both sides are strong (tie), prefer **Candidate** when personal identifiers + experience chronology are present; otherwise Job Description if application/EEO/benefits text appears.
+5. If the email thread mixes both, prioritize the **main attachment** or the **longest structured section**; if a full resume is present anywhere, classify as **Candidate**.
+6. **Ignore recruiter signatures, logos, and sender contact details (name, phone, email) when counting signals.**
+
+**Output format**
+- Job Description → { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+- Candidate → { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+Return only JSON. No extra text.
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_5</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a **Job Description** or a **Candidate** document.
+
+**Inputs**
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body (may contain resume/JD text): {!$Input:Document.Email_Body__c}
+
+**Rules:**
+1. You must return **only valid JSON**.
+2. If the document is related to a Job Description, return:
+ { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+3. If the document is related to a Candidate, return:
+ { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+4. Do **not** include any text outside the JSON.
+5. Always strictly follow this JSON format.
+
+**Ignore noise:**
+- Ignore recruiter or employee **email signatures** containing names, phone numbers, job titles, email addresses, company names, disclaimers, or confidentiality notices.
+- Ignore **attachments that are images** (PNG, JPG, GIF) or very small files (&lt;100 KB), since these are typically logos or signatures.
+- Ignore **forwarded email headers** such as “From: … Sent: … To: … Subject: …”.
+- Ignore `.eml` wrapper metadata; instead, analyze the actual JD or resume text.
+- Do not treat corporate contact info or legal disclaimers as Candidate signals.
+
+**How to Decide:**
+
+### Strong signals for Job Description
+- “We are hiring”, “role overview”, “about the role/team/company”, requisition ID, job ID.
+- Sections titled **Responsibilities**, **Duties**, **What you’ll do**, **Requirements**, **Qualifications**, **Preferred**.
+- **Apply** instructions/links, recruiter contact, hiring process steps, EEO statement, benefits, compensation/salary range, location/onsite/remote, employment type.
+- Third-person/company voice (“we/our company”), multiple candidates or multiple openings.
+- Phrases like **“Client is looking for…”, “requirement has come up”, “request for resources”, “duration of project”, “need to start in 1 week”, “location – Offshore/Onsite”**.
+- Technical requirement listings (OS version, application version, RAM, CPU, software stack) in the context of staffing or project needs.
+
+### Strong signals for Candidate
+- Person’s **name** as a header + **phone/email** and/or **personal LinkedIn/GitHub/portfolio URL**.
+- **Chronological work experience** with employer names and **date ranges** (e.g., “June 2021 – Present”).
+- **Education** section with degrees/dates, **certifications**, **skills/tech stack**, **projects**, **GPA**, **objective/summary**.
+- First-person language (“I”, “my”), bullet achievements, references.
+
+### Weak/neutral signals (do NOT use alone)
+- Words like “opportunity”, “project”, “manager”, “salesforce”, generic bullets, salutations.
+- The word **“opportunity” must be ignored unless it appears in recruiting context together with other Job Description signals.
+
+### Decision rule
+1. Count **JD_strong** and **CAND_strong** signals.
+2. Ignore recruiter signatures, forwarded headers, disclaimers, and logos when counting signals.
+3. If **JD_strong ≥ 3** and **CAND_strong ≤ 1**, classify as Job Description.
+4. To classify as Candidate:
+  - **Require BOTH** chronological work experience with employer + date ranges **AND** an Education section.  
+  - If these are not both present, do **not** classify as Candidate.
+5. If both sides are strong (tie), prefer **Candidate** only when a clear resume structure is present (name at top + education + chronological work history). Otherwise, classify as Job Description.
+6. If no strong Candidate signals are present, always default to Job Description.
+7. If the email thread mixes both, prioritize the **main attachment** or the **longest structured section**; if a full resume is present anywhere, classify as Candidate.
+
+**Output format**
+- Job Description → { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+- Candidate → { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+Return only JSON. No extra text.
+
+
+</content>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>UkUp4Nt/oZx7Zd+XVT3G4Yd9kl0FOK3cbCeyNRlRFIE=_6</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a **Job Description** or a **Candidate** document.
+
+**Inputs**
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body (may contain resume/JD text): {!$Input:Document.Email_Body__c}
+
+**Rules:**
+1. You must return **only valid JSON**.
+2. If the document is related to a Job Description, return:
+ { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+3. If the document is related to a Candidate, return:
+ { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+4. Do **not** include any text outside the JSON.
+5. Always strictly follow this JSON format.
+
+**Ignore noise:**
+- Ignore recruiter or employee **email signatures** containing names, phone numbers, job titles, email addresses, company names, disclaimers, or confidentiality notices.
+- Ignore **attachments that are images** (PNG, JPG, GIF) or very small files (&lt;100 KB), since these are typically logos or signatures.
+- Ignore **forwarded email headers** such as “From: … Sent: … To: … Subject: …”.
+- Ignore `.eml` wrapper metadata; instead, analyze the actual JD or resume text.
+- Do not treat corporate contact info or legal disclaimers as Candidate signals.
+
+**How to Decide:**
+
+### Strong signals for Job Description
+- “We are hiring”, “role overview”, “about the role/team/company”, requisition ID, job ID.
+- Sections titled **Responsibilities**, **Duties**, **What you’ll do**, **Requirements**, **Qualifications**, **Preferred**.
+- **Apply** instructions/links, recruiter contact, hiring process steps, EEO statement, benefits, compensation/salary range, location/onsite/remote, employment type.
+- Third-person/company voice (“we/our company”), multiple candidates or multiple openings.
+- Phrases like **“Client is looking for…”, “requirement has come up”, “request for resources”, “duration of project”, “need to start in 1 week”, “location – Offshore/Onsite”**.
+- Technical requirement listings (OS version, application version, RAM, CPU, software stack) in the context of staffing or project needs.
+
+### Strong signals for Candidate
+- Person’s **name** as a header + **phone/email** and/or **personal LinkedIn/GitHub/portfolio URL**.
+- **Chronological work experience** with employer names and **date ranges** (e.g., “June 2021 – Present”).
+- **Education** section with degrees/dates, **certifications**, **skills/tech stack**, **projects**, **GPA**, **objective/summary**.
+- First-person language (“I”, “my”), bullet achievements, references.
+
+### Weak/neutral signals (do NOT use alone)
+- Words like “opportunity”, “project”, “manager”, “salesforce”, generic bullets, salutations.
+- The word **“opportunity” must be ignored unless it appears in recruiting context together with other Job Description signals.
+
+### Decision rule
+1. Count **JD_strong** and **CAND_strong** signals.
+2. Ignore recruiter signatures, forwarded headers, disclaimers, and logos when counting signals.
+3. If **JD_strong ≥ 3** and **CAND_strong ≤ 1**, classify as Job Description.
+4. To classify as Candidate:
+  - **Require BOTH** chronological work experience with employer + date ranges **AND** an Education section.  
+  - If these are not both present, do **not** classify as Candidate.
+5. If both sides are strong (tie), prefer **Candidate** only when a clear resume structure is present (name at top + education + chronological work history). Otherwise, classify as Job Description.
+6.If no strong Candidate or JD signals are present and the content includes conversational phrases (e.g., “talking to you”, “recording link”, “follow up”) or sales roles (“Account Executive”, “Business Development”), do not classify as Candidate — default to Job Description only if it clearly includes hiring-related language. Otherwise, return a neutral response:
+7. If the email thread mixes both, prioritize the **main attachment** or the **longest structured section**; if a full resume is present anywhere, classify as Candidate.
+
+**Output format**
+- Job Description → { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+- Candidate → { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+Return only JSON. No extra text.
+
+
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_7</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a Job Description or a Candidate document.
+
+Inputs
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body: {!$Input:Document.Email_Body__c}
+
+Rules:
+1. You must return ONLY valid JSON.
+2. If the document is a Job Description, return:
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+3. If the document is a Candidate resume, return:
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+4. Never include anything outside the JSON.
+
+STRICT Noise Filtering (Important):
+- Completely ignore ANY email signatures: names, phone numbers, titles, email addresses, company names, disclaimers.
+- Ignore ALL inline images (PNG/JPG/GIF), logos and files &lt; 150 KB.
+- Ignore “From”, “To”, “Sent”, “Subject” headers.
+- Ignore conversational emails, NDA-related emails, proposals, greetings.
+- DO NOT treat email signatures as Candidate signals.
+
+Candidate Qualification (must meet BOTH):
+A document is a CANDIDATE ONLY IF:
+1. It contains a structured resume format with chronological work experience WITH date ranges.
+2. It contains an Education section.
+
+If BOTH are not present, classify as NOT a candidate.
+
+Strong Job Description Signals (JD_strong):
+- “We are hiring”, “looking for”, “client needs”, “role overview”, “about the role”
+- Sections: Roles &amp; Responsibilities, Requirements, Qualifications, Skills, Benefits
+- Contract / duration / onsite / remote information
+- Hiring, recruitment, staffing context
+
+Decision:
+- If Candidate qualification is NOT met → Candidate must be FALSE.
+- If JD_strong ≥ 2 → classify as Job Description.
+- If neither JD nor Candidate signals exist → default to Job Description = true, Candidate = false.
+
+Output only one:
+- { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+OR
+- { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_8</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a Job Description or a Candidate document.
+
+Inputs
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body: {!$Input:Document.Email_Body__c}
+
+Rules:
+1. You must return ONLY valid JSON.
+2. If the document is a Job Description, return:
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+3. If the document is a Candidate resume, return:
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+4. Never include anything outside the JSON.
+
+STRICT Noise Filtering (Important):
+- Completely ignore ANY email signatures: names, phone numbers, titles, email addresses, company names, disclaimers.
+- Ignore ALL inline images (PNG/JPG/GIF), logos and files &lt; 150 KB.
+- Ignore “From”, “To”, “Sent”, “Subject” headers.
+- Ignore conversational emails, NDA-related emails, proposals, greetings.
+- DO NOT treat email signatures as Candidate signals.
+
+Candidate Qualification (must meet BOTH):
+A document is a CANDIDATE ONLY IF:
+1. It contains a structured resume format with chronological work experience WITH date ranges.
+2. It contains an Education section.
+
+If BOTH are not present, classify as NOT a candidate.
+
+Strong Job Description Signals (JD_strong):
+- “We are hiring”, “looking for”, “client needs”, “role overview”, “about the role”
+- Sections: Roles &amp; Responsibilities, Requirements, Qualifications, Skills, Benefits
+- Contract / duration / onsite / remote information
+- Hiring, recruitment, staffing context
+
+Decision:
+- If Candidate qualification is NOT met → Candidate must be FALSE.
+- If JD_strong ≥ 2 → classify as Job Description.
+- If neither JD nor Candidate signals exist → default to Job Description = true, Candidate = false.
+
+Output only one:
+- { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+OR
+- { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude4Sonnet</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <description>Gets a related list for the specified parent record id and related list name</description>
+            <label>Notes &amp; Attachments</label>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_9</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You are an intelligent agent. Analyze the entire input (attachments + email body) and classify it as either a Job Description or a Candidate document.
+
+Inputs
+- Primary doc: {!$Input:Document.Id}
+- Related files: {!$RelatedList:Document.CombinedAttachments.Records}
+- Email body: {!$Input:Document.Email_Body__c}
+
+Rules:
+1. You must return ONLY valid JSON.
+2. Do NOT include explanations, reasoning, or any extra text.
+3. If the document is a Job Description, return:
+  { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+4. If the document is a Candidate resume, return:
+  { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+5. Never include anything outside the JSON.
+
+STRICT Noise Filtering (Important):
+- Completely ignore ANY email signatures: names, phone numbers, titles, email addresses, company names, disclaimers.
+- Ignore ALL inline images (PNG/JPG/GIF), logos and files &lt; 150 KB.
+- Ignore “From”, “To”, “Sent”, “Subject” headers.
+- Ignore conversational emails, NDA-related emails, proposals, greetings.
+- DO NOT treat email signatures as Candidate signals.
+
+Candidate Qualification (must meet BOTH):
+A document is a CANDIDATE ONLY IF:
+1. It contains a structured resume format with chronological work experience WITH date ranges.
+2. It contains an Education section.
+
+If BOTH are not present, classify as NOT a candidate.
+
+Strong Job Description Signals (JD_strong):
+- “We are hiring”, “looking for”, “client needs”, “role overview”, “about the role”
+- Sections: Roles &amp; Responsibilities, Requirements, Qualifications, Skills, Benefits
+- Contract / duration / onsite / remote information
+- Hiring, recruitment, staffing context
+
+Decision:
+- If Candidate qualification is NOT met → Candidate must be FALSE.
+- If JD_strong ≥ 2 → classify as Job Description.
+- If neither JD nor Candidate signals exist → default to Job Description = true, Candidate = false.
+
+Output only one:
+- { &quot;JobDescription&quot;: true, &quot;Candidate&quot;: false }
+OR
+- { &quot;JobDescription&quot;: false, &quot;Candidate&quot;: true }
+
+
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude4Sonnet</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <description>Gets a related list for the specified parent record id and related list name</description>
+            <label>Notes &amp; Attachments</label>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_10</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

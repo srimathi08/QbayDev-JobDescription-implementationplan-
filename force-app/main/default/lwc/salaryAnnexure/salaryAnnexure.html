@@ -1,0 +1,112 @@
+<template>
+    <lightning-card title="Salary Annexure Details">
+        <div class="slds-p-around_small">
+
+            <table class="annexure-table">
+                <thead>
+                    <tr>
+                        <th>Particulars</th>
+                        <th>Monthly Salary Break-Up (Rs.)</th>
+                        <th>Annual Salary Break-Up (Rs.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Basic Pay PF & Retirement Benefits</td>
+                        <td>{basicPayMonthly}</td>
+                        <td>{basicPayAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>Other Basic Pay</td>
+                        <td>{otherAllowanceMonthly}</td>
+                        <td>{otherAllowanceAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>House Rent Allowance</td>
+                        <td>{hraMonthly}</td>
+                        <td>{hraAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>Bucket Allowance (Food,Telephone,Fuel , Car Driver Reimbursement, NPS & other Allowances)
+                        </td>
+                        <td>{bucketMonthly}</td>
+                        <td>{bucketAnnual}</td>
+                    </tr>
+
+                    <tr class="bold-row">
+                        <td>Gross Salary Per Annum / Month (A)</td>
+                        <td>{grossMonthly}</td>
+                        <td>{grossAnnual}</td>
+                    </tr>
+
+                    <tr class="bold-row">
+                        <td colspan="3">Deductions from Gross Salary</td>
+                    </tr>
+
+                    <tr>
+                        <td>EPF - Employee Contribution @12%</td>
+                        <td>{pfEmpMonthly}</td>
+                        <td>{pfEmpAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>ESI - Employee contribution@0.75%</td>
+                        <td>{esiEmpMonthly}</td>
+                        <td>{esiEmpAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>PT</td>
+                        <td>{ptMonthly}</td>
+                        <td>{ptAnnual}</td>
+                    </tr>
+
+                    <tr class="bold-row">
+                        <td>Total Deduction (B)</td>
+                        <td>{totalDeductionMonthly}</td>
+                        <td>{totalDeductionAnnual}</td>
+                    </tr>
+
+                    <tr class="bold-row">
+                        <td>Net Salary In Hand (A) - (B)</td>
+                        <td>{netSalaryMonthly}</td>
+                        <td>{netSalaryAnnual}</td>
+                    </tr>
+
+                    <tr>
+                        <td>PF Contribution Employer & admin Charges</td>
+                        <td>{pfEmployerMonthly}</td>
+                        <td>{pfEmployerAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>ESI - Employee contribution@3.25%</td>
+                        <td>{esiEmployerMonthly}</td>
+                        <td>{esiEmployerAnnual}</td>
+                    </tr>
+                    <tr>
+                        <td>Health Policy</td>
+                        <td>{healthMonthly}</td>
+                        <td>{healthAnnual}</td>
+                    </tr>
+
+                    <tr class="bold-row">
+                        <td>Total company Contribution ( C )</td>
+                        <td>{companyContributionMonthly}</td>
+                        <td>{companyContributionAnnual}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Variable Pay (D)</td>
+                        <td>{variableMonthly}</td>
+                        <td>{variableAnnual}</td>
+                    </tr>
+
+                    <tr class="bold-row">
+                        <td>Cost To Company (A+C+D)</td>
+                        <td>{ctcMonthly}</td>
+                        <td>{ctcAnnual}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="slds-text-body_small slds-m-top_xx-small">* Rounded-off to nearest rupee</div>
+        </div>
+    </lightning-card>
+</template>

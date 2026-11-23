@@ -1,0 +1,32 @@
+<template>
+<template if:true={isLoading}>
+        <lightning-spinner alternative-text="Processing..." size="medium"></lightning-spinner>
+</template>
+    <lightning-card>
+        <div class="slds-p-horizontal_small slds-p-vertical_x-small">
+        <lightning-input 
+    value={searchKey}
+    type="search"
+    onchange={handleSearchChange}
+    placeholder="Surprising context..."
+    required
+    ></lightning-input>
+        </div>
+        <div class="slds-p-horizontal_small slds-p-vertical_x-small">
+            <lightning-button 
+                variant="brand" 
+                label="Explore" 
+                title="Explore" 
+                onclick={uploadFile} 
+                class="slds-m-top_small">
+            </lightning-button>
+        </div>
+        <template if:true={htmlOutput}>
+        <div class="slds-p-around_medium">
+            <lightning-formatted-rich-text value={htmlOutput}></lightning-formatted-rich-text>
+            <!--  <div class="injected-html" lwc:dom="manual"></div>-->
+        </div>
+    </template>   
+
+    </lightning-card>
+</template>

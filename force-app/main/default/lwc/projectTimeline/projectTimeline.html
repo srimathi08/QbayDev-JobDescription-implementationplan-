@@ -1,0 +1,71 @@
+<!--<template>
+    <lightning-card title="Project Experience Timeline">
+        <template if:true={projects}>
+            <template for:each={projects} for:item="project">
+                <div key={project.id} class="slds-m-around_medium slds-box">
+                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
+                        <div>
+                            <strong>● {project.projectName}</strong>
+                            ({project.startDate} - {project.endDate})
+                        </div>
+                        <div>
+                            <button class="slds-button slds-button_neutral" onclick={toggleDetails} data-id={project.id}>
+                                {project.label}
+                            </button>
+                        </div>
+                    </div>
+
+                    <template if:true={project.isExpanded}>
+                        <div class="slds-p-left_medium">
+                            <p><strong>Task:</strong> {project.task}</p>
+                            <p><strong>Skills Applied:</strong> {project.skillsApplied}</p>
+                            <p><strong>Tools Used:</strong> {project.toolsUsed}</p>
+                            <p><strong>Learning Outcome:</strong> {project.learningOutcome}</p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </template>
+        <template if:true={error}>
+            <div class="slds-text-color_error">{error}</div>
+        </template>
+    </lightning-card>
+</template>  -->
+
+
+<template>
+    <lightning-card title="Project Experience Timeline">
+        <template if:true={projects}>
+            <template for:each={projects} for:item="project">
+                <div key={project.id} class="slds-m-around_medium slds-box">
+                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
+                        <div>
+                            <strong>● {project.projectName}</strong><br/>
+                            ({project.startDate} - {project.endDate})
+                        </div>
+                        <div>
+                            <button class="slds-button slds-button_neutral" 
+                                    onclick={toggleDetails} 
+                                    data-id={project.id}>
+                                {project.label}
+                            </button>
+                        </div>
+                    </div>
+
+                    <template if:true={project.isExpanded}>
+                        <div class="slds-p-left_medium">
+                            <p><strong>Task:</strong> {project.task}</p>
+                            <p><strong>Skills Applied:</strong> {project.skillsApplied}</p>
+                            <p><strong>Tools Used:</strong> {project.toolsUsed}</p>
+                            <p><strong>Learning Outcome:</strong> {project.learningOutcome}</p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </template>
+
+        <template if:true={error}>
+            <div class="slds-text-color_error">{error}</div>
+        </template>
+    </lightning-card>
+</template>

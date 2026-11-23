@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Status__c</fullName>
+    <label>Status</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Identified</fullName>
+                <default>true</default>
+                <label>Identified</label>
+            </value>
+            <value>
+                <fullName>Presented</fullName>
+                <default>false</default>
+                <label>Presented</label>
+            </value>
+            <value>
+                <fullName>Client Interview Scheduled</fullName>
+                <default>false</default>
+                <label>Client Interview Scheduled</label>
+            </value>
+            <value>
+                <fullName>Client Interview Completed</fullName>
+                <default>false</default>
+                <label>Client Interview Completed</label>
+            </value>
+            <value>
+                <fullName>Selected</fullName>
+                <default>false</default>
+                <label>Selected</label>
+            </value>
+            <value>
+                <fullName>Joined</fullName>
+                <default>false</default>
+                <label>Joined</label>
+            </value>
+            <value>
+                <fullName>Rejected</fullName>
+                <default>false</default>
+                <label>Rejected</label>
+            </value>
+            <value>
+                <fullName>Withdrawn</fullName>
+                <default>false</default>
+                <label>Withdrawn</label>
+            </value>
+            <value>
+                <fullName>Screening Rejected</fullName>
+                <default>false</default>
+                <label>Screening Rejected</label>
+            </value>
+            <value>
+                <fullName>Screened - Not Selected</fullName>
+                <default>false</default>
+                <label>Screened - Not Selected</label>
+            </value>
+            <value>
+                <fullName>Selected Not Interested</fullName>
+                <default>false</default>
+                <label>Selected Not Interested</label>
+            </value>
+            <value>
+                <fullName>Duplicate</fullName>
+                <default>false</default>
+                <label>Duplicate</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

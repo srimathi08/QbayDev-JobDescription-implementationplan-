@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>TimesheetEntry</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>TimesheetEntry</value>
+    </caseValues>
+    <layouts>
+        <layout>TimesheetEntry Layout</layout>
+        <sections>
+            <label><!-- Approval Details --></label>
+            <section>Approval Details</section>
+        </sections>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+        <sections>
+            <label><!-- Entry Identification --></label>
+            <section>Entry Identification</section>
+        </sections>
+        <sections>
+            <label><!-- Time &amp; Duration --></label>
+            <section>Time &amp; Duration</section>
+        </sections>
+        <sections>
+            <label><!-- Work Classification --></label>
+            <section>Work Classification</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

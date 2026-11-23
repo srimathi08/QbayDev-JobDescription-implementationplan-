@@ -1,0 +1,118 @@
+<template>
+       <lightning-card> 
+       
+            <lightning-layout multiple-rows >
+
+    <lightning-layout-item size="3" flexibility="auto" padding="horizontal-small" class="slds-text-align_left">
+     <!-- <lightning-record-picker
+    label="Accounts"
+    placeholder="Search Opp..."
+    object-api-name="opportunity"
+>
+</lightning-record-picker> -->
+    </lightning-layout-item>
+
+
+    <lightning-layout-item size="9" flexibility="auto" padding="horizontal-small" class="slds-text-align_right">
+       
+    
+     <lightning-button-icon 
+            icon-name={currentIcon} 
+            alternative-text="Toggle View"
+            onclick={toggleView}
+            size="medium"
+            variant="bare"
+            class="slds-float_right"
+        ></lightning-button-icon>
+        </lightning-layout-item>
+</lightning-layout>
+
+     <lightning-tabset>
+        <template for:each={lists} for:item="list">
+            <lightning-tab key={list.label} label={list.label}>
+        <template if:true={isKanban}>
+            <c-drag-and-drop-lwc listviewname={list.apiName}></c-drag-and-drop-lwc>
+        </template>
+        <template if:false={isKanban}>
+            <c-list-views listviewname={list.apiName}></c-list-views>
+        </template>         
+            </lightning-tab>
+        </template>
+        </lightning-tabset>
+
+
+<div class="create-button" onclick={openModal}>+ Create</div>
+
+  <!-- Opportunity Modal -->
+  <template if:true={showModal}>
+    <section class="modal opportunity-modal">
+      <!--<button class="close-button" onclick={closeModal}>&times;</button> -->
+<lightning-button class="close-button" icon-name="utility:close" variant="bare" onclick={closeModal}>
+</lightning-button>
+
+      <div class="modal-content">
+        <lightning-record-edit-form object-api-name="Opportunity" onsuccess={handleOpportunitySuccess}>
+          <lightning-messages></lightning-messages>
+          <lightning-input-field field-name="Name"></lightning-input-field>
+          <lightning-input-field field-name="StageName"></lightning-input-field>
+          <lightning-input-field field-name="CloseDate"></lightning-input-field>
+          <lightning-input-field field-name="Amount"></lightning-input-field>
+
+          <div class="slds-grid slds-wrap slds-m-bottom_medium">
+            <div class="slds-col slds-size_10-of-12">
+              <lightning-input-field
+                field-name="AccountId"
+                value={selectedAccountId}
+                onchange={handleAccountChange}>
+              </lightning-input-field>
+            </div>
+            <div class="slds-col slds-size_2-of-12 slds-p-left_x-small">
+              <lightning-button label="+ New" onclick={openAccountModal}></lightning-button>
+            </div>
+          </div>
+
+          <lightning-button type="submit" label="Create" variant="brand"></lightning-button>
+        </lightning-record-edit-form>
+      </div>
+    </section>
+  </template>
+
+  <!-- Account Modal (Independent) -->
+  <template if:true={showAccountModal}>
+    <section class="modal account-modal">
+      <!--<button class="close-button" onclick={closeAccountModal}>&times;</button> -->
+ <lightning-button class="close-button" icon-name="utility:close" variant="bare" onclick={closeAccountModal}>
+</lightning-button>
+
+      <div class="modal-content">
+        <lightning-combobox
+          name="recordTypeSelect"
+          label="Select Account Record Type"
+          options={recordTypeOptions}
+          value={selectedCreateRecordTypeId}
+          onchange={handleRecordTypeChange}>
+        </lightning-combobox>
+
+        <template if:true={selectedCreateRecordTypeId}>
+          <lightning-record-edit-form
+            object-api-name="Account"
+            record-type-id={selectedCreateRecordTypeId}
+            onsuccess={handleAccountSuccess}>
+
+            <lightning-messages></lightning-messages>
+            <lightning-input-field field-name="Name"></lightning-input-field>
+            <lightning-input-field field-name="Type"></lightning-input-field>
+            <lightning-input-field field-name="Industry"></lightning-input-field>
+            <lightning-button type="submit" label="Create Account" variant="brand"></lightning-button>
+          </lightning-record-edit-form>
+        </template>
+      </div>
+    </section>
+  </template>
+
+
+</lightning-card>  
+
+    
+
+</template>

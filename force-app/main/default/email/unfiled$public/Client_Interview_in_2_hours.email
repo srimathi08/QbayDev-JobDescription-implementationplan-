@@ -1,0 +1,15 @@
+Hello Team,
+
+This is a reminder that a Client Interview is scheduled in 2 hours for the following candidate:
+
+Candidate Name: {!Presented_Candidate__c.Candidate_Name__c}
+Client / Company: {!Presented_Candidate__c.Client_Name__c}
+Job Role / Opportunity: {!Presented_Candidate__c.Opportunity__c}
+Interview Date & Time:{!Presented_Candidate__c.Client_Interview_Date_Time__c}
+
+Please ensure all preparations are completed before the interview time.
+
+If you need additional details, you can view the full record here:
+{!Presented_Candidate__c.Link}
+
+Thank you.

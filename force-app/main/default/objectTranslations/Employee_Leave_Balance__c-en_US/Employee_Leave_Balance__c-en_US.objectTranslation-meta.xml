@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Employee Leave Balance</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Employee Leave Balances</value>
+    </caseValues>
+    <layouts>
+        <layout>Employee Leave Balance Layout</layout>
+        <sections>
+            <label><!-- Accrual &amp; Allocation Details --></label>
+            <section>Accrual &amp; Allocation Details</section>
+        </sections>
+        <sections>
+            <label><!-- Balance Period --></label>
+            <section>Balance Period</section>
+        </sections>
+        <sections>
+            <label><!-- Custom Links --></label>
+            <section>Custom Links</section>
+        </sections>
+        <sections>
+            <label><!-- Eligibility --></label>
+            <section>Eligibility</section>
+        </sections>
+        <sections>
+            <label><!-- Employee &amp; Leave Identification --></label>
+            <section>Employee &amp; Leave Identification</section>
+        </sections>
+        <sections>
+            <label><!-- Leave Balance Summary --></label>
+            <section>Leave Balance Summary</section>
+        </sections>
+    </layouts>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

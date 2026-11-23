@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label><!-- Client Interview Result --></label>
+    <name>Client_Interview_Result__c</name>
+    <picklistValues>
+        <masterLabel>Awaiting Feedback</masterLabel>
+        <translation><!-- Awaiting Feedback --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Candidate NOT Interested</masterLabel>
+        <translation><!-- Candidate NOT Interested --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>On Hold</masterLabel>
+        <translation><!-- On Hold --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Rejected</masterLabel>
+        <translation><!-- Rejected --></translation>
+    </picklistValues>
+    <picklistValues>
+        <masterLabel>Selected</masterLabel>
+        <translation><!-- Selected --></translation>
+    </picklistValues>
+</CustomFieldTranslation>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Leave_Category__c</fullName>
+    <label>Leave Category</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Standard,</fullName>
+                <default>false</default>
+                <label>Standard,</label>
+            </value>
+            <value>
+                <fullName>Special,</fullName>
+                <default>false</default>
+                <label>Special,</label>
+            </value>
+            <value>
+                <fullName>Gender-Specific,</fullName>
+                <default>false</default>
+                <label>Gender-Specific,</label>
+            </value>
+            <value>
+                <fullName>Unpaid</fullName>
+                <default>false</default>
+                <label>Unpaid</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

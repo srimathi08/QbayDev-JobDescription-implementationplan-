@@ -1,0 +1,22 @@
+<template>
+    <lightning-card title="Employee Search">
+        <lightning-input type="text" 
+                         label="Enter Certification Keyword" 
+                         onchange={handleKeywordChange}>
+        </lightning-input>
+
+        <lightning-button label="Search" 
+                          onclick={handleSearch}>
+        </lightning-button>
+
+        <!-- Show table only after clicking Search -->
+        <template if:true={showTable}>
+            <lightning-datatable
+                key-field="Id"
+                data={employees}
+                columns={columns}
+                onrowselection={handleRowSelection}>
+            </lightning-datatable>
+        </template>
+    </lightning-card>
+</template>

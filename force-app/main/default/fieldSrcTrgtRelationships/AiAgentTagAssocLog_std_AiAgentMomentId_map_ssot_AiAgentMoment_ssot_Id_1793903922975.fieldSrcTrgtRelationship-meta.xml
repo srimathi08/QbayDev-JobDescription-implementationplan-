@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FieldSrcTrgtRelationship xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <definitionCreationType>Standard</definitionCreationType>
+    <lookupFieldName>AiAgentTagAssocLog_std__dlm.rel_1793903922975_end__c</lookupFieldName>
+    <masterLabel>AiAgentTagAssocLog_std_AiAgentMomentId_map_ssot_AiAgentMoment_ssot_Id_1793903922975</masterLabel>
+    <owner>DataCloud</owner>
+    <relationshipCardinality>ManyToOne</relationshipCardinality>
+    <sourceFieldName>AiAgentTagAssocLog_std__dlm.AiAgentMomentId__c</sourceFieldName>
+    <targetEntity xsi:nil="true"/>
+    <targetFieldName>ssot__AiAgentMoment__dlm.ssot__Id__c</targetFieldName>
+</FieldSrcTrgtRelationship>
