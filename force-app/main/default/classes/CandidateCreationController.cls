@@ -54,16 +54,16 @@ public without sharing class CandidateCreationController {
     // Main entry point
     // strict = true (UI upload): wrong document type / no usable data -> RejectException
     // =====================================================================
-    public static Result process(String aiJson, String contentDocumentId, Id serviceId, Boolean strict) {
+    public static Result process(String rawJson, String contentDocumentId, Id serviceId, Boolean strict) {
         Result res = new Result();
-        Map<String, Object> parsed = AiJson.parse(aiJson);
+        Map<String, Object> parsed = AiJson.parse(rawJson);
         if (parsed == null) {
             if (strict) throw new IntakeProcessor.RejectException('The AI response could not be read for this file. Please check the file is a readable PDF or DOCX resume.');
             res.summary = 'Unreadable AI response';
             return res;
         }
 
-        String docType = AiJson.documentType(aiJson);
+        String docType = AiJson.documentType(rawJson);
         if (strict && docType == 'Job Description') {
             throw new IntakeProcessor.RejectException('This file looks like a Job Description, not a resume. Please upload it in the Add Job Description tab. Nothing was created.');
         }

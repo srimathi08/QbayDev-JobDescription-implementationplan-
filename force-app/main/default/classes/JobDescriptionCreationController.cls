@@ -38,14 +38,14 @@ public without sharing class JobDescriptionCreationController {
     // =====================================================================
     // Main entry point. strict = true for the UI upload.
     // =====================================================================
-    public static Result process(String aiJson, Id serviceId, Boolean strict) {
+    public static Result process(String rawJson, Id serviceId, Boolean strict) {
         Result res = new Result();
-        Map<String, Object> parsed = AiJson.parse(aiJson);
+        Map<String, Object> parsed = AiJson.parse(rawJson);
         if (parsed == null) {
             if (strict) throw new IntakeProcessor.RejectException('The AI response could not be read for this file. Please check the file is a readable PDF or DOCX job description.');
             return res;
         }
-        String docType = AiJson.documentType(aiJson);
+        String docType = AiJson.documentType(rawJson);
         if (strict && docType == 'Resume') {
             throw new IntakeProcessor.RejectException('This file looks like a resume, not a Job Description. Please upload it in the Add Candidate tab. Nothing was created.');
         }

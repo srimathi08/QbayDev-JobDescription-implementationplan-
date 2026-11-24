@@ -42,9 +42,9 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         }
 
         // 2. AI extraction (callout happens before any DML in this transaction)
-        String aiJson;
+        String rawJson;
         try {
-            aiJson = svc.Requested_Type__c == IntakeController.TYPE_JD
+            rawJson = svc.Requested_Type__c == IntakeController.TYPE_JD
                 ? JobDescriptionCreationPrompt.generate(svc.Id)
                 : CandidateCreationPrompt.generate(file.ContentDocumentId);
         } catch (Exception e) {
@@ -58,36 +58,36 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             // 3. Resume vs JD validation, minimum data, matching and save
             if (svc.Requested_Type__c == IntakeController.TYPE_JD) {
                 JobDescriptionCreationController.Result r =
-                    JobDescriptionCreationController.process(aiJson, svc.Id, true);
+                    JobDescriptionCreationController.process(rawJson, svc.Id, true);
                 svc.Detected_Type__c = 'Job Description';
                 svc.Account__c = r.accountId;
                 svc.Opportunity__c = r.opportunityId;
                 svc.Job_Description__c = r.jobDescriptionId;
-                finish(svc, 'Completed', r.summary, aiJson);
+                finish(svc, 'Completed', r.summary, rawJson);
             } else {
                 CandidateCreationController.Result r =
-                    CandidateCreationController.process(aiJson, file.ContentDocumentId, svc.Id, true);
+                    CandidateCreationController.process(rawJson, file.ContentDocumentId, svc.Id, true);
                 svc.Detected_Type__c = 'Resume';
                 svc.Account__c = r.primaryAccountId;
-                finish(svc, 'Completed', r.summary, aiJson);
+                finish(svc, 'Completed', r.summary, rawJson);
             }
         } catch (RejectException rej) {
             Database.rollback(sp);
-            svc.Detected_Type__c = detectedTypeFrom(aiJson);
-            finish(svc, 'Rejected', rej.getMessage(), aiJson);
+            svc.Detected_Type__c = detectedTypeFrom(rawJson);
+            finish(svc, 'Rejected', rej.getMessage(), rawJson);
         } catch (Exception e) {
             Database.rollback(sp);
             UtilityClass.createElog(e, 'IntakeProcessor', 'execute');
-            finish(svc, 'Failed', 'Could not save the records: ' + e.getMessage(), aiJson);
+            finish(svc, 'Failed', 'Could not save the records: ' + e.getMessage(), rawJson);
         }
     }
 
     // ---------------- helpers ----------------
 
-    private static void finish(Service__c svc, String status, String message, String aiJson) {
+    private static void finish(Service__c svc, String status, String message, String rawJson) {
         svc.Status__c = status;
         svc.Status_Message__c = message == null ? null : message.left(32000);
-        if (aiJson != null) svc.AI_Response__c = aiJson.left(131000);
+        if (rawJson != null) svc.AI_Response__c = rawJson.left(131000);
         update svc;
     }
 
@@ -119,8 +119,8 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         return prev.isEmpty() ? null : prev[0];
     }
 
-    public static String detectedTypeFrom(String aiJson) {
-        String t = AiJson.documentType(aiJson);
+    public static String detectedTypeFrom(String rawJson) {
+        String t = AiJson.documentType(rawJson);
         if (t == 'Resume' || t == 'Job Description') return t;
         return 'Other';
     }
