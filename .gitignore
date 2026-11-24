@@ -46,3 +46,14 @@ $RECYCLE.BIN/
 **/__pycache__/
 **/.venv/
 **/venv/
+
+# Qbay e2e test output and local deploy/validate logs
+e2e/results*/
+e2e-*.log
+validate-*.json
+validate-stderr.txt
+validate-report.json
+deploy-result.json
+deploy-stderr.txt
+pt-*.json
+r3-*.json
