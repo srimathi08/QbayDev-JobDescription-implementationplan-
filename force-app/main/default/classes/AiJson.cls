@@ -49,7 +49,7 @@ public class AiJson {
         return v instanceof Map<String, Object> ? (Map<String, Object>) v : null;
     }
 
-    public static List<Map<String, Object>> list(Map<String, Object> m, String key) {
+    public static List<Map<String, Object>> objList(Map<String, Object> m, String key) {
         List<Map<String, Object>> out = new List<Map<String, Object>>();
         if (m == null) return out;
         Object v = m.get(key);

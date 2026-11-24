@@ -8,7 +8,7 @@ private class AiJsonTest {
         Assert.areEqual('x', AiJson.str(m, 'a'));
         Assert.isNull(AiJson.str(m, 'b'));
         Assert.areEqual('5', AiJson.str(m, 'n'));
-        Assert.areEqual(1, AiJson.list(m, 'l').size());
+        Assert.areEqual(1, AiJson.objList(m, 'l').size());
         Assert.areEqual(2, AiJson.strList(m, 's').size());
         Assert.areEqual('Resume', AiJson.documentType('{"documentType":"resume"}'));
         Assert.areEqual('Job Description', AiJson.documentType('{"documentType":"Job Description"}'));

@@ -54,7 +54,7 @@ public without sharing class JobDescriptionCreationController {
         }
 
         List<Map<String, Object>> jdList = new List<Map<String, Object>>();
-        for (Map<String, Object> w : AiJson.list(parsed, 'jobs')) {
+        for (Map<String, Object> w : AiJson.objList(parsed, 'jobs')) {
             Map<String, Object> jd = AiJson.obj(w, 'jobDescription');
             if (jd != null) jdList.add(jd);
         }

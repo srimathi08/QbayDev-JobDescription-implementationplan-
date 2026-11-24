@@ -71,7 +71,7 @@ public without sharing class CandidateCreationController {
             throw new IntakeProcessor.RejectException('This file does not look like a resume. Nothing was created.');
         }
 
-        List<Map<String, Object>> resumes = AiJson.list(parsed, 'resumes');
+        List<Map<String, Object>> resumes = AiJson.objList(parsed, 'resumes');
         if (resumes.isEmpty() && parsed.containsKey('account')) resumes.add(parsed);
 
         String fileTitle = fileTitleOf(contentDocumentId);
@@ -195,9 +195,9 @@ public without sharing class CandidateCreationController {
                 certsByAcc.put(accId, new List<Map<String, Object>>());
                 projsByAcc.put(accId, new List<Map<String, Object>>());
             }
-            skillsByAcc.get(accId).addAll(AiJson.list(c.raw, 'skills'));
-            certsByAcc.get(accId).addAll(AiJson.list(c.raw, 'certifications'));
-            projsByAcc.get(accId).addAll(AiJson.list(c.raw, 'projects'));
+            skillsByAcc.get(accId).addAll(AiJson.objList(c.raw, 'skills'));
+            certsByAcc.get(accId).addAll(AiJson.objList(c.raw, 'certifications'));
+            projsByAcc.get(accId).addAll(AiJson.objList(c.raw, 'projects'));
             if (c.isNew) res.created++; else res.updated++;
         }
         List<Account> accounts = uniqueAccounts.values();
