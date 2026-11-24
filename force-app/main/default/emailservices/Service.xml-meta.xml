@@ -5,6 +5,13 @@
     <authenticationFailureAction>Bounce</authenticationFailureAction>
     <authorizationFailureAction>Bounce</authorizationFailureAction>
     <authorizedSenders>murali@quadrobay.com,afrose0719@gmail.com,deonajohndj@gmail.com,swapnapriya2110@gmail.com,deona.sherine@quadrobay.com,muru@quadrobay.com,subathra.mathialagan@quadrobay.com,swapnapriya.r@quadrobay.com,sathish.perumal@quadrobay.com,balamurugeswari.g@quadrobay.com</authorizedSenders>
+    <emailServicesAddresses>
+        <authorizedSenders>swapnapriya.r@quadrobay.com</authorizedSenders>
+        <developerName>Service_mail_Swapna</developerName>
+        <isActive>true</isActive>
+        <localPart>service</localPart>
+        <runAsUser>swapnapriya.r@quadrobay.com</runAsUser>
+    </emailServicesAddresses>
     <errorRoutingAddress>deonajohndj@gmail.com</errorRoutingAddress>
     <functionInactiveAction>Discard</functionInactiveAction>
     <functionName>Service</functionName>
