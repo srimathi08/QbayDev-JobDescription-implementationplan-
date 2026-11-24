@@ -1,0 +1,110 @@
+<template>
+    <lightning-card title={cardTitle} icon-name={iconName}>
+        <div class="slds-m-horizontal_medium">
+            <template lwc:if={showInput}>
+                <lightning-input
+                    type="file"
+                    label={fileLabel}
+                    accept=".pdf,.docx"
+                    multiple
+                    disabled={isSubmitting}
+                    onchange={handleFilesSelected}>
+                </lightning-input>
+            </template>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                PDF or DOCX, up to 3 MB each, up to {maxFiles} files.
+            </p>
+
+            <!-- Selected files -->
+            <template lwc:if={hasSelected}>
+                <ul class="slds-m-top_small">
+                    <template for:each={selectedFiles} for:item="f">
+                        <li key={f.key} class="slds-m-bottom_xx-small">
+                            <lightning-icon icon-name={f.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                            <span>{f.name}</span>
+                            <template lwc:if={f.error}>
+                                <span class="slds-text-color_error slds-m-left_x-small">{f.error}</span>
+                            </template>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+        </div>
+
+        <div class="slds-m-around_medium">
+            <lightning-button
+                variant="brand"
+                label={submitLabel}
+                disabled={isSubmitDisabled}
+                onclick={handleSubmit}>
+            </lightning-button>
+            <lightning-button
+                variant="neutral"
+                label="View Today Uploads"
+                class="slds-m-left_small"
+                onclick={openTodayModal}>
+            </lightning-button>
+            <template lwc:if={isSubmitting}>
+                <span class="slds-m-left_small slds-text-color_weak">Uploading {progressText}</span>
+            </template>
+        </div>
+
+        <!-- Results of this session -->
+        <template lwc:if={hasResults}>
+            <div class="slds-m-horizontal_medium slds-m-bottom_medium">
+                <h3 class="slds-text-heading_small slds-m-bottom_x-small">Upload results</h3>
+                <template for:each={results} for:item="r">
+                    <div key={r.key} class="result slds-box slds-box_x-small slds-m-bottom_x-small">
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <lightning-badge label={r.status} class={r.badgeClass}></lightning-badge>
+                            <span class="slds-m-left_small slds-truncate" title={r.fileName}>{r.fileName}</span>
+                            <template lwc:if={r.isRunning}>
+                                <lightning-spinner alternative-text="Processing" size="x-small" class="inline-spinner"></lightning-spinner>
+                            </template>
+                        </div>
+                        <template lwc:if={r.message}>
+                            <p class="slds-m-top_xx-small">{r.message}</p>
+                        </template>
+                        <div class="slds-m-top_xx-small">
+                            <template lwc:if={r.accountUrl}>
+                                <a href={r.accountUrl} target="_blank" class="slds-m-right_medium">{r.accountLabel}</a>
+                            </template>
+                            <template lwc:if={r.opportunityUrl}>
+                                <a href={r.opportunityUrl} target="_blank" class="slds-m-right_medium">Opportunity: {r.opportunityName}</a>
+                            </template>
+                            <template lwc:if={r.jobDescriptionUrl}>
+                                <a href={r.jobDescriptionUrl} target="_blank">Job Description: {r.jobDescriptionName}</a>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </lightning-card>
+
+    <!-- Today's uploads -->
+    <template lwc:if={showModal}>
+        <section role="dialog" aria-modal="true" aria-labelledby="today-title" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 id="today-title" class="slds-text-heading_medium">My uploads today</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template lwc:if={todayLoading}>
+                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                    </template>
+                    <template lwc:elseif={hasToday}>
+                        <lightning-datatable key-field="key" data={todayRows} columns={todayColumns} hide-checkbox-column></lightning-datatable>
+                    </template>
+                    <template lwc:else>
+                        <p>No uploads today.</p>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

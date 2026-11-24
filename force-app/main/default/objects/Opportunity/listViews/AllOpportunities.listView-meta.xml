@@ -13,15 +13,5 @@
     <columns>OPPORTUNITY.RECORDTYPE</columns>
     <columns>OPPORTUNITY.AMOUNT</columns>
     <filterScope>Everything</filterScope>
-    <filters>
-        <field>Is_On_Hold__c</field>
-        <operation>equals</operation>
-        <value>0</value>
-    </filters>
-    <filters>
-        <field>Priority__c</field>
-        <operation>equals</operation>
-        <value>High</value>
-    </filters>
     <label>All Opportunities</label>
 </ListView>

@@ -98,7 +98,7 @@ public class CandidateCreationPromptTest {
     @isTest
     static void testGetPDDPromptResponses_withNullInputs() {
         Test.startTest();
-        List<String> responses = CandidateCreationPrompt.getPDDPromptResponses(null);
+        List<String> responses = CandidateCreationPrompt.getPDDPromptResponses((List<CandidateCreationPrompt.InputWrapper>) null);
         Test.stopTest();
 
         System.assertEquals(0, responses.size(), 'Null input should return empty list');
@@ -176,7 +176,7 @@ public class CandidateCreationPromptTest {
 
         Test.startTest();
         List<Account> result =
-            CandidateCreationPrompt.getPDDPromptResponses(null);
+            CandidateCreationPrompt.getPDDPromptResponses((String) null);
         Test.stopTest();
 
         System.assertEquals(

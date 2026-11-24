@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Phone_Normalized__c</fullName>
+    <label>Phone Normalized</label>
+    <type>Text</type>
+    <length>20</length>
+    <externalId>true</externalId>
+    <unique>false</unique>
+    <required>false</required>
+</CustomField>

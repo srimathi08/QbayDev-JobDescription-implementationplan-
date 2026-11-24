@@ -1,1132 +1,459 @@
+/**
+ * Turns the JD_Prompt AI JSON into demand records: client Account, Opportunity and Job_Description__c.
+ *
+ * Rules
+ *  - Client Account: matched on a normalized company name ("Infosys Ltd." = "infosys"),
+ *    never on Candidate / Employee / Contractor Accounts. New clients get the Direct_Customers
+ *    record type and Account_Type__c = Customer.
+ *  - Opportunity: an existing one is reused only if it is OPEN, belongs to that client,
+ *    was created in the last 90 days, has the same role and a near-identical JD text.
+ *    Otherwise a new Resourcing Opportunity is created. Closed deals are never changed.
+ *  - Re-using an Opportunity only fills empty fields; nothing is blanked.
+ *  - Every number/date is parsed safely: a bad value leaves that field empty.
+ */
 public without sharing class JobDescriptionCreationController {
 
-    // 🔹 Normalize phone numbers (keep only digits)
-    private static String normalizePhone(String phone) {
-        if (String.isBlank(phone)) return null;
-        return phone.replaceAll('[^0-9]', '');
+    public class Result {
+        public Id accountId;
+        public Id opportunityId;
+        public Id jobDescriptionId;
+        public List<String> legacy = new List<String>();
+        public String summary;
     }
 
-    // 🔹 Extract all currency and amount mentions from JD text
-    private static List<Map<String, String>> extractAllCurrencyBlocks(String text) {
-        List<Map<String, String>> results = new List<Map<String, String>>();
-        if (String.isBlank(text)) return results;
+    private static final Set<String> PERSON_RTS = new Set<String>{ 'Candidates', 'Employee', 'Contractor' };
+    private static final String TEMP_ACCOUNT = 'Temp Holding Account';
+    private static final Set<String> COMPANY_SUFFIXES = new Set<String>{
+        'pvt', 'private', 'ltd', 'limited', 'inc', 'incorporated', 'llc', 'llp', 'plc', 'corp', 'corporation', 'co', 'company', 'gmbh'
+    };
 
-        text = text.replaceAll('[\\(\\)]', ' ');
-        text = text.replaceAll('\\s+', ' ').trim();
-
-        // Matches patterns like: "2 month onsite @1500 OMR" or "Budget: USD 3000"
-        Pattern p = Pattern.compile('(?i)([0-9]+\\s*(?:month|months)?[^@]{0,20})?@?\\s*([0-9]{2,}(?:\\.[0-9]+)?)\\s*(USD|OMR|EUR|GBP|INR)');
-        Matcher m = p.matcher(text);
-
-        while (m.find()) {
-            Map<String, String> rec = new Map<String, String>();
-            rec.put('duration', String.isBlank(m.group(1)) ? '' : m.group(1).trim());
-            rec.put('amount', m.group(2));
-            rec.put('currency', m.group(3).toUpperCase());
-            results.add(rec);
-        }
-
-        return results;
-    }
-
+    // =====================================================================
+    // Legacy entry point (email / WhatsApp): returns [accountName, opportunityId, ...]
+    // =====================================================================
     public static List<String> createJobDescriptions(String jsonText, Id jdSampleId) {
-        List<String> createdRecords = new List<String>();
-        System.debug('==== START createJobDescriptions ====');
+        Result r = process(jsonText, jdSampleId, false);
+        return r.legacy.isEmpty() ? null : r.legacy;
+    }
 
-        // 🧹 Clean incoming JSON text
-        String cleanedJson = jsonText
-            .replaceAll('\u00A0', '')
-            .replaceAll('```json?', '')
-            .replaceAll('```', '')
-            .trim();
-
-        Map<String, Object> parsed;
-        try {
-            parsed = (Map<String, Object>) JSON.deserializeUntyped(cleanedJson);
-        } catch (Exception e) {
-            System.debug('❌ JSON parse error: ' + e.getMessage());
-            return null;
+    // =====================================================================
+    // Main entry point. strict = true for the UI upload.
+    // =====================================================================
+    public static Result process(String rawJson, Id serviceId, Boolean strict) {
+        Result res = new Result();
+        Map<String, Object> parsed = AiJson.parse(rawJson);
+        if (parsed == null) {
+            if (strict) throw new IntakeProcessor.RejectException('The AI response could not be read for this file. Please check the file is a readable PDF or DOCX job description.');
+            return res;
+        }
+        String docType = AiJson.documentType(rawJson);
+        if (strict && docType == 'Resume') {
+            throw new IntakeProcessor.RejectException('This file looks like a resume, not a Job Description. Please upload it in the Add Candidate tab. Nothing was created.');
+        }
+        if (strict && docType == 'Other') {
+            throw new IntakeProcessor.RejectException('This file does not look like a Job Description. Nothing was created.');
         }
 
-        if (parsed == null || !parsed.containsKey('jobs')) {
-            System.debug('⚠ No "jobs" found in JSON');
-            return null;
+        List<Map<String, Object>> jdList = new List<Map<String, Object>>();
+        for (Map<String, Object> w : AiJson.objList(parsed, 'jobs')) {
+            Map<String, Object> jd = AiJson.obj(w, 'jobDescription');
+            if (jd != null) jdList.add(jd);
+        }
+        if (jdList.isEmpty()) {
+            if (strict) throw new IntakeProcessor.RejectException('No job description could be read from this file. Nothing was created.');
+            return res;
         }
 
-        List<Object> jobs = (List<Object>) parsed.get('jobs');
-        System.debug('📌 Jobs count: ' + jobs.size());
-
-        // 🔹 Pre-fetch Service record (email/whatsapp source)
-        Service__c serviceRec;
-        if (jdSampleId != null) {
-            try {
-                serviceRec = [
-                    SELECT Id, EmailFrom__c, WhatsappFrom__c, Email_Body__c
-                    FROM Service__c
-                    WHERE Id = :jdSampleId
-                    LIMIT 1
-                ];
-            } catch (Exception e) {
-                System.debug('⚠ No Service__c found for Id: ' + jdSampleId);
-            }
-        }
-
-        // 👉 NEW: Pre-fetch all files attached to Service__c (once)
+        // ---------- shared lookups (once) ----------
+        Service__c svc = null;
         List<ContentDocumentLink> serviceFiles = new List<ContentDocumentLink>();
-        if (serviceRec != null) {
-            try {
-                serviceFiles = [
-                    SELECT ContentDocumentId
-                    FROM ContentDocumentLink
-                    WHERE LinkedEntityId = :serviceRec.Id
-                ];
-                System.debug('📎 Service files found: ' + serviceFiles.size());
-            } catch (Exception e) {
-                System.debug('⚠ Error fetching Service__c files: ' + e.getMessage());
+        String fileTitle = null;
+        if (serviceId != null) {
+            List<Service__c> svcs = [
+                SELECT Id, Name, EmailFrom__c, WhatsappFrom__c, Email_Body__c, Source_Channel__c
+                FROM Service__c WHERE Id = :serviceId LIMIT 1
+            ];
+            if (!svcs.isEmpty()) svc = svcs[0];
+            serviceFiles = [
+                SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.FileExtension
+                FROM ContentDocumentLink WHERE LinkedEntityId = :serviceId
+            ];
+            if (!serviceFiles.isEmpty()) {
+                fileTitle = serviceFiles[0].ContentDocument.Title;
+                String ext = serviceFiles[0].ContentDocument.FileExtension;
+                if (ext != null && !fileTitle.toLowerCase().endsWith('.' + ext.toLowerCase())) fileTitle += '.' + ext;
             }
         }
+        Map<String, Decimal> rates = loadRates();
+        Id ownerId = resolveOwner(svc);
+        String source = sourceOf(svc);
 
-        List<Opportunity> oppsToUpdate = new List<Opportunity>();
-        // 👉 NEW: Collect all new ContentDocumentLink records to insert in one go
-        List<ContentDocumentLink> allNewLinks = new List<ContentDocumentLink>();
+        Id resourcingRt = rtId(Opportunity.SObjectType, 'Resourcing');
+        Id clientRt = rtId(Account.SObjectType, 'Direct_Customers');
 
-        // 🔁 Loop through each JD record
-        for (Object jobObj : jobs) {
-            Map<String, Object> jdWrapper = (Map<String, Object>) jobObj;
-            Map<String, Object> jdData = (Map<String, Object>) jdWrapper.get('jobDescription');
-            if (jdData == null) continue;
+        Set<String> jobTypes = picklistValues(Opportunity.Job_type__c);
+        Set<String> seniorities = picklistValues(Job_Description__c.Seniority__c);
 
-            // --- Company setup
-            String companyName = jdData.get('companyName') != null ? String.valueOf(jdData.get('companyName')).trim() : null;
-            if (String.isBlank(companyName)) continue;
+        Integer queueableRoom = Limits.getLimitQueueableJobs() - Limits.getQueueableJobs();
+        if (Test.isRunningTest() && System.isQueueable()) queueableRoom = 0; // tests cannot chain queueables
+        List<Opportunity> needMatch = new List<Opportunity>();
+        List<ContentDocumentLink> newLinks = new List<ContentDocumentLink>();
+        List<String> summaries = new List<String>();
 
-            Account relatedAccount;
-            List<Account> accList = [SELECT Id, Name FROM Account WHERE Name = :companyName LIMIT 1];
-            if (!accList.isEmpty()) {
-                relatedAccount = accList[0];
-            } else {
-                relatedAccount = new Account(Name = companyName);
-                insert relatedAccount;
+        for (Map<String, Object> jd : jdList) {
+            // ---------- company ----------
+            String companyName = AiJson.str(jd, 'companyName');
+            if (companyName != null && companyName.equalsIgnoreCase(TEMP_ACCOUNT)) companyName = null;
+            if (companyName == null) {
+                if (strict) throw new IntakeProcessor.RejectException('No company name was found in the Job Description. Please add the client name to the JD and upload again. Nothing was created.');
+                companyName = TEMP_ACCOUNT; // legacy behaviour for email / WhatsApp
+            }
+            Account client = findOrCreateClient(companyName, clientRt);
+
+            // ---------- JD values ----------
+            String role = AiJson.str(jd, 'opportunityName');
+            if (role == null) role = AiJson.str(jd, 'title');
+            String title = AiJson.str(jd, 'title');
+            if (title == null) title = role;
+            String responsibilities = AiJson.str(jd, 'responsibilities');
+            String skills = AiJson.str(jd, 'skillsRequired');
+            String prefLocation = AiJson.str(jd, 'preferredLocation');
+            String otherLocation = AiJson.str(jd, 'otherLocation');
+            String qualifications = AiJson.str(jd, 'qualifications');
+            String duration = AiJson.str(jd, 'duration');
+            Decimal experience = AiJson.toNumber(jd.get('experience'));
+            Decimal resources = AiJson.toNumber(jd.get('ar'));
+            Date startDate = AiJson.toDate(jd.get('opportunityStartDate'));
+            Date closeDate = AiJson.toDate(jd.get('opportunityCloseDate'));
+            String jobType = matchPicklist(AiJson.str(jd, 'jobType'), jobTypes);
+            String seniority = matchPicklist(AiJson.str(jd, 'seniority'), seniorities);
+
+            // ---------- opportunity ----------
+            Opportunity opp = findSameOpenOpportunity(client.Id, role, responsibilities);
+            Boolean isNewOpp = opp == null;
+            if (isNewOpp) {
+                opp = new Opportunity(
+                    AccountId = client.Id,
+                    Name = (role != null ? role : companyName + ' - ' + Date.today().format()).left(120),
+                    StageName = 'Discovery',
+                    CloseDate = closeDate != null && closeDate >= Date.today() ? closeDate : Date.today().addMonths(1),
+                    OwnerId = ownerId,
+                    Date_Received__c = Date.today()
+                );
+                if (resourcingRt != null) opp.RecordTypeId = resourcingRt;
             }
 
-            createdRecords.add(relatedAccount.Name);
+            setIfBlank(opp, 'Role_Required__c', role);
+            setIfBlank(opp, 'Skills_Required__c', skills);
+            setIfBlank(opp, 'Job_Location__c', joinNonBlank(prefLocation, otherLocation));
+            setIfBlank(opp, 'Job_Duration__c', duration == null ? null : duration.left(255));
+            setIfBlank(opp, 'Experience_Required__c', experience == null ? null : String.valueOf(experience));
+            setIfBlank(opp, 'Resource_Needed__c', resources);
+            setIfBlank(opp, 'Start_Date__c', startDate);
+            setIfBlank(opp, 'Job_type__c', jobType);
+            setIfBlank(opp, 'Required_Qualifications__c', qualifications);
+            setIfBlank(opp, 'Source_Of_Requirement__c', source);
+            setIfBlank(opp, 'Job_Description__c', responsibilities);
+            if (svc != null) setIfBlank(opp, 'Source_Content__c', svc.Email_Body__c);
+            applyBudget(opp, jd, responsibilities, qualifications, rates);
+            applyReferral(opp, AiJson.str(jd, 'referralContact'));
 
-            // --- Extract JD fields
-            String roleRequired     = (String) jdData.get('opportunityName');
-            String responsibilities = (String) jdData.get('responsibilities');
-            String prefLocation     = (String) jdData.get('preferredLocation');
-            String skillsRequired   = (String) jdData.get('skillsRequired');
-            String duration         = (String) jdData.get('duration');
+            if (isNewOpp) insert opp; else update opp;
 
-            Decimal expValue = !String.isBlank((String) jdData.get('experience'))
-                ? Decimal.valueOf((String) jdData.get('experience'))
-                : null;
-                
-               // ✅ ADD THIS
-Decimal resourceNeeded = null;
-if (jdData.get('ar') != null && String.isNotBlank(String.valueOf(jdData.get('ar')))) {
-    try {
-        resourceNeeded = Decimal.valueOf(String.valueOf(jdData.get('ar')));
-    } catch (Exception e) {}
-}
-
-            // --- Fetch existing Opps for same account
-            List<Opportunity> existingOpps = [
-                SELECT Id, Name, AccountId, JD_Lookup__c, Job_Description__c,
-                       Role_Required__c, Skills_Required__c, Experience_Required__c,
-                       Job_Location__c, Source_Content__c, Source_Of_Requirement__c,
-                       StageName, Start_Date__c, Amount,
-                       Budget_In_JD__c, Currency_Mentioned_In_JD__c,
-                       Original_Budget_Amount__c, Original_Currency__c
-                FROM Opportunity
-                WHERE AccountId = :relatedAccount.Id
-                ORDER BY CreatedDate DESC
-                LIMIT 50
-            ];
-
-            Opportunity oppMatch;
-
-            // --- Enhanced JD Matching Logic
-            for (Opportunity o : existingOpps) {
-                Boolean jdSimilar = false;
-                Boolean roleSimilar = false;
-                Boolean skillSimilar = false;
-
-                if (!String.isBlank(o.Job_Description__c) && !String.isBlank(responsibilities)) {
-                    String oldJD = o.Job_Description__c.toLowerCase();
-                    String newJD = responsibilities.toLowerCase();
-
-                    List<String> dashVariants = new List<String>{'—', '–', '−', '―'};
-                    for (String dash : dashVariants) {
-                        oldJD = oldJD.replace(dash, '-');
-                        newJD = newJD.replace(dash, '-');
-                    }
-
-                    oldJD = oldJD.replaceAll('\\s+', ' ').trim();
-                    newJD = newJD.replaceAll('\\s+', ' ').trim();
-
-                    if (oldJD.equalsIgnoreCase(newJD)) {
-                        jdSimilar = true;
-                    } else {
-                        Set<String> set1 = new Set<String>();
-                        for (String w : oldJD.split('\\s+')) {
-                            if (w.length() > 3) set1.add(w);
-                        }
-                        Set<String> set2 = new Set<String>();
-                        for (String w : newJD.split('\\s+')) {
-                            if (w.length() > 3) set2.add(w);
-                        }
-                        Integer common = 0;
-                        for (String w : set2) {
-                            if (set1.contains(w)) common++;
-                        }
-                        Decimal overlap = (set2.size() > 0) ? Decimal.valueOf(common) / set2.size() : 0;
-                        jdSimilar = overlap >= 0.4;
-                    }
-                }
-
-                if (!String.isBlank(o.Role_Required__c) && !String.isBlank(roleRequired)) {
-                    roleSimilar = o.Role_Required__c.trim().equalsIgnoreCase(roleRequired.trim());
-                } else {
-                    roleSimilar = true;
-                }
-
-                if (!String.isBlank(o.Skills_Required__c) && !String.isBlank(skillsRequired)) {
-                    String oldSkills = o.Skills_Required__c.toLowerCase();
-                    String newSkills = skillsRequired.toLowerCase();
-                    skillSimilar = oldSkills.contains(newSkills) || newSkills.contains(oldSkills);
-                } else {
-                    skillSimilar = true;
-                }
-
-                if (jdSimilar && (roleSimilar && skillSimilar)) {
-                    oppMatch = o;
-                    System.debug('✅ Match found (JD + Role + Skills): ' + o.Id);
-                    break;
-                }
-
-                if (oppMatch == null && jdSimilar) {
-                    oppMatch = o;
-                    System.debug('⚙ JD-only match (ignoring Source): ' + o.Id);
-                    break;
-                }
-            }
-
-            Opportunity opp;
-            if (oppMatch != null) {
-                opp = oppMatch;
-            } else {
-                opp = new Opportunity();
-                opp.Name = !String.isBlank(roleRequired) ? roleRequired : companyName + ' - ' + Date.today().format();
-                opp.AccountId = relatedAccount.Id;
-                opp.StageName = 'Discovery';
-                opp.CloseDate = Date.today().addMonths(1);
-            }
-
-            // --- Basic JD field mapping
-            opp.Role_Required__c = roleRequired;
-            opp.Skills_Required__c = skillsRequired;
-            opp.Job_Location__c = prefLocation;
-            opp.Job_Duration__c = duration;
-            if (expValue != null) opp.Experience_Required__c = String.valueOf(expValue);
-
-             // ✅ ADD THIS
-if (resourceNeeded != null) {
-    opp.Resource_Needed__c = resourceNeeded;
-}
-
-           
-            if (!String.isBlank((String) jdData.get('opportunityStartDate'))) {
-                opp.Start_Date__c = Date.valueOf((String) jdData.get('opportunityStartDate'));
-            }
-
-            // 🔹 Currency extraction (Clean Version — avoids duplicate EUR/USD)
-            String jdTextCombined =
-                (responsibilities != null ? responsibilities : '') + ' ' +
-                (String.valueOf(jdData.get('qualifications')) != null ? String.valueOf(jdData.get('qualifications')) : '') + ' ' +
-                (String.valueOf(jdData.get('skillsRequired')) != null ? String.valueOf(jdData.get('skillsRequired')) : '');
-
-            // Fetch CMDT conversion rates
-            Map<String, Decimal> rates = new Map<String, Decimal>();
-            for (Currency_Rates__mdt c : [
-                SELECT Currency_Code__c, INR_Conversion_Rate__c 
-                FROM Currency_Rates__mdt
-            ]) {
-                if (c.Currency_Code__c != null && c.INR_Conversion_Rate__c != null) {
-                    rates.put(c.Currency_Code__c.trim().toUpperCase(), c.INR_Conversion_Rate__c);
-                }
-            }
-
-            if (rates.isEmpty()) {
-                rates.put('INR', 1);
-                rates.put('USD', 88.33);
-                rates.put('OMR', 229.78);
-                rates.put('EUR', 102.76);
-                rates.put('GBP', 117.95);
-            }
-
-            List<Map<String, String>> jdCurrencyBlocks = extractAllCurrencyBlocks(jdTextCombined);
-
-            if (!jdCurrencyBlocks.isEmpty()) {
-                List<String> allDurations = new List<String>();
-                List<String> allAmounts = new List<String>();
-                String commonCurrency = '';
-                Decimal totalINR = 0;
-
-                for (Map<String, String> block : jdCurrencyBlocks) {
-                    String currencyCode = block.get('currency');
-                    String amtStr = block.get('amount');
-                    if (String.isBlank(amtStr)) continue; // skip stray currency-only matches
-                    Decimal amount = Decimal.valueOf(amtStr);
-                    String durationText = block.get('duration');
-
-                    allDurations.add(durationText);
-                    allAmounts.add(amount + ' ' + currencyCode);
-                    if (String.isBlank(commonCurrency)) commonCurrency = currencyCode;
-
-                    Decimal rate = rates.containsKey(currencyCode) ? rates.get(currencyCode) : 1;
-                    totalINR += (amount * rate);
-                }
-
-                opp.Job_Duration__c = String.join(allDurations, ', ');
-                opp.Budget_In_JD__c = String.join(allAmounts, ', ');
-                opp.Currency_Mentioned_In_JD__c = commonCurrency;
-                opp.Original_Budget_Amount__c = Decimal.valueOf(jdCurrencyBlocks[0].get('amount'));
-                opp.Original_Currency__c = jdCurrencyBlocks[0].get('currency');
-                opp.Amount = totalINR;
-                opp.CurrencyIsoCode = 'INR';
-            }
-
-            // 🔹 Fallback: use JSON if regex didn't find any currency
-            if (jdCurrencyBlocks.isEmpty()) {
-                String budgetMentioned   = (String) jdData.get('budgetMentioned');
-                String currencyMentioned = (String) jdData.get('currencyMentioned');
-
-                if (!String.isBlank(budgetMentioned) && !String.isBlank(currencyMentioned)) {
-                    Decimal amountVal = 0;
-                    try {
-                        amountVal = Decimal.valueOf(budgetMentioned);
-                    } catch (Exception e) {
-                        // ignore parse error
-                    }
-
-                    Decimal rate = rates.containsKey(currencyMentioned.toUpperCase())
-                        ? rates.get(currencyMentioned.toUpperCase())
-                        : 1;
-
-                    Decimal totalINR = amountVal * rate;
-
-                    opp.Budget_In_JD__c = budgetMentioned + ' ' + currencyMentioned;
-                    opp.Currency_Mentioned_In_JD__c = currencyMentioned;
-                    opp.Original_Budget_Amount__c = amountVal;
-                    opp.Original_Currency__c = currencyMentioned;
-                    opp.Amount = totalINR;
-                    opp.CurrencyIsoCode = 'INR';
-                }
-            }
-
-            opp.Budget_Confirmed__c = (opp.Amount != null && opp.Amount > 0);
-            opp.Date_Received__c = Date.today();
-            //opp.Generate_Match__c = 'Generate Match';
-            opp.Job_Type__c = (String) jdData.get('jobType');
-            opp.Required_Qualifications__c = (String) jdData.get('qualifications');
-
-            if (!String.isBlank((String) jdData.get('opportunityCloseDate'))) {
-                opp.CloseDate = Date.valueOf((String) jdData.get('opportunityCloseDate'));
-            }
-
-            if (serviceRec != null) {
-                opp.Source_Content__c = serviceRec.Email_Body__c;
-                if (!String.isBlank(serviceRec.EmailFrom__c)) {
-                    opp.Source_Of_Requirement__c = 'Email';
-                } else if (!String.isBlank(serviceRec.WhatsappFrom__c)) {
-                    opp.Source_Of_Requirement__c = 'Whatsapp';
-                }
-            }
-
-            if (serviceRec != null) {
-                User oppOwner;
-                if (!String.isBlank(serviceRec.EmailFrom__c)) {
-                    List<User> usersByEmail = [SELECT Id FROM User WHERE Email = :serviceRec.EmailFrom__c LIMIT 1];
-                    if (!usersByEmail.isEmpty()) oppOwner = usersByEmail[0];
-                }
-                if (oppOwner == null && !String.isBlank(serviceRec.WhatsappFrom__c)) {
-                    String servicePhone = normalizePhone(serviceRec.WhatsappFrom__c);
-                    for (User u : [SELECT Id, Phone, MobilePhone FROM User WHERE Phone != null OR MobilePhone != null]) {
-                        if (normalizePhone(u.Phone) == servicePhone || normalizePhone(u.MobilePhone) == servicePhone) {
-                            oppOwner = u;
-                            break;
-                        }
-                    }
-                }
-                opp.OwnerId = (oppOwner != null) ? oppOwner.Id : UserInfo.getUserId();
-            }
-
-            // Insert/update Opportunity before we use its Id
-            if (opp.Id == null) {
-                insert opp;
-            } else {
-                update opp;
-            }
-            createdRecords.add(String.valueOf(opp.Id));
-
-            // --- Job Description (Custom Object)
-            Job_Description__c jd;
+            // ---------- job description record ----------
+            Job_Description__c jdRec = null;
             if (opp.JD_Lookup__c != null) {
-                jd = [
-                    SELECT Id
-                    FROM Job_Description__c
-                    WHERE Id = :opp.JD_Lookup__c
-                    LIMIT 1
+                List<Job_Description__c> l = [
+                    SELECT Id, Name, Company_Name__c, Key_Responsibilities__c, Preferred_Location__c, Other_Location__c,
+                           Experience__c, Skills__c, AR__c, Job_Tagline__c, Seniority__c, Required_Qualifications__c,
+                           FileName__c, Source_Service__c
+                    FROM Job_Description__c WHERE Id = :opp.JD_Lookup__c LIMIT 1
                 ];
-            } else {
-                jd = new Job_Description__c(
+                if (!l.isEmpty()) jdRec = l[0];
+            }
+            Boolean isNewJd = jdRec == null;
+            if (isNewJd) {
+                jdRec = new Job_Description__c(
                     Opportunity__c = opp.Id,
-                    Company_Name__c = companyName
+                    Name = (title != null ? title : opp.Name).left(80),
+                    Status__c = 'Draft'
                 );
             }
+            setIfBlank(jdRec, 'Company_Name__c', companyName);
+            setIfBlank(jdRec, 'Key_Responsibilities__c', responsibilities);
+            setIfBlank(jdRec, 'Preferred_Location__c', prefLocation == null ? null : prefLocation.left(250));
+            setIfBlank(jdRec, 'Other_Location__c', otherLocation == null ? null : otherLocation.left(250));
+            setIfBlank(jdRec, 'Experience__c', experience);
+            setIfBlank(jdRec, 'Skills__c', skills);
+            setIfBlank(jdRec, 'AR__c', resources);
+            setIfBlank(jdRec, 'Job_Tagline__c', left(AiJson.str(jd, 'tagline'), 255));
+            setIfBlank(jdRec, 'Seniority__c', seniority);
+            setIfBlank(jdRec, 'Required_Qualifications__c', qualifications);
+            setIfBlank(jdRec, 'FileName__c', left(fileTitle, 255));
+            if (serviceId != null) setIfBlank(jdRec, 'Source_Service__c', serviceId);
+            if (isNewJd) insert jdRec; else update jdRec;
 
-            jd.Name                   = ((String) jdData.get('title')) != null ? ((String) jdData.get('title')).left(80) : null;
-            jd.Key_Responsibilities__c = responsibilities;
-            jd.Preferred_Location__c   = prefLocation;
-            jd.Experience__c           = expValue;
-            jd.Skills__c               = skillsRequired;
-
-            if (jd.Id == null) {
-                insert jd;
-                opp.JD_Lookup__c = jd.Id;
-            } else {
-                update jd;
+            // ---------- link JD to opportunity, request matching once ----------
+            Boolean oppChanged = false;
+            if (opp.JD_Lookup__c != jdRec.Id) { opp.JD_Lookup__c = jdRec.Id; oppChanged = true; }
+            if (opp.Generate_Match__c == null && String.isNotBlank(opp.Job_Description__c) && queueableRoom > 0) {
+                // OpportunityTrigger enqueues one OpportunityMatchJob per opportunity
+                opp.Generate_Match__c = 'Generate Match';
+                queueableRoom--;
+                oppChanged = true;
             }
+            if (oppChanged) needMatch.add(opp);
 
-            // Sync plain text JD back to Opportunity
-            opp.Job_Description__c = jd.Key_Responsibilities__c;
-             // ✅ Generate Match logic
-if (String.isBlank(opp.Job_Description__c)) {
-    opp.Generate_Match__c = 'None';
-} else {
-    opp.Generate_Match__c = 'Generate Match';
-}
-           
-            oppsToUpdate.add(opp);
+            // ---------- files: link the uploaded JD to the Opportunity and the JD record ----------
+            newLinks.addAll(linksFor(serviceFiles, new List<Id>{ opp.Id, jdRec.Id }));
 
-            // 👉 NEW: Attach Service__c files to this Opportunity and Job_Description__c
-            if (!serviceFiles.isEmpty()) {
-                for (ContentDocumentLink sFile : serviceFiles) {
-                    // Link to Opportunity
-                    allNewLinks.add(new ContentDocumentLink(
-                        ContentDocumentId = sFile.ContentDocumentId,
-                        LinkedEntityId    = opp.Id,
-                        ShareType         = 'I',       // Inferred permission
-                        Visibility        = 'AllUsers'
-                    ));
+            if (res.opportunityId == null) {
+                res.accountId = client.Id;
+                res.opportunityId = opp.Id;
+                res.jobDescriptionId = jdRec.Id;
+            }
+            res.legacy.add(client.Name);
+            res.legacy.add(String.valueOf(opp.Id));
+            summaries.add((isNewOpp ? 'Created Opportunity ' : 'Updated open Opportunity ') + opp.Name + ' for ' + client.Name);
+        }
 
-                    // Link to Job Description
-                    allNewLinks.add(new ContentDocumentLink(
-                        ContentDocumentId = sFile.ContentDocumentId,
-                        LinkedEntityId    = jd.Id,
-                        ShareType         = 'I',
-                        Visibility        = 'AllUsers'
-                    ));
-                }
+        if (!needMatch.isEmpty()) update needMatch;
+        if (!newLinks.isEmpty()) insert newLinks;
+
+        res.summary = String.join(summaries, '. ') + '.';
+        return res;
+    }
+
+    // =====================================================================
+    // Matching
+    // =====================================================================
+
+    @TestVisible
+    private static String normalizeCompany(String name) {
+        if (name == null) return '';
+        List<String> kept = new List<String>();
+        for (String w : name.toLowerCase().replaceAll('[^a-z0-9 ]', ' ').split('\\s+')) {
+            if (w != '' && !COMPANY_SUFFIXES.contains(w)) kept.add(w);
+        }
+        return String.join(kept, ' ');
+    }
+
+    private static Account findOrCreateClient(String companyName, Id clientRt) {
+        String norm = normalizeCompany(companyName);
+        String firstWord = norm.contains(' ') ? norm.substringBefore(' ') : norm;
+        if (String.isBlank(firstWord)) firstWord = companyName;
+        String likeKey = firstWord + '%';
+        for (Account a : [
+            SELECT Id, Name, RecordType.DeveloperName FROM Account
+            WHERE Name LIKE :likeKey
+            ORDER BY CreatedDate ASC LIMIT 200
+        ]) {
+            if (a.RecordType != null && PERSON_RTS.contains(a.RecordType.DeveloperName)) continue;
+            if (normalizeCompany(a.Name) == norm) return a;
+        }
+        Account acc = new Account(Name = companyName.left(255), Account_Type__c = 'Customer');
+        if (clientRt != null) acc.RecordTypeId = clientRt;
+        Database.DMLOptions opts = new Database.DMLOptions();
+        opts.DuplicateRuleHeader.allowSave = true;
+        Database.insert(acc, opts);
+        return acc;
+    }
+
+    private static Opportunity findSameOpenOpportunity(Id accountId, String role, String jdText) {
+        if (String.isBlank(role) && String.isBlank(jdText)) return null;
+        Datetime since = Datetime.now().addDays(-90);
+        for (Opportunity o : [
+            SELECT Id, Name, AccountId, JD_Lookup__c, Job_Description__c, Role_Required__c, Skills_Required__c,
+                   Experience_Required__c, Job_Location__c, Source_Content__c, Source_Of_Requirement__c,
+                   StageName, Start_Date__c, Amount, Budget_In_JD__c, Currency_Mentioned_In_JD__c,
+                   Original_Budget_Amount__c, Original_Currency__c, Job_Duration__c, Resource_Needed__c,
+                   Job_type__c, Required_Qualifications__c, Generate_Match__c, Identified_Budget__c,
+                   Referral_Contact__c, CloseDate
+            FROM Opportunity
+            WHERE AccountId = :accountId AND IsClosed = false AND CreatedDate >= :since
+            ORDER BY CreatedDate DESC LIMIT 50
+        ]) {
+            // Different roles are never the same requirement. When either side has no role,
+            // the job description text alone decides (80% word overlap).
+            Boolean bothHaveRole = String.isNotBlank(role) && String.isNotBlank(o.Role_Required__c);
+            if (bothHaveRole && normalizeText(role) != normalizeText(o.Role_Required__c)) continue;
+            if (String.isBlank(jdText) || String.isBlank(o.Job_Description__c)) continue;
+            if (similarity(jdText, o.Job_Description__c) >= 0.8) return o;
+        }
+        return null;
+    }
+
+    private static String normalizeText(String s) {
+        return s == null ? '' : s.toLowerCase().replaceAll('[^a-z0-9]+', ' ').trim();
+    }
+
+    /** Jaccard similarity of the words longer than 3 letters (0..1). */
+    @TestVisible
+    private static Decimal similarity(String a, String b) {
+        Set<String> s1 = words(a), s2 = words(b);
+        if (s1.isEmpty() || s2.isEmpty()) return 0;
+        Set<String> inter = new Set<String>(s1);
+        inter.retainAll(s2);
+        Set<String> uni = new Set<String>(s1);
+        uni.addAll(s2);
+        return Decimal.valueOf(inter.size()) / uni.size();
+    }
+
+    private static Set<String> words(String s) {
+        Set<String> out = new Set<String>();
+        for (String w : normalizeText(s).split(' ')) {
+            if (w.length() > 3) out.add(w);
+        }
+        return out;
+    }
+
+    // =====================================================================
+    // Budget, referral, owner, source
+    // =====================================================================
+
+    private static void applyBudget(Opportunity opp, Map<String, Object> jd, String resp, String quals, Map<String, Decimal> rates) {
+        if (opp.Original_Budget_Amount__c != null) return; // already set earlier: keep it
+
+        Decimal amount = null;
+        String currencyCode = null;
+        String budgetText = null;
+
+        String budgetMentioned = AiJson.str(jd, 'budgetMentioned');
+        String currencyMentioned = AiJson.str(jd, 'currencyMentioned');
+        if (budgetMentioned != null) {
+            amount = AiJson.toNumber(budgetMentioned);
+            currencyCode = currencyMentioned != null ? currencyMentioned.split('[,\\s]')[0].toUpperCase() : null;
+            budgetText = budgetMentioned + (currencyMentioned != null && !budgetMentioned.containsIgnoreCase(currencyMentioned) ? ' ' + currencyMentioned : '');
+        } else {
+            String text = (resp == null ? '' : resp) + ' ' + (quals == null ? '' : quals);
+            Matcher m = Pattern.compile('(?i)([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*(USD|OMR|EUR|GBP|INR|AED|SAR)').matcher(text);
+            if (m.find()) {
+                amount = Decimal.valueOf(m.group(1).replace(',', ''));
+                currencyCode = m.group(2).toUpperCase();
+                budgetText = m.group(0);
             }
         }
-
-        // Final update for Opportunities (JD lookup / JD text, etc.)
-        if (!oppsToUpdate.isEmpty()) {
-            update oppsToUpdate;
+        if (amount != null) {
+            opp.Original_Budget_Amount__c = amount;
+            opp.Original_Currency__c = currencyCode;
+            opp.Currency_Mentioned_In_JD__c = currencyCode;
+            opp.Budget_In_JD__c = left(budgetText, 255);
+            Decimal rate = currencyCode != null && rates.containsKey(currencyCode) ? rates.get(currencyCode) : null;
+            if (rate != null) {
+                opp.Amount = (amount * rate).setScale(2);
+                if (Schema.SObjectType.Opportunity.fields.getMap().containsKey('CurrencyIsoCode')) opp.put('CurrencyIsoCode', 'INR');
+            }
         }
+        // opportunityAmount is given in Lakhs (INR)
+        Decimal lakhs = AiJson.toNumber(jd.get('opportunityAmount'));
+        if (lakhs != null && opp.Identified_Budget__c == null) opp.Identified_Budget__c = lakhs * 100000;
+        opp.Budget_Confirmed__c = opp.Amount != null && opp.Amount > 0;
+    }
 
-        // 👉 NEW: Insert all ContentDocumentLink records in bulk
-        if (!allNewLinks.isEmpty()) {
-            insert allNewLinks;
+    private static void applyReferral(Opportunity opp, String name) {
+        if (name == null || opp.Referral_Contact__c != null) return;
+        List<Contact> cs = [SELECT Id FROM Contact WHERE Name = :name LIMIT 2];
+        if (cs.size() == 1) opp.Referral_Contact__c = cs[0].Id; // only when unambiguous
+    }
+
+    private static Id resolveOwner(Service__c svc) {
+        if (svc != null && String.isNotBlank(svc.EmailFrom__c)) {
+            List<User> us = [SELECT Id FROM User WHERE Email = :svc.EmailFrom__c AND IsActive = true LIMIT 1];
+            if (!us.isEmpty()) return us[0].Id;
         }
+        if (svc != null && String.isNotBlank(svc.WhatsappFrom__c)) {
+            String p = AiJson.digitsOnly(svc.WhatsappFrom__c);
+            for (User u : [SELECT Id, Phone, MobilePhone FROM User WHERE IsActive = true AND (Phone != null OR MobilePhone != null) LIMIT 2000]) {
+                if (p != null && (AiJson.digitsOnly(u.Phone) == p || AiJson.digitsOnly(u.MobilePhone) == p)) return u.Id;
+            }
+        }
+        return UserInfo.getUserId();
+    }
 
-        System.debug('==== END createJobDescriptions ====');
-        return createdRecords;
+    private static String sourceOf(Service__c svc) {
+        if (svc == null) return null;
+        if (String.isNotBlank(svc.EmailFrom__c)) return 'Email';
+        if (String.isNotBlank(svc.WhatsappFrom__c)) return 'Whatsapp';
+        if (svc.Source_Channel__c == 'UI Upload') return 'Qbay Home Upload';
+        return null;
+    }
+
+    private static Map<String, Decimal> loadRates() {
+        Map<String, Decimal> rates = new Map<String, Decimal>();
+        for (Currency_Rates__mdt c : [SELECT Currency_Code__c, INR_Conversion_Rate__c FROM Currency_Rates__mdt]) {
+            if (c.Currency_Code__c != null && c.INR_Conversion_Rate__c != null) {
+                rates.put(c.Currency_Code__c.trim().toUpperCase(), c.INR_Conversion_Rate__c);
+            }
+        }
+        if (rates.isEmpty()) {
+            rates.put('INR', 1);
+            rates.put('USD', 88.33);
+            rates.put('OMR', 229.78);
+            rates.put('EUR', 102.76);
+            rates.put('GBP', 117.95);
+        }
+        return rates;
+    }
+
+    // =====================================================================
+    // Small helpers
+    // =====================================================================
+
+    private static List<ContentDocumentLink> linksFor(List<ContentDocumentLink> files, List<Id> targets) {
+        List<ContentDocumentLink> out = new List<ContentDocumentLink>();
+        if (files.isEmpty()) return out;
+        Set<Id> docIds = new Set<Id>();
+        for (ContentDocumentLink f : files) docIds.add(f.ContentDocumentId);
+        Set<String> existing = new Set<String>();
+        for (ContentDocumentLink l : [
+            SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink
+            WHERE ContentDocumentId IN :docIds AND LinkedEntityId IN :targets
+        ]) {
+            existing.add(l.ContentDocumentId + '|' + l.LinkedEntityId);
+        }
+        for (Id t : targets) {
+            for (Id d : docIds) {
+                if (existing.contains(d + '|' + t)) continue;
+                out.add(new ContentDocumentLink(ContentDocumentId = d, LinkedEntityId = t, ShareType = 'I', Visibility = 'AllUsers'));
+            }
+        }
+        return out;
+    }
+
+    private static void setIfBlank(SObject rec, String field, Object value) {
+        if (value == null) return;
+        if (value instanceof String && String.isBlank((String) value)) return;
+        Object cur = rec.get(field);
+        if (cur == null || (cur instanceof String && String.isBlank((String) cur))) rec.put(field, value);
+    }
+
+    private static String joinNonBlank(String a, String b) {
+        if (String.isBlank(a)) return b;
+        if (String.isBlank(b) || a.equalsIgnoreCase(b)) return a;
+        return a + '; ' + b;
+    }
+
+    private static String left(String s, Integer n) {
+        return s == null ? null : s.left(n);
+    }
+
+    private static Id rtId(Schema.SObjectType t, String devName) {
+        Schema.RecordTypeInfo i = t.getDescribe().getRecordTypeInfosByDeveloperName().get(devName);
+        return i == null ? null : i.getRecordTypeId();
+    }
+
+    private static Set<String> picklistValues(Schema.SObjectField f) {
+        Set<String> out = new Set<String>();
+        for (Schema.PicklistEntry e : f.getDescribe().getPicklistValues()) {
+            if (e.isActive()) out.add(e.getValue());
+        }
+        return out;
+    }
+
+    private static String matchPicklist(String v, Set<String> allowed) {
+        if (v == null) return null;
+        for (String a : allowed) {
+            if (a.equalsIgnoreCase(v.trim())) return a;
+        }
+        return null;
     }
 }
-
-
-
-
-
-
-/*  Working code But the File from Service Object is Linked to Opp/JD Object
-public without sharing class JobDescriptionCreationController {
-
-    // 🔹 Normalize phone numbers (keep only digits)
-    private static String normalizePhone(String phone) {
-        if (String.isBlank(phone)) return null;
-        return phone.replaceAll('[^0-9]', '');
-    }
-
-    // 🔹 Extract all currency and amount mentions from JD text
-    private static List<Map<String, String>> extractAllCurrencyBlocks(String text) {
-        List<Map<String, String>> results = new List<Map<String, String>>();
-        if (String.isBlank(text)) return results;
-
-        text = text.replaceAll('[\\(\\)]', ' ');
-        text = text.replaceAll('\\s+', ' ').trim();
-
-        // Matches patterns like: "2 month onsite @1500 OMR" or "Budget: USD 3000"
-        Pattern p = Pattern.compile('(?i)([0-9]+\\s*(?:month|months)?[^@]{0,20})?@?\\s*([0-9]{2,}(?:\\.[0-9]+)?)\\s*(USD|OMR|EUR|GBP|INR)');
-        Matcher m = p.matcher(text);
-
-        while (m.find()) {
-            Map<String, String> rec = new Map<String, String>();
-            rec.put('duration', String.isBlank(m.group(1)) ? '' : m.group(1).trim());
-            rec.put('amount', m.group(2));
-            rec.put('currency', m.group(3).toUpperCase());
-            results.add(rec);
-        }
-
-        return results;
-    }
-
-    public static List<String> createJobDescriptions(String jsonText, Id jdSampleId) {
-        List<String> createdRecords = new List<String>();
-        System.debug('==== START createJobDescriptions ====');
-
-        // 🧹 Clean incoming JSON text
-        String cleanedJson = jsonText
-            .replaceAll('\u00A0', '')
-            .replaceAll('```json?', '')
-            .replaceAll('```', '')
-            .trim();
-
-        Map<String, Object> parsed;
-        try {
-            parsed = (Map<String, Object>) JSON.deserializeUntyped(cleanedJson);
-        } catch (Exception e) {
-            System.debug('❌ JSON parse error: ' + e.getMessage());
-            return null;
-        }
-
-        if (parsed == null || !parsed.containsKey('jobs')) {
-            System.debug('⚠ No "jobs" found in JSON');
-            return null;
-        }
-
-        List<Object> jobs = (List<Object>) parsed.get('jobs');
-        System.debug('📌 Jobs count: ' + jobs.size());
-
-        // 🔹 Pre-fetch Service record (email/whatsapp source)
-        Service__c serviceRec;
-        if (jdSampleId != null) {
-            try {
-                serviceRec = [
-                    SELECT Id, EmailFrom__c, WhatsappFrom__c, Email_Body__c
-                    FROM Service__c
-                    WHERE Id = :jdSampleId
-                    LIMIT 1
-                ];
-            } catch (Exception e) {
-                System.debug('⚠ No Service__c found for Id: ' + jdSampleId);
-            }
-        }
-
-        List<Opportunity> oppsToUpdate = new List<Opportunity>();
-
-        // 🔁 Loop through each JD record
-        for (Object jobObj : jobs) {
-            Map<String, Object> jdData = (Map<String, Object>) ((Map<String, Object>) jobObj).get('jobDescription');
-            if (jdData == null) continue;
-
-            // --- Company setup
-            String companyName = jdData.get('companyName') != null ? String.valueOf(jdData.get('companyName')).trim() : null;
-            if (String.isBlank(companyName)) continue;
-
-            Account relatedAccount;
-            List<Account> accList = [SELECT Id, Name FROM Account WHERE Name = :companyName LIMIT 1];
-            if (!accList.isEmpty()) relatedAccount = accList[0];
-            else {
-                relatedAccount = new Account(Name = companyName);
-                insert relatedAccount;
-            }
-
-            createdRecords.add(relatedAccount.Name);
-
-            // --- Extract JD fields
-            String roleRequired = (String) jdData.get('opportunityName');
-            String responsibilities = (String) jdData.get('responsibilities');
-            String prefLocation = (String) jdData.get('preferredLocation');
-            String skillsRequired = (String) jdData.get('skillsRequired');
-            String duration = (String) jdData.get('duration');
-            Decimal expValue = !String.isBlank((String) jdData.get('experience'))
-                ? Decimal.valueOf((String) jdData.get('experience')) : null;
-
-            // --- Fetch existing Opps for same account
-            List<Opportunity> existingOpps = [
-                SELECT Id, Name, AccountId, JD_Lookup__c, Job_Description__c,
-                       Role_Required__c, Skills_Required__c, Experience_Required__c,
-                       Job_Location__c, Source_Content__c, Source_Of_Requirement__c,
-                       StageName, Start_Date__c, Amount,
-                       Budget_In_JD__c, Currency_Mentioned_In_JD__c,
-                       Original_Budget_Amount__c, Original_Currency__c
-                FROM Opportunity
-                WHERE AccountId = :relatedAccount.Id
-                ORDER BY CreatedDate DESC
-                LIMIT 50
-            ];
-
-            Opportunity oppMatch;
-
-            // --- Enhanced JD Matching Logic
-            for (Opportunity o : existingOpps) {
-                Boolean jdSimilar = false;
-                Boolean roleSimilar = false;
-                Boolean skillSimilar = false;
-
-                if (!String.isBlank(o.Job_Description__c) && !String.isBlank(responsibilities)) {
-                    String oldJD = o.Job_Description__c.toLowerCase();
-                    String newJD = responsibilities.toLowerCase();
-
-                    List<String> dashVariants = new List<String>{'—', '–', '−', '―'};
-                    for (String dash : dashVariants) {
-                        oldJD = oldJD.replace(dash, '-');
-                        newJD = newJD.replace(dash, '-');
-                    }
-
-                    oldJD = oldJD.replaceAll('\\s+', ' ').trim();
-                    newJD = newJD.replaceAll('\\s+', ' ').trim();
-
-                    if (oldJD.equalsIgnoreCase(newJD)) jdSimilar = true;
-                    else {
-                        Set<String> set1 = new Set<String>();
-                        for (String w : oldJD.split('\\s+')) if (w.length() > 3) set1.add(w);
-                        Set<String> set2 = new Set<String>();
-                        for (String w : newJD.split('\\s+')) if (w.length() > 3) set2.add(w);
-                        Integer common = 0;
-                        for (String w : set2) if (set1.contains(w)) common++;
-                        Decimal overlap = (set2.size() > 0) ? Decimal.valueOf(common) / set2.size() : 0;
-                        jdSimilar = overlap >= 0.4;
-                    }
-                }
-
-                if (!String.isBlank(o.Role_Required__c) && !String.isBlank(roleRequired))
-                    roleSimilar = o.Role_Required__c.trim().equalsIgnoreCase(roleRequired.trim());
-                else roleSimilar = true;
-
-                if (!String.isBlank(o.Skills_Required__c) && !String.isBlank(skillsRequired)) {
-                    skillSimilar = o.Skills_Required__c.toLowerCase().contains(skillsRequired.toLowerCase()) ||
-                                   skillsRequired.toLowerCase().contains(o.Skills_Required__c.toLowerCase());
-                } else skillSimilar = true;
-
-                if (jdSimilar && (roleSimilar && skillSimilar)) {
-                    oppMatch = o;
-                    System.debug('✅ Match found (JD + Role + Skills): ' + o.Id);
-                    break;
-                }
-
-                if (oppMatch == null && jdSimilar) {
-                    oppMatch = o;
-                    System.debug('⚙ JD-only match (ignoring Source): ' + o.Id);
-                    break;
-                }
-            }
-
-            Opportunity opp;
-            if (oppMatch != null) opp = oppMatch;
-            else {
-                opp = new Opportunity();
-                opp.Name = !String.isBlank(roleRequired) ? roleRequired : companyName + ' - ' + Date.today().format();
-                opp.AccountId = relatedAccount.Id;
-                opp.StageName = 'Discovery';
-                opp.CloseDate = Date.today().addMonths(1);
-            }
-
-            // --- Basic JD field mapping
-            opp.Role_Required__c = roleRequired;
-            opp.Skills_Required__c = skillsRequired;
-            opp.Job_Location__c = prefLocation;
-            opp.Job_Duration__c = duration;
-            if (expValue != null) opp.Experience_Required__c = String.valueOf(expValue);
-            if (!String.isBlank((String) jdData.get('opportunityStartDate')))
-                opp.Start_Date__c = Date.valueOf((String) jdData.get('opportunityStartDate'));
-
-            // 🔹 Currency extraction (Clean Version — avoids duplicate EUR/USD)
-            String jdTextCombined =
-                (responsibilities != null ? responsibilities : '') + ' ' +
-                (String.valueOf(jdData.get('qualifications')) != null ? String.valueOf(jdData.get('qualifications')) : '') + ' ' +
-                (String.valueOf(jdData.get('skillsRequired')) != null ? String.valueOf(jdData.get('skillsRequired')) : '');
-
-            // Fetch CMDT conversion rates
-            Map<String, Decimal> rates = new Map<String, Decimal>();
-            for (Currency_Rates__mdt c : [
-                SELECT Currency_Code__c, INR_Conversion_Rate__c 
-                FROM Currency_Rates__mdt
-            ]) {
-                if (c.Currency_Code__c != null && c.INR_Conversion_Rate__c != null) {
-                    rates.put(c.Currency_Code__c.trim().toUpperCase(), c.INR_Conversion_Rate__c);
-                }
-            }
-
-            if (rates.isEmpty()) {
-                rates.put('INR', 1);
-                rates.put('USD', 88.33);
-                rates.put('OMR', 229.78);
-                rates.put('EUR', 102.76);
-                rates.put('GBP', 117.95);
-            }
-
-            List<Map<String, String>> jdCurrencyBlocks = extractAllCurrencyBlocks(jdTextCombined);
-
-            if (!jdCurrencyBlocks.isEmpty()) {
-                List<String> allDurations = new List<String>();
-                List<String> allAmounts = new List<String>();
-                String commonCurrency = '';
-                Decimal totalINR = 0;
-
-                for (Map<String, String> block : jdCurrencyBlocks) {
-                    String currencyCode = block.get('currency');
-                    String amtStr = block.get('amount');
-                    if (String.isBlank(amtStr)) continue; // skip stray currency-only matches
-                    Decimal amount = Decimal.valueOf(amtStr);
-                    String durationText = block.get('duration');
-
-                    allDurations.add(durationText);
-                    allAmounts.add(amount + ' ' + currencyCode);
-                    if (String.isBlank(commonCurrency)) commonCurrency = currencyCode;
-
-                    Decimal rate = rates.containsKey(currencyCode) ? rates.get(currencyCode) : 1;
-                    totalINR += (amount * rate);
-                }
-
-                opp.Job_Duration__c = String.join(allDurations, ', ');
-                opp.Budget_In_JD__c = String.join(allAmounts, ', ');
-                opp.Currency_Mentioned_In_JD__c = commonCurrency;
-                opp.Original_Budget_Amount__c = Decimal.valueOf(jdCurrencyBlocks[0].get('amount'));
-                opp.Original_Currency__c = jdCurrencyBlocks[0].get('currency');
-                opp.Amount = totalINR;
-                opp.CurrencyIsoCode = 'INR';
-            }
-
-            // 🔹 Fallback: use JSON if regex didn't find any currency
-            if (jdCurrencyBlocks.isEmpty()) {
-                String budgetMentioned = (String) jdData.get('budgetMentioned');
-                String currencyMentioned = (String) jdData.get('currencyMentioned');
-
-                if (!String.isBlank(budgetMentioned) && !String.isBlank(currencyMentioned)) {
-                    Decimal amountVal = 0;
-                    try { amountVal = Decimal.valueOf(budgetMentioned); } catch (Exception e) {}
-
-                    Decimal rate = rates.containsKey(currencyMentioned.toUpperCase()) ? 
-                                   rates.get(currencyMentioned.toUpperCase()) : 1;
-                    Decimal totalINR = amountVal * rate;
-
-                    opp.Budget_In_JD__c = budgetMentioned + ' ' + currencyMentioned;
-                    opp.Currency_Mentioned_In_JD__c = currencyMentioned;
-                    opp.Original_Budget_Amount__c = amountVal;
-                    opp.Original_Currency__c = currencyMentioned;
-                    opp.Amount = totalINR;
-                    opp.CurrencyIsoCode = 'INR';
-                }
-            }
-
-            opp.Budget_Confirmed__c = (opp.Amount != null && opp.Amount > 0);
-            opp.Date_Received__c = Date.today();
-            opp.Generate_Match__c = 'Generate Match';
-            opp.Job_Type__c = (String) jdData.get('jobType');
-            opp.Required_Qualifications__c = (String) jdData.get('qualifications');
-            if (!String.isBlank((String) jdData.get('opportunityCloseDate')))
-                opp.CloseDate = Date.valueOf((String) jdData.get('opportunityCloseDate'));
-
-            if (serviceRec != null) {
-                opp.Source_Content__c = serviceRec.Email_Body__c;
-                if (!String.isBlank(serviceRec.EmailFrom__c)) opp.Source_Of_Requirement__c = 'Email';
-                else if (!String.isBlank(serviceRec.WhatsappFrom__c)) opp.Source_Of_Requirement__c = 'Whatsapp';
-            }
-
-            if (serviceRec != null) {
-                User oppOwner;
-                if (!String.isBlank(serviceRec.EmailFrom__c)) {
-                    List<User> usersByEmail = [SELECT Id FROM User WHERE Email = :serviceRec.EmailFrom__c LIMIT 1];
-                    if (!usersByEmail.isEmpty()) oppOwner = usersByEmail[0];
-                }
-                if (oppOwner == null && !String.isBlank(serviceRec.WhatsappFrom__c)) {
-                    String servicePhone = normalizePhone(serviceRec.WhatsappFrom__c);
-                    for (User u : [SELECT Id, Phone, MobilePhone FROM User WHERE Phone != null OR MobilePhone != null]) {
-                        if (normalizePhone(u.Phone) == servicePhone || normalizePhone(u.MobilePhone) == servicePhone) {
-                            oppOwner = u;
-                            break;
-                        }
-                    }
-                }
-                opp.OwnerId = (oppOwner != null) ? oppOwner.Id : UserInfo.getUserId();
-            }
-
-            if (opp.Id == null) insert opp; else update opp;
-            createdRecords.add(opp.Id);
-
-            Job_Description__c jd;
-            if (opp.JD_Lookup__c != null)
-                jd = [SELECT Id FROM Job_Description__c WHERE Id = :opp.JD_Lookup__c LIMIT 1];
-            else jd = new Job_Description__c(Opportunity__c = opp.Id, Company_Name__c = companyName);
-
-            jd.Name = ((String) jdData.get('title'))?.left(80);
-            jd.Key_Responsibilities__c = responsibilities;
-            jd.Preferred_Location__c = prefLocation;
-            jd.Experience__c = expValue;
-            jd.Skills__c = skillsRequired;
-
-            if (jd.Id == null) {
-                insert jd;
-                opp.JD_Lookup__c = jd.Id;
-            } else update jd;
-
-            opp.Job_Description__c = jd.Key_Responsibilities__c;
-            oppsToUpdate.add(opp);
-        }
-
-        if (!oppsToUpdate.isEmpty()) update oppsToUpdate;
-        System.debug('==== END createJobDescriptions ====');
-        return createdRecords;
-    }
-}   */
-
-
-
-
-
-
-
-
-
-
-
-/*public without sharing class JobDescriptionCreationController {
-
-    // 🔹 Normalize phone numbers (keep only digits)
-    private static String normalizePhone(String phone) {
-        if (String.isBlank(phone)) return null;
-        return phone.replaceAll('[^0-9]', '');
-    }
-
-    // 🔹 Extract all currency and amount mentions from JD text
-    private static List<Map<String, String>> extractAllCurrencyBlocks(String text) {
-        List<Map<String, String>> results = new List<Map<String, String>>();
-        if (String.isBlank(text)) return results;
-
-        text = text.replaceAll('[\\(\\)]', ' ');
-        text = text.replaceAll('\\s+', ' ').trim();
-
-        // Matches patterns like: "2 month onsite @1500 OMR" or "Budget: USD 3000"
-        Pattern p = Pattern.compile('(?i)([0-9]+\\s*(?:month|months)?[^@]{0,20})?@?\\s*([0-9]{2,}(?:\\.[0-9]+)?)\\s*(USD|OMR|EUR|GBP|INR)');
-        Matcher m = p.matcher(text);
-
-        while (m.find()) {
-            Map<String, String> rec = new Map<String, String>();
-            rec.put('duration', String.isBlank(m.group(1)) ? '' : m.group(1).trim());
-            rec.put('amount', m.group(2));
-            rec.put('currency', m.group(3).toUpperCase());
-            results.add(rec);
-        }
-
-        return results;
-    }
-
-    // 🧩 Main method to create Job Descriptions and related records
-    public static List<String> createJobDescriptions(String jsonText, Id jdSampleId) {
-        List<String> createdRecords = new List<String>();
-        System.debug('==== START createJobDescriptions ====');
-
-        // 🧹 Clean incoming JSON text
-        String cleanedJson = jsonText
-            .replaceAll('\u00A0', '')
-            .replaceAll('```json?', '')
-            .replaceAll('```', '')
-            .trim();
-
-        Map<String, Object> parsed;
-        try {
-            parsed = (Map<String, Object>) JSON.deserializeUntyped(cleanedJson);
-        } catch (Exception e) {
-            System.debug('❌ JSON parse error: ' + e.getMessage());
-            return null;
-        }
-
-        if (parsed == null || !parsed.containsKey('jobs')) {
-            System.debug('⚠ No "jobs" found in JSON');
-            return null;
-        }
-
-        List<Object> jobs = (List<Object>) parsed.get('jobs');
-        System.debug('📌 Jobs count: ' + jobs.size());
-
-        // 🔹 Fetch Service record (Email/WhatsApp source)
-        Service__c serviceRec;
-        if (jdSampleId != null) {
-            try {
-                serviceRec = [
-                    SELECT Id, EmailFrom__c, WhatsappFrom__c, Email_Body__c
-                    FROM Service__c
-                    WHERE Id = :jdSampleId
-                    LIMIT 1
-                ];
-            } catch (Exception e) {
-                System.debug('⚠ No Service__c found for Id: ' + jdSampleId);
-            }
-        }
-
-        // 🔹 DML lists for bulk-safe handling
-        List<Account> accountsToInsert = new List<Account>();
-        List<Opportunity> oppsToInsert = new List<Opportunity>();
-        List<Opportunity> oppsToUpdate = new List<Opportunity>();
-        List<Job_Description__c> jdsToInsert = new List<Job_Description__c>();
-        List<Job_Description__c> jdsToUpdate = new List<Job_Description__c>();
-
-        // 🔁 Process each job
-        for (Object jobObj : jobs) {
-            Map<String, Object> jdData = (Map<String, Object>) ((Map<String, Object>) jobObj).get('jobDescription');
-            if (jdData == null) continue;
-
-            // --- Company setup
-            String companyName = jdData.get('companyName') != null ? String.valueOf(jdData.get('companyName')).trim() : null;
-            if (String.isBlank(companyName)) continue;
-
-            Account relatedAccount;
-            List<Account> accList = [SELECT Id, Name FROM Account WHERE Name = :companyName LIMIT 1];
-            if (!accList.isEmpty()) {
-                relatedAccount = accList[0];
-            } else {
-                relatedAccount = new Account(Name = companyName);
-                accountsToInsert.add(relatedAccount);
-            }
-
-            createdRecords.add(companyName);
-
-            // --- Extract JD fields
-            String roleRequired = (String) jdData.get('opportunityName');
-            String responsibilities = (String) jdData.get('responsibilities');
-            String prefLocation = (String) jdData.get('preferredLocation');
-            String skillsRequired = (String) jdData.get('skillsRequired');
-            String duration = (String) jdData.get('duration');
-            Decimal expValue = !String.isBlank((String) jdData.get('experience'))
-                ? Decimal.valueOf((String) jdData.get('experience')) : null;
-
-            // --- Existing Opps (for match logic)
-            List<Opportunity> existingOpps = new List<Opportunity>();
-            if (relatedAccount.Id != null) {
-                existingOpps = [
-                    SELECT Id, Name, AccountId, JD_Lookup__c, Job_Description__c,
-                           Role_Required__c, Skills_Required__c, Experience_Required__c,
-                           Job_Location__c, Source_Content__c, Source_Of_Requirement__c,
-                           StageName, Start_Date__c, Amount,
-                           Budget_In_JD__c, Currency_Mentioned_In_JD__c,
-                           Original_Budget_Amount__c, Original_Currency__c
-                    FROM Opportunity
-                    WHERE AccountId = :relatedAccount.Id
-                    ORDER BY CreatedDate DESC
-                    LIMIT 50
-                ];
-            }
-
-            Opportunity oppMatch;
-            // --- JD, Role, Skill match logic
-            for (Opportunity o : existingOpps) {
-                Boolean jdSimilar = false;
-                Boolean roleSimilar = false;
-                Boolean skillSimilar = false;
-
-                if (!String.isBlank(o.Job_Description__c) && !String.isBlank(responsibilities)) {
-                    String oldJD = o.Job_Description__c.toLowerCase();
-                    String newJD = responsibilities.toLowerCase();
-
-                    List<String> dashVariants = new List<String>{'—', '–', '−', '―'};
-                    for (String dash : dashVariants) {
-                        oldJD = oldJD.replace(dash, '-');
-                        newJD = newJD.replace(dash, '-');
-                    }
-
-                    oldJD = oldJD.replaceAll('\\s+', ' ').trim();
-                    newJD = newJD.replaceAll('\\s+', ' ').trim();
-
-                    if (oldJD.equalsIgnoreCase(newJD)) jdSimilar = true;
-                    else {
-                        Set<String> set1 = new Set<String>();
-                        for (String w : oldJD.split('\\s+')) if (w.length() > 3) set1.add(w);
-                        Set<String> set2 = new Set<String>();
-                        for (String w : newJD.split('\\s+')) if (w.length() > 3) set2.add(w);
-                        Integer common = 0;
-                        for (String w : set2) if (set1.contains(w)) common++;
-                        Decimal overlap = (set2.size() > 0) ? Decimal.valueOf(common) / set2.size() : 0;
-                        jdSimilar = overlap >= 0.4;
-                    }
-                }
-
-                if (!String.isBlank(o.Role_Required__c) && !String.isBlank(roleRequired))
-                    roleSimilar = o.Role_Required__c.trim().equalsIgnoreCase(roleRequired.trim());
-                else roleSimilar = true;
-
-                if (!String.isBlank(o.Skills_Required__c) && !String.isBlank(skillsRequired)) {
-                    skillSimilar = o.Skills_Required__c.toLowerCase().contains(skillsRequired.toLowerCase()) ||
-                                   skillsRequired.toLowerCase().contains(o.Skills_Required__c.toLowerCase());
-                } else skillSimilar = true;
-
-                if (jdSimilar && (roleSimilar && skillSimilar)) {
-                    oppMatch = o;
-                    break;
-                }
-                if (oppMatch == null && jdSimilar) {
-                    oppMatch = o;
-                    break;
-                }
-            }
-
-            Opportunity opp;
-            if (oppMatch != null) opp = oppMatch;
-            else {
-                opp = new Opportunity();
-                opp.Name = !String.isBlank(roleRequired) ? roleRequired : companyName + ' - ' + Date.today().format();
-                opp.AccountId = relatedAccount.Id;
-                opp.StageName = 'Discovery';
-                opp.CloseDate = Date.today().addMonths(1);
-            }
-
-            // --- Field mapping
-            opp.Role_Required__c = roleRequired;
-            opp.Skills_Required__c = skillsRequired;
-            opp.Job_Location__c = prefLocation;
-            opp.Job_Duration__c = duration;
-            if (expValue != null) opp.Experience_Required__c = String.valueOf(expValue);
-            if (!String.isBlank((String) jdData.get('opportunityStartDate')))
-                opp.Start_Date__c = Date.valueOf((String) jdData.get('opportunityStartDate'));
-
-            // --- Currency logic
-            String jdTextCombined =
-                (responsibilities != null ? responsibilities : '') + ' ' +
-                (String.valueOf(jdData.get('qualifications')) != null ? String.valueOf(jdData.get('qualifications')) : '') + ' ' +
-                (String.valueOf(jdData.get('skillsRequired')) != null ? String.valueOf(jdData.get('skillsRequired')) : '');
-
-            Map<String, Decimal> rates = new Map<String, Decimal>();
-            for (Currency_Rates__mdt c : [
-                SELECT Currency_Code__c, INR_Conversion_Rate__c FROM Currency_Rates__mdt
-            ]) {
-                if (c.Currency_Code__c != null && c.INR_Conversion_Rate__c != null)
-                    rates.put(c.Currency_Code__c.trim().toUpperCase(), c.INR_Conversion_Rate__c);
-            }
-
-            if (rates.isEmpty()) {
-                rates.put('INR', 1);
-                rates.put('USD', 88.33);
-                rates.put('OMR', 229.78);
-                rates.put('EUR', 102.76);
-                rates.put('GBP', 117.95);
-            }
-
-            List<Map<String, String>> jdCurrencyBlocks = extractAllCurrencyBlocks(jdTextCombined);
-
-            if (!jdCurrencyBlocks.isEmpty()) {
-                List<String> allDurations = new List<String>();
-                List<String> allAmounts = new List<String>();
-                String commonCurrency = '';
-                Decimal totalINR = 0;
-
-                for (Map<String, String> block : jdCurrencyBlocks) {
-                    String currencyCode = block.get('currency');
-                    String amtStr = block.get('amount');
-                    if (String.isBlank(amtStr)) continue;
-                    Decimal amount = Decimal.valueOf(amtStr);
-                    String durationText = block.get('duration');
-
-                    allDurations.add(durationText);
-                    allAmounts.add(amount + ' ' + currencyCode);
-                    if (String.isBlank(commonCurrency)) commonCurrency = currencyCode;
-
-                    Decimal rate = rates.containsKey(currencyCode) ? rates.get(currencyCode) : 1;
-                    totalINR += (amount * rate);
-                }
-
-                opp.Job_Duration__c = String.join(allDurations, ', ');
-                opp.Budget_In_JD__c = String.join(allAmounts, ', ');
-                opp.Currency_Mentioned_In_JD__c = commonCurrency;
-                opp.Original_Budget_Amount__c = Decimal.valueOf(jdCurrencyBlocks[0].get('amount'));
-                opp.Original_Currency__c = jdCurrencyBlocks[0].get('currency');
-                opp.Amount = totalINR;
-                opp.CurrencyIsoCode = 'INR';
-            }
-
-            // --- Fallback currency
-            if (jdCurrencyBlocks.isEmpty()) {
-                String budgetMentioned = (String) jdData.get('budgetMentioned');
-                String currencyMentioned = (String) jdData.get('currencyMentioned');
-
-                if (!String.isBlank(budgetMentioned) && !String.isBlank(currencyMentioned)) {
-                    Decimal amountVal = 0;
-                    try { amountVal = Decimal.valueOf(budgetMentioned); } catch (Exception e) {}
-
-                    Decimal rate = rates.containsKey(currencyMentioned.toUpperCase()) ?
-                                   rates.get(currencyMentioned.toUpperCase()) : 1;
-                    Decimal totalINR = amountVal * rate;
-
-                    opp.Budget_In_JD__c = budgetMentioned + ' ' + currencyMentioned;
-                    opp.Currency_Mentioned_In_JD__c = currencyMentioned;
-                    opp.Original_Budget_Amount__c = amountVal;
-                    opp.Original_Currency__c = currencyMentioned;
-                    opp.Amount = totalINR;
-                    opp.CurrencyIsoCode = 'INR';
-                }
-            }
-
-            opp.Budget_Confirmed__c = (opp.Amount != null && opp.Amount > 0);
-            opp.Date_Received__c = Date.today();
-            opp.Generate_Match__c = 'Generate Match';
-            opp.Job_Type__c = (String) jdData.get('jobType');
-            opp.Required_Qualifications__c = (String) jdData.get('qualifications');
-            if (!String.isBlank((String) jdData.get('opportunityCloseDate')))
-                opp.CloseDate = Date.valueOf((String) jdData.get('opportunityCloseDate'));
-
-            if (serviceRec != null) {
-                opp.Source_Content__c = serviceRec.Email_Body__c;
-                if (!String.isBlank(serviceRec.EmailFrom__c)) opp.Source_Of_Requirement__c = 'Email';
-                else if (!String.isBlank(serviceRec.WhatsappFrom__c)) opp.Source_Of_Requirement__c = 'Whatsapp';
-            }
-
-            // --- Owner Assignment
-            if (serviceRec != null) {
-                User oppOwner;
-                if (!String.isBlank(serviceRec.EmailFrom__c)) {
-                    List<User> usersByEmail = [SELECT Id FROM User WHERE Email = :serviceRec.EmailFrom__c LIMIT 1];
-                    if (!usersByEmail.isEmpty()) oppOwner = usersByEmail[0];
-                }
-                if (oppOwner == null && !String.isBlank(serviceRec.WhatsappFrom__c)) {
-                    String servicePhone = normalizePhone(serviceRec.WhatsappFrom__c);
-                    for (User u : [SELECT Id, Phone, MobilePhone FROM User WHERE Phone != null OR MobilePhone != null]) {
-                        if (normalizePhone(u.Phone) == servicePhone || normalizePhone(u.MobilePhone) == servicePhone) {
-                            oppOwner = u;
-                            break;
-                        }
-                    }
-                }
-                opp.OwnerId = (oppOwner != null) ? oppOwner.Id : UserInfo.getUserId();
-            }
-
-            // --- Collect for DML
-            if (opp.Id == null) oppsToInsert.add(opp);
-            else oppsToUpdate.add(opp);
-
-            // --- Create JD record
-            Job_Description__c jd = new Job_Description__c(
-                Company_Name__c = companyName,
-                Opportunity__c = opp.Id,
-                Name = ((String) jdData.get('title'))?.left(80),
-                Key_Responsibilities__c = responsibilities,
-                Preferred_Location__c = prefLocation,
-                Experience__c = expValue,
-                Skills__c = skillsRequired
-            );
-            jdsToInsert.add(jd);
-        }
-
-        // 🔹 Perform all DML at once
-        if (!accountsToInsert.isEmpty()) insert accountsToInsert;
-        if (!oppsToInsert.isEmpty()) insert oppsToInsert;
-        if (!oppsToUpdate.isEmpty()) update oppsToUpdate;
-        if (!jdsToInsert.isEmpty()) insert jdsToInsert;
-        if (!jdsToUpdate.isEmpty()) update jdsToUpdate;
-
-        System.debug('==== END createJobDescriptions ====');
-        return createdRecords;
-    }
-}  */

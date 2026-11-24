@@ -1,105 +1,105 @@
+/**
+ * Creates Skill__c (master) and Employee_Skill__c (candidate <-> skill) records.
+ * Only the skills named in the resumes are queried; new skills carry a unique Skill_Key__c,
+ * so two uploads running at the same time cannot create the same skill twice.
+ */
 public class CandidateSkillQueueable implements Queueable {
+
+    private static final Set<String> PROFICIENCIES = new Set<String>{ 'Beginner', 'Intermediate', 'Advanced', 'Expert' };
 
     private List<Account> accounts;
     private List<List<Map<String, Object>>> skillsByResume;
 
-    public CandidateSkillQueueable(
-        List<Account> accounts,
-        List<List<Map<String, Object>>> skillsByResume
-    ) {
+    public CandidateSkillQueueable(List<Account> accounts, List<List<Map<String, Object>>> skillsByResume) {
         this.accounts = accounts;
         this.skillsByResume = skillsByResume;
     }
 
     public void execute(QueueableContext qc) {
-
-        if (accounts == null || accounts.isEmpty()) {
-            return;
+        try {
+            run();
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'CandidateSkillQueueable', 'execute');
         }
+    }
 
-        /* ---------- Load Existing Skill Master ---------- */
-        Map<String, Skill__c> skillMaster = new Map<String, Skill__c>();
-        for (Skill__c sk : [
-            SELECT Id, Skill_Name__c, Category__c
-            FROM Skill__c
-        ]) {
-            skillMaster.put(clean(sk.Skill_Name__c), sk);
-        }
+    @TestVisible
+    private void run() {
+        if (accounts == null || accounts.isEmpty() || skillsByResume == null) return;
 
-        /* ---------- Existing Employee Skills ---------- */
-        Map<String, Employee_Skill__c> existingMap = new Map<String, Employee_Skill__c>();
-        for (Employee_Skill__c es : [
-            SELECT Id, Employee_Name__c, Full_Skill_Name__c, Proficiency__c
-            FROM Employee_Skill__c
-            WHERE Employee_Name__c IN :accounts
-        ]) {
-            existingMap.put(
-                es.Employee_Name__c + '::' + clean(es.Full_Skill_Name__c),
-                es
-            );
-        }
-
-        List<Skill__c> skillsToInsert = new List<Skill__c>();
-        List<Employee_Skill__c> empSkillsToInsert = new List<Employee_Skill__c>();
-        List<Employee_Skill__c> empSkillsToUpdate = new List<Employee_Skill__c>();
-
-        /* ==================================================
-           PHASE 1: COLLECT & INSERT SKILLS
-           ================================================== */
-        for (Integer i = 0; i < accounts.size(); i++) {
+        // ---------- names and keys used in these resumes ----------
+        Map<String, Map<String, Object>> firstByKey = new Map<String, Map<String, Object>>();
+        Set<String> rawNames = new Set<String>();
+        for (Integer i = 0; i < accounts.size() && i < skillsByResume.size(); i++) {
+            if (skillsByResume[i] == null) continue;
             for (Map<String, Object> s : skillsByResume[i]) {
-
-                String rawSkill = (String) s.get('name');
-                if (String.isBlank(rawSkill)) continue;
-
-                String normSkill = clean(rawSkill);
-                String category  = (String) s.get('Category');
-
-                if (!skillMaster.containsKey(normSkill)) {
-                    Skill__c sk = new Skill__c(
-                        Skill_Name__c = rawSkill,
-                        Active__c = true,
-                        Category__c = category
-                    );
-                    skillsToInsert.add(sk);
-                    skillMaster.put(normSkill, sk);
-                }
+                String raw = AiJson.str(s, 'name');
+                String key = clean(raw);
+                if (key == '') continue;
+                rawNames.add(raw.left(255));
+                if (!firstByKey.containsKey(key)) firstByKey.put(key, s);
             }
         }
+        if (firstByKey.isEmpty()) return;
 
-        if (!skillsToInsert.isEmpty()) {
-            insert skillsToInsert;
+        Map<String, Skill__c> skillMaster = loadSkills(firstByKey.keySet(), rawNames);
+
+        // ---------- new master skills ----------
+        List<Skill__c> newSkills = new List<Skill__c>();
+        for (String key : firstByKey.keySet()) {
+            if (skillMaster.containsKey(key)) continue;
+            Map<String, Object> s = firstByKey.get(key);
+            newSkills.add(new Skill__c(
+                Skill_Name__c = AiJson.str(s, 'name').left(255),
+                Skill_Key__c = key.left(255),
+                Active__c = true,
+                Category__c = AiJson.str(s, 'Category')
+            ));
+        }
+        if (!newSkills.isEmpty()) {
+            // allOrNone = false: a parallel run may have just inserted the same key
+            Database.insert(newSkills, false);
+            skillMaster = loadSkills(firstByKey.keySet(), rawNames);
         }
 
-        /* ==================================================
-           PHASE 2: EMPLOYEE SKILLS (LINK TO ACCOUNT + SKILL)
-           ================================================== */
-        for (Integer i = 0; i < accounts.size(); i++) {
+        // ---------- employee skills ----------
+        Map<String, Employee_Skill__c> existingMap = new Map<String, Employee_Skill__c>();
+        for (Employee_Skill__c es : [
+            SELECT Id, Employee_Name__c, Skill__c, Full_Skill_Name__c, Proficiency__c
+            FROM Employee_Skill__c WHERE Employee_Name__c IN :accounts
+        ]) {
+            existingMap.put(es.Employee_Name__c + '::' + clean(es.Full_Skill_Name__c), es);
+        }
+
+        List<Employee_Skill__c> toInsert = new List<Employee_Skill__c>();
+        Map<Id, Employee_Skill__c> toUpdate = new Map<Id, Employee_Skill__c>();
+        Set<String> seen = new Set<String>();
+
+        for (Integer i = 0; i < accounts.size() && i < skillsByResume.size(); i++) {
             Account acc = accounts[i];
-
+            if (skillsByResume[i] == null) continue;
             for (Map<String, Object> s : skillsByResume[i]) {
+                String raw = AiJson.str(s, 'name');
+                String norm = clean(raw);
+                if (norm == '') continue;
+                String key = acc.Id + '::' + norm;
+                if (seen.contains(key)) continue;
+                seen.add(key);
 
-                String rawSkill = (String) s.get('name');
-                if (String.isBlank(rawSkill)) continue;
-
-                String normSkill   = clean(rawSkill);
-                String proficiency = (String) s.get('proficiency');
-
-                Skill__c skillRef = skillMaster.get(normSkill);
-                if (skillRef == null) continue; // safety guard
-
-                String key = acc.Id + '::' + normSkill;
+                Skill__c skillRef = skillMaster.get(norm);
+                if (skillRef == null) continue;
+                String proficiency = normalizeProficiency(AiJson.str(s, 'proficiency'));
 
                 if (existingMap.containsKey(key)) {
-                    Employee_Skill__c existing = existingMap.get(key);
-                    if (existing.Proficiency__c != proficiency) {
-                        existing.Proficiency__c = proficiency;
-                        empSkillsToUpdate.add(existing);
+                    Employee_Skill__c ex = existingMap.get(key);
+                    if (proficiency != null && ex.Proficiency__c != proficiency) {
+                        ex.Proficiency__c = proficiency;
+                        toUpdate.put(ex.Id, ex);
                     }
                 } else {
-                    empSkillsToInsert.add(new Employee_Skill__c(
-                        Name = rawSkill.left(80),
-                        Full_Skill_Name__c = rawSkill,
+                    toInsert.add(new Employee_Skill__c(
+                        Name = raw.left(80),
+                        Full_Skill_Name__c = raw,
                         Skill__c = skillRef.Id,
                         Employee_Name__c = acc.Id,
                         Proficiency__c = proficiency
@@ -107,13 +107,31 @@ public class CandidateSkillQueueable implements Queueable {
                 }
             }
         }
-
-        /* ---------- DML ---------- */
-        if (!empSkillsToInsert.isEmpty()) insert empSkillsToInsert;
-        if (!empSkillsToUpdate.isEmpty()) update empSkillsToUpdate;
+        if (!toInsert.isEmpty()) insert toInsert;
+        if (!toUpdate.isEmpty()) update toUpdate.values();
     }
 
-    /* ---------- Utility ---------- */
+    private static Map<String, Skill__c> loadSkills(Set<String> keys, Set<String> rawNames) {
+        Map<String, Skill__c> m = new Map<String, Skill__c>();
+        for (Skill__c sk : [
+            SELECT Id, Skill_Name__c, Skill_Key__c FROM Skill__c
+            WHERE Skill_Key__c IN :keys OR Skill_Name__c IN :rawNames
+            ORDER BY CreatedDate ASC
+        ]) {
+            String k = String.isNotBlank(sk.Skill_Key__c) ? sk.Skill_Key__c : clean(sk.Skill_Name__c);
+            if (!m.containsKey(k)) m.put(k, sk);
+        }
+        return m;
+    }
+
+    private static String normalizeProficiency(String p) {
+        if (p == null) return 'Intermediate';
+        for (String v : PROFICIENCIES) {
+            if (v.equalsIgnoreCase(p.trim())) return v;
+        }
+        return 'Intermediate';
+    }
+
     private static String clean(String s) {
         return s == null ? '' : s.toLowerCase().replaceAll('[^a-z0-9]', '');
     }
