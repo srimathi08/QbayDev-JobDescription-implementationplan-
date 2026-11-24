@@ -35,11 +35,8 @@ public class JD_AttachmentController {
     public static String uploadFile(String base64, String filename, String recordId) {
         ContentVersion cv = createContentVersion(base64, filename);
         ContentDocumentLink cdl = createContentLink(cv != null ? cv.Id : null, recordId);
-        if (cv == null || cdl == null) {
-            AuraHandledException ae = new AuraHandledException('Could not save the file ' + filename);
-            ae.setMessage('Could not save the file ' + filename);
-            throw ae;
-        }
+        // Legacy contract: null when the file could not be saved (error is logged by the helpers).
+        if (cv == null || cdl == null) return null;
         return cdl.Id;
     }
 

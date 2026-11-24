@@ -162,7 +162,12 @@ public without sharing class JobDescriptionCreationController {
             // ---------- job description record ----------
             Job_Description__c jdRec = null;
             if (opp.JD_Lookup__c != null) {
-                List<Job_Description__c> l = [SELECT Id, Name FROM Job_Description__c WHERE Id = :opp.JD_Lookup__c LIMIT 1];
+                List<Job_Description__c> l = [
+                    SELECT Id, Name, Company_Name__c, Key_Responsibilities__c, Preferred_Location__c, Other_Location__c,
+                           Experience__c, Skills__c, AR__c, Job_Tagline__c, Seniority__c, Required_Qualifications__c,
+                           FileName__c, Source_Service__c
+                    FROM Job_Description__c WHERE Id = :opp.JD_Lookup__c LIMIT 1
+                ];
                 if (!l.isEmpty()) jdRec = l[0];
             }
             Boolean isNewJd = jdRec == null;

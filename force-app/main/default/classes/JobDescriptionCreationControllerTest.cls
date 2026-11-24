@@ -1,6 +1,9 @@
 @IsTest
 public class JobDescriptionCreationControllerTest {
 
+    // Opportunity.AccountId has a lookup filter that excludes Candidates, and Candidates is the default Account record type.
+    private static final Id CLIENT_RT = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Direct_Customers').getRecordTypeId();
+
     /* --------------------------------------------------
      * TEST SETUP
      * -------------------------------------------------- */
@@ -28,7 +31,7 @@ public class JobDescriptionCreationControllerTest {
         );
         insert admin;
 
-        Account baseAcc = new Account(Name = 'Sample Account');
+        Account baseAcc = new Account(RecordTypeId = CLIENT_RT, Name = 'Sample Account');
         insert baseAcc;
 
         Opportunity baseOpp = new Opportunity(
@@ -200,7 +203,7 @@ public class JobDescriptionCreationControllerTest {
     @IsTest
     static void test_FullJDMatch_ReusesOpp() {
 
-        Account acc = new Account(Name = 'Match Corp');
+        Account acc = new Account(RecordTypeId = CLIENT_RT, Name = 'Match Corp');
         insert acc;
 
         insert new Opportunity(
@@ -236,7 +239,7 @@ public class JobDescriptionCreationControllerTest {
     @IsTest
     static void test_JDOnlyMatch() {
 
-        Account acc = new Account(Name = 'JD Only Corp');
+        Account acc = new Account(RecordTypeId = CLIENT_RT, Name = 'JD Only Corp');
         insert acc;
 
         insert new Opportunity(
@@ -299,7 +302,7 @@ public class JobDescriptionCreationControllerTest {
         System.runAs(sysAdmin) {
 
             // Create Account + Opportunity baseline using simple logic
-            Account a = new Account(Name = 'Sample Account');
+            Account a = new Account(RecordTypeId = CLIENT_RT, Name = 'Sample Account');
             insert a;
 
             Opportunity opp = new Opportunity(
@@ -472,7 +475,7 @@ public class JobDescriptionCreationControllerTest {
 
         Service__c svc = [SELECT Id FROM Service__c LIMIT 1];
 
-        Account acc = new Account(Name = 'TechCorp Pvt Ltd');
+        Account acc = new Account(RecordTypeId = CLIENT_RT, Name = 'TechCorp Pvt Ltd');
         insert acc;
 
         Opportunity oldOpp = new Opportunity(
@@ -509,7 +512,7 @@ public class JobDescriptionCreationControllerTest {
 
         Service__c svc = [SELECT Id FROM Service__c LIMIT 1];
 
-        Account acc = new Account(Name = 'TechCorp Pvt Ltd');
+        Account acc = new Account(RecordTypeId = CLIENT_RT, Name = 'TechCorp Pvt Ltd');
         insert acc;
 
         Opportunity oldOpp = new Opportunity(

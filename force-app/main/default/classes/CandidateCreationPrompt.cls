@@ -19,9 +19,6 @@ public without sharing class CandidateCreationPrompt {
         if (String.isBlank(contentDocumentId)) {
             throw new IllegalArgumentException('No file was given to the resume prompt.');
         }
-        if (Test.isRunningTest()) {
-            return mockResponse;
-        }
         ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
         ConnectApi.WrappedValue docValue = new ConnectApi.WrappedValue();
         docValue.value = new Map<String, String>{ 'id' => contentDocumentId, 'type' => 'ContentDocument' };
@@ -29,13 +26,30 @@ public without sharing class CandidateCreationPrompt {
         promptInput.additionalConfig = new ConnectApi.EinsteinLlmAdditionalConfigInput();
         promptInput.isPreview = false;
 
-        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation response =
-            ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate(TEMPLATE, promptInput);
+        if (Test.isRunningTest() && mockResponse == null) return null;
+        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation response = Test.isRunningTest()
+            ? fakeOutput(mockResponse)
+            : ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate(TEMPLATE, promptInput);
+        return textOf(response, 'The resume prompt returned an empty response.');
+    }
+
+    /** First generation's text, or an exception when the AI returned nothing. */
+    public static String textOf(ConnectApi.EinsteinPromptTemplateGenerationsRepresentation response, String emptyMessage) {
         if (response == null || response.generations == null || response.generations.isEmpty()
                 || String.isBlank(response.generations[0].text)) {
-            throw new CalloutException('The resume prompt returned an empty response.');
+            throw new CalloutException(emptyMessage);
         }
         return response.generations[0].text;
+    }
+
+    /** Test stand-in for the Einstein response (only called when Test.isRunningTest()). */
+    public static ConnectApi.EinsteinPromptTemplateGenerationsRepresentation fakeOutput(String text) {
+        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation r = new ConnectApi.EinsteinPromptTemplateGenerationsRepresentation();
+        r.generations = new List<ConnectApi.EinsteinLLMGenerationItemOutput>();
+        ConnectApi.EinsteinLLMGenerationItemOutput g = new ConnectApi.EinsteinLLMGenerationItemOutput();
+        g.text = text;
+        r.generations.add(g);
+        return r;
     }
 
     /** Legacy: one ContentDocument -> candidate Accounts (email path via AsynCandidateCreationBatch). */
