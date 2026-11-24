@@ -1124,7 +1124,11 @@ STRICT RULES
 You have received one or more Job Description documents from the following inputs:
 {!$RelatedList:Document.CombinedAttachments.Records} and {!$Input:Document.Email_Body__c}.
 
-- Only if it is not detailed, create a detailed job description yourself.
+- Never invent or expand job description content. Use only text that is present in the inputs.
+
+DOCUMENT CHECK (do this first)
+• Decide what the input is and put it in &quot;documentType&quot;: &quot;Job Description&quot; for a job description / requirement, &quot;Resume&quot; for a candidate CV/resume, &quot;Other&quot; for anything else.
+• If documentType is not &quot;Job Description&quot;, return only {&quot;documentType&quot;:&quot;&lt;value&gt;&quot;,&quot;jobs&quot;:[]} and nothing else.
 
 TASKS
 1. Parse each Job Description and output one JSON object per file.
@@ -1160,7 +1164,8 @@ TASKS
 
 SCHEMA
 {
- &quot;jobs&quot;: [
+ &quot;documentType&quot;: &quot;Job Description&quot;,
+ &quot;jobs&quot;: [
  {
  &quot;jobDescription&quot;: {
  &quot;title&quot;: &quot;&quot;,
@@ -1195,7 +1200,7 @@ STRICT RULES
 - No null or &quot;unknown&quot; values; use &quot;&quot; if missing.
 - Keep numeric fields numeric only (e.g., &quot;5&quot; not &quot;5 years&quot;).
 - Keep all string values on a single line (no embedded line breaks).
-- If the Job Description does not contain a company name, set &quot;companyName&quot;: &quot;Temp Holding Account&quot;.
+- If the Job Description does not contain a company name, set &quot;companyName&quot;: &quot;&quot;.
 - Do not use company names from email signatures, disclaimers, or sender details — only from the JD itself.
 - &quot;jobType&quot; must be either &quot;Remote&quot; or &quot;Onsite&quot; if mentioned in the Job Description. If not mentioned, set &quot;jobType&quot;: &quot;&quot;.
 - &quot;opportunityAmount&quot; must always be given in Lakhs (e.g., &quot;18&quot; for &quot;18 LPA&quot;). Do not convert to rupees.

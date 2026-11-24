@@ -5,7 +5,7 @@
     <masterLabel>Candidate CreationFile</masterLabel>
     <overridable>false</overridable>
     <templateVersions>
-        <content>File ID - {!$Input:File.Id}
+        <content>Resume file: {!$Input:File.Id}
 
 STRICT CONSISTENCY RULES
 • The output for the same input must always be identical every time this prompt is run.
@@ -21,6 +21,10 @@ STRICT CONSISTENCY RULES
 • Avoid paraphrasing or creative variation in descriptions — copy text exactly as extracted.
 • Maintain fixed key order and indentation structure for all outputs.
 
+DOCUMENT CHECK (do this first)
+• Decide what the file is and put it in &quot;documentType&quot;: &quot;Resume&quot; for a candidate CV/resume, &quot;Job Description&quot; for a job description / requirement, &quot;Other&quot; for anything else.
+• If documentType is not &quot;Resume&quot;, return only {&quot;documentType&quot;:&quot;&lt;value&gt;&quot;,&quot;resumes&quot;:[]} and nothing else.
+
 TASKS
 1. Parse every resume and output one JSON object per file, using the exact schema below.  
 2. Populate real values; leave missing data blank or omit the field.  
@@ -29,7 +33,8 @@ TASKS
 
 SCHEMA
 {
- &quot;resumes&quot;: [
+ &quot;documentType&quot;: &quot;Resume&quot;,
+ &quot;resumes&quot;: [
  {
  &quot;account&quot;: {
  &quot;name&quot;: &quot;&quot;,
@@ -100,6 +105,7 @@ STRICT RULES
 • Do not add newlines inside string values.  
 • Analyse Experience date and give experience.  
 • If skill level unclear, default to &quot;Intermediate&quot;.  
+• Always leave &quot;filename&quot; as an empty string; the system fills it.
 
 • Dates must be ISO (YYYY-MM-DD) or empty string &quot;&quot; only.
 • NEVER output values such as: &quot;Present&quot;, &quot;Till Date&quot;, &quot;Current&quot;, &quot;Ongoing&quot;.
@@ -156,13 +162,10 @@ Apply it to all projects listed under that company.
  - Output must be normalized as &quot;&lt;number&gt; years&quot;.  
  - Do NOT copy descriptive sentences into this field.  
  - If no valid years are found, leave it empty.  
-• Email Handling Rule:  
- - If the email is already in correct format (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), keep as-is.  
- - If .com is missing, automatically append .com.  
- - If gmailcom or similar occurs, insert the dot before the TLD.  
- - If the email ends with .co, .co.in, .org, .net, or other valid TLDs, keep as-is.  
- - If an email cannot be normalized into a valid format, leave it empty.  
- - Never infer or generate an email if it is completely missing.  
+• Email Handling Rule:
+ - Copy the email address exactly as written in the resume.
+ - If it is not a valid address (&lt;text&gt;@&lt;domain&gt;.&lt;tld&gt;), leave it empty.
+ - Never add, guess or repair parts of an email.
 • Candidate Summary Rule:  
  - Capture the entire &quot;Profile Summary&quot;, &quot;Career Summary&quot;, or &quot;Professional Summary&quot; section.  
  - Do not truncate; capture up to 32,000 characters.  
