@@ -272,9 +272,10 @@ public without sharing class JobDescriptionCreationController {
             WHERE AccountId = :accountId AND IsClosed = false AND CreatedDate >= :since
             ORDER BY CreatedDate DESC LIMIT 50
         ]) {
-            Boolean sameRole = String.isNotBlank(role) && String.isNotBlank(o.Role_Required__c)
-                && normalizeText(role) == normalizeText(o.Role_Required__c);
-            if (!sameRole) continue;
+            // Different roles are never the same requirement. When either side has no role,
+            // the job description text alone decides (80% word overlap).
+            Boolean bothHaveRole = String.isNotBlank(role) && String.isNotBlank(o.Role_Required__c);
+            if (bothHaveRole && normalizeText(role) != normalizeText(o.Role_Required__c)) continue;
             if (String.isBlank(jdText) || String.isBlank(o.Job_Description__c)) continue;
             if (similarity(jdText, o.Job_Description__c) >= 0.8) return o;
         }
