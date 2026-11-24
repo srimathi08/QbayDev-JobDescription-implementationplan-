@@ -39,7 +39,8 @@ public class AiJson {
         Object v = m.get(key);
         String s = (v instanceof String) ? (String) v : String.valueOf(v);
         s = s.trim();
-        if (s == '' || s.equalsIgnoreCase('null') || s.equalsIgnoreCase('unknown') || s.equalsIgnoreCase('n/a')) return null;
+        if (s == '' || s.equalsIgnoreCase('null') || s.equalsIgnoreCase('unknown') || s.equalsIgnoreCase('n/a')
+                || s.equalsIgnoreCase('none') || s == '-') return null;
         return s;
     }
 
