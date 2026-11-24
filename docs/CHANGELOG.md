@@ -1,8 +1,9 @@
 # Qbay upload intake – change log
 
-Every change to QbayDev for the Qbay Home resume/JD upload goes through GitHub:
-one commit per fix on branch `feature/qbay-upload-intake`, reviewed in PR #1, and deployed
-to QbayDev only from a pushed commit. Baseline: branch `backup/qbaydev-2026-11-24` (commit e2840ba).
+Every change to QbayDev for the Qbay Home resume/JD upload goes through GitHub, on the
+`main` branch only (no other branches). One commit per fix, deployed to QbayDev only from a
+pushed commit. Baseline: full sandbox backup, commit e2840ba. Release v1 merged to main as
+"v1 bugs fiex 24-11-2026" (commit b1ba796).
 
 | # | Commit | What | Why / bug | Deployed |
 |---|--------|------|-----------|----------|
@@ -21,6 +22,6 @@ to QbayDev only from a pushed commit. Baseline: branch `backup/qbaydev-2026-11-2
 - Project names end in " - None": flow `Project_Experience_Name_Update` appends TEXT(Project_Phase__c), default "None". Waiting for the owner's choice.
 
 ## Rules for future fixes
-1. Branch from the latest `feature/qbay-upload-intake` (or main once merged).
+1. Work directly on `main`. Do not create other branches.
 2. One fix = one commit, message says the bug and the fix; add a row above.
 3. Validate (check-only) from the pushed commit, then deploy; record the deploy id here.
