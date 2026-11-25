@@ -5409,6 +5409,8 @@
     </types>
     <types>
         <members>OpenStreetMap_Nominatim</members>
+        <members>whatsapp</members>
+        <members>whatsappmedia</members>
         <name>RemoteSiteSetting</name>
     </types>
     <types>
