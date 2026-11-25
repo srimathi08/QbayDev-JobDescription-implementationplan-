@@ -45,6 +45,8 @@ private class IntakeUploadFlowTest {
         Test.startTest();
         List<IntakeController.IntakeStatus> rows = IntakeController.submitUploadedFiles(new List<Id>{ a, b, c }, 'Auto', 'batch-1');
         Assert.areEqual(1, Limits.getQueueableJobs(), 'only the first file starts; the rest follow one by one');
+        // checked before stopTest: once the processor runs, Auto is resolved to the detected type
+        Assert.isNull(load(rows[0].serviceId).Requested_Type__c, 'Auto = blank requested type');
         Test.stopTest();
 
         Assert.areEqual(3, rows.size());
@@ -53,7 +55,6 @@ private class IntakeUploadFlowTest {
         Assert.areEqual(0, [SELECT COUNT() FROM ContentDocument WHERE Id = :b], 'a refused file is removed');
 
         Service__c first = load(rows[0].serviceId);
-        Assert.isNull(first.Requested_Type__c, 'Auto = blank requested type');
         Assert.areEqual('batch-1', first.Upload_Batch__c);
         Assert.isNotNull(first.File_Checksum__c);
         Assert.areEqual('UI Upload', first.Source_Channel__c);
