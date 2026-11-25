@@ -117,7 +117,8 @@ public without sharing class CandidateCreationController {
         }
 
         Map<String, Account> candByEmail = new Map<String, Account>();
-        Map<String, Account> candByPhone = new Map<String, Account>();
+        // A phone number can be on more than one candidate (shared or sample numbers), so keep all of them
+        Map<String, List<Account>> candByPhone = new Map<String, List<Account>>();
         Map<String, Account> candByLinkedIn = new Map<String, Account>();
         Map<String, Account> candByNameDob = new Map<String, Account>();
         Map<String, Account> otherByEmail = new Map<String, Account>();
@@ -141,7 +142,10 @@ public without sharing class CandidateCreationController {
             }
             if (e != null) candByEmail.put(e, a);
             String p = String.isNotBlank(a.Phone_Normalized__c) ? a.Phone_Normalized__c : AiJson.digitsOnly(a.Phone);
-            if (p != null) candByPhone.put(p, a);
+            if (p != null) {
+                if (!candByPhone.containsKey(p)) candByPhone.put(p, new List<Account>());
+                candByPhone.get(p).add(a);
+            }
             String li = AiJson.normalizeUrl(a.LinkedIn__c);
             if (li != null) candByLinkedIn.put(li, a);
             if (a.Date_of_Birth__c != null) candByNameDob.put(a.Name.toLowerCase() + '|' + a.Date_of_Birth__c, a);
@@ -165,7 +169,20 @@ public without sharing class CandidateCreationController {
 
             Account match = null;
             if (c.email != null) match = candByEmail.get(c.email);
-            if (match == null && c.phoneKey != null) match = candByPhone.get(c.phoneKey);
+            if (match == null && c.phoneKey != null && candByPhone.containsKey(c.phoneKey)) {
+                List<Account> samePhone = candByPhone.get(c.phoneKey);
+                if (!strict) {
+                    // Email / WhatsApp path: unchanged behaviour
+                    match = samePhone[samePhone.size() - 1];
+                } else {
+                    // Qbay Home upload: a phone match counts only when the name also agrees,
+                    // so a different person with the same number is never merged into another candidate
+                    for (Account a : samePhone) {
+                        if (sameName(a.Name, c.name)) { match = a; break; }
+                    }
+                    if (match == null) c.phoneConflict = samePhone[0].Name;
+                }
+            }
             if (match == null && c.linkedInKey != null) match = candByLinkedIn.get(c.linkedInKey);
             if (match == null && c.dob != null) match = candByNameDob.get(c.name.toLowerCase() + '|' + c.dob);
             if (match == null) match = seenInThisFile.get(c.dedupeKey());
@@ -259,7 +276,12 @@ public without sharing class CandidateCreationController {
         res.primaryAccountId = accounts[0].Id;
         List<String> parts = new List<String>();
         for (Candidate c : ordered) {
-            parts.add((c.isNew ? 'Created ' : 'Updated existing ') + 'candidate ' + c.account.Name);
+            String line = (c.isNew ? 'Created ' : 'Updated existing ') + 'candidate ' + c.account.Name;
+            if (c.isNew && c.phoneConflict != null) {
+                line += ' (the phone number ' + c.phone + ' is also on the existing candidate ' + c.phoneConflict
+                    + ', but the names differ, so the two were kept separate)';
+            }
+            parts.add(line);
         }
         if (!res.skipped.isEmpty()) parts.add('Skipped: ' + String.join(res.skipped, '; '));
         res.summary = String.join(parts, '. ') + '.';
@@ -335,6 +357,7 @@ public without sharing class CandidateCreationController {
         Map<String, Object> raw;
         Map<String, Object> acc;
         String name, email, phone, phoneKey, linkedIn, linkedInKey, fileTitle;
+        String phoneConflict; // name of an existing candidate with the same phone but a different name
         Date dob;
         Account account;
         Boolean isNew;
@@ -450,6 +473,28 @@ public without sharing class CandidateCreationController {
     // =====================================================================
     // Helpers
     // =====================================================================
+
+    /**
+     * Lenient name check for phone matches: true when the two names share at least one word of 2+ letters
+     * ("Rahul Sharma" = "RAHUL SHARMA" = "Rahul S" = "R. Sharma"; "John Smith" != "Rahul Sharma").
+     */
+    @TestVisible
+    private static Boolean sameName(String a, String b) {
+        if (String.isBlank(a) || String.isBlank(b)) return false;
+        Set<String> wa = nameWords(a);
+        for (String w : nameWords(b)) {
+            if (wa.contains(w)) return true;
+        }
+        return false;
+    }
+
+    private static Set<String> nameWords(String s) {
+        Set<String> out = new Set<String>();
+        for (String w : s.toLowerCase().replaceAll('[^a-z ]', ' ').split('\\s+')) {
+            if (w.length() >= 2) out.add(w);
+        }
+        return out;
+    }
 
     private static Boolean k_fileNameIsId(Account a) {
         // Earlier versions stored a ContentDocument Id (069...) in FileName__c

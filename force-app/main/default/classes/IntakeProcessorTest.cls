@@ -60,6 +60,39 @@ private class IntakeProcessorTest {
     }
 
     @IsTest
+    static void samePhoneDifferentNameCreatesANewCandidate() {
+        // 25-11-2026: "dummy resume.pdf" (John Smith) had Rahul Sharma's phone and was merged into Rahul Sharma
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        Account rahul = new Account(Name = 'Rahul Sharma', RecordTypeId = rt, Phone = '9876543210',
+            Phone_Normalized__c = '9876543210', Years_of_Experience__c = '2 years');
+        insert rahul;
+        Id svcId = IntakeTestData.newIntake('Resume', 'john.pdf', 'john-1');
+        CandidateCreationPrompt.mockResponse = IntakeTestData.resumeJson('John Smith', null, '9876543210');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+
+        Service__c s = load(svcId);
+        Assert.areEqual('Completed', s.Status__c, s.Status_Message__c);
+        Assert.areNotEqual(rahul.Id, s.Account__c, 'a different person is never merged by phone alone');
+        Assert.areEqual('John Smith', [SELECT Name FROM Account WHERE Id = :s.Account__c].Name);
+        Assert.isTrue(s.Status_Message__c.contains('also on the existing candidate Rahul Sharma'), s.Status_Message__c);
+        Account r = [SELECT Name, Years_of_Experience__c FROM Account WHERE Id = :rahul.Id];
+        Assert.areEqual('Rahul Sharma', r.Name);
+        Assert.areEqual('2 years', r.Years_of_Experience__c, 'the existing candidate is not touched');
+        Assert.areEqual(0, [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :rahul.Id]);
+    }
+
+    @IsTest
+    static void phoneMatchNameCheckIsLenient() {
+        Assert.isTrue(CandidateCreationController.sameName('Rahul Sharma', 'RAHUL SHARMA'));
+        Assert.isTrue(CandidateCreationController.sameName('Rahul Sharma', 'R. Sharma'));
+        Assert.isTrue(CandidateCreationController.sameName('Ravi S', 'Ravi Shankar'));
+        Assert.isFalse(CandidateCreationController.sameName('Rahul Sharma', 'John Smith'));
+        Assert.isFalse(CandidateCreationController.sameName(null, 'John Smith'));
+    }
+
+    @IsTest
     static void jdUploadedAsResumeIsRejected() {
         Id svcId = IntakeTestData.newIntake('Resume', 'jd.pdf', 'jd-1');
         CandidateCreationPrompt.mockResponse = '{"documentType":"Job Description","resumes":[]}';
