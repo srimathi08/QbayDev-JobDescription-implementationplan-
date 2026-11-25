@@ -17,6 +17,7 @@ pushed commit. Baseline: full sandbox backup, commit e2840ba. Release v1 merged 
 | 8 | e73808f | Prompt edits as new active versions (_2, _14); pastCompanies example removed; "None" treated as blank | Bug: edits to published versions are ignored; AI copied the example into Past_Companies__c | 0Afe1000002PyRFCA0 |
 | 9 | 553cb18 | Permission set + retest samples | Nobody could see the new fields | permission set NOT deployed (owner decision) |
 | 10 | fcd1bee | System Administrator profile read/edit on the 15 fields | Owner decision: profile only, no permission set | 0Afe1000002PyZJCA0 |
+| 11 | "Org metadata sync 25-11-2026 (before enhancements and bug fixes)" | Full org retrieve (manifest/full-backup.xml regenerated): v1 Intake classes/LWC/fields/prompts as deployed, new Intake_Setting__mdt, IntakeRouter, ServiceIntakeTrigger, org edits by others to parseEmail, parseEmailTest, IntakeRouter, WhatsAppUtils; profiles field perms. CustomLabels excluded (contains WhatsApp access tokens) | Org metadata snapshot before new work | n/a (retrieve only) |
 
 ## Open
 - Project names end in " - None": flow `Project_Experience_Name_Update` appends TEXT(Project_Phase__c), default "None". Waiting for the owner's choice.

@@ -5,6 +5,132 @@
     <masterLabel>JD Prompt</masterLabel>
     <overridable>false</overridable>
     <templateVersions>
+        <content>{!$Input:Document.Id}
+
+You have received one or more Job Description documents from the following inputs:
+{!$RelatedList:Document.CombinedAttachments.Records} and {!$Input:Document.Email_Body__c}.
+
+- Never invent or expand job description content. Use only text that is present in the inputs.
+
+DOCUMENT CHECK (do this first)
+• Decide what the input is and put it in &quot;documentType&quot;: &quot;Job Description&quot; for a job description / requirement, &quot;Resume&quot; for a candidate CV/resume, &quot;Other&quot; for anything else.
+• If documentType is not &quot;Job Description&quot;, return only {&quot;documentType&quot;:&quot;&lt;value&gt;&quot;,&quot;jobs&quot;:[]} and nothing else.
+
+TASKS
+1. Parse each Job Description and output one JSON object per file.
+2. Use the exact schema below.
+3. Fill missing data as an empty string &quot;&quot; (do not use null, unknown, or omit the field).
+4. Preserve the exact spelling and formatting from the JD for all text fields.
+5. Ensure &quot;ar&quot;, &quot;experience&quot;, and &quot;opportunityAmount&quot; contain only numeric values (no words like &quot;years&quot; or &quot;months&quot;).
+5a. Populate &quot;ar&quot; ONLY if the Job Description explicitly mentions number of resources, positions, openings, or headcount (e.g., &quot;2 resources&quot;, &quot;3 positions&quot;, &quot;multiple openings (5)&quot;).
+- Do NOT infer &quot;ar&quot; from experience, seniority, skills, duration, budget, or any other numeric value.
+- If no explicit resource count is mentioned, set &quot;ar&quot;: &quot;1&quot; as a default.
+6. Dates must be in YYYY-MM-DD format.
+7. Do not add newlines inside string values; keep each value on one line.
+8. Output must be ONLY the JSON object — no code fences, no extra text, no commentary.
+9. Extract and fill &quot;duration&quot; from the Job Description text if it mentions project length or contract term (e.g., “5 months”, “6-month contract”, “3–6 months”). Use the same wording as found in the JD.
+10. If the Job Description mentions a salary, budget, or CTC (e.g., “USD 3000 per month”, “@1500 OMR”), capture the numeric amount in &quot;budgetMentioned&quot; and the currency symbol or code in &quot;currencyMentioned&quot;.
+ - If multiple are mentioned (e.g., onsite/offshore), combine them as comma-separated values (e.g., &quot;1500 OMR, 900 OMR&quot;).
+11. For &quot;responsibilities&quot;, extract the part of the Job Description that describes what the candidate will do — including key duties, project goals, and role purpose.
+ - If no explicit &quot;Responsibilities&quot; section is found, use the first paragraph after the role title or any sentences that describe the candidate’s tasks or role purpose.
+
+12. For &quot;skillsRequired&quot;:
+ - Extract all technology names, platforms, tools, integrations, products, clouds, programming languages, and functional domains mentioned anywhere in the Job Description.
+ - This includes items listed under responsibilities, scope, functionality, bullet points, or descriptive paragraphs.
+ - Combine all extracted skills into a single comma-separated list.
+ - Do not infer skills that are not explicitly mentioned in the Job Description.
+
+13. If the Job Description mentions the start date as &quot;Immediate&quot;:
+ - Leave &quot;opportunityStartDate&quot; as an empty string &quot;&quot;.
+ - Construct &quot;duration&quot; using the wording &quot;Immediate to &lt;End Date&gt;&quot; if an end date is present.
+
+14. Do not infer or auto-generate ar from experience, duration, skills, seniority, or budget. A default value of &quot;1&quot; is allowed only when no explicit resource count is mentioned.
+
+
+
+SCHEMA
+{
+ &quot;documentType&quot;: &quot;Job Description&quot;,
+ &quot;jobs&quot;: [
+ {
+ &quot;jobDescription&quot;: {
+ &quot;title&quot;: &quot;&quot;,
+ &quot;ar&quot;: &quot;&quot;,
+ &quot;companyName&quot;: &quot;&quot;,
+ &quot;experience&quot;: &quot;&quot;,
+ &quot;tagline&quot;: &quot;&quot;,
+ &quot;responsibilities&quot;: &quot;&quot;,
+ &quot;otherLocation&quot;: &quot;&quot;,
+ &quot;preferredLocation&quot;: &quot;&quot;,
+ &quot;qualifications&quot;: &quot;&quot;,
+ &quot;seniority&quot;: &quot;&quot;,
+ &quot;skillsRequired&quot;: &quot;&quot;,
+ &quot;source&quot;: &quot;&quot;,
+ &quot;duration&quot;: &quot;&quot;,
+ &quot;opportunityName&quot;: &quot;&quot;,
+ &quot;opportunityCloseDate&quot;: &quot;&quot;,
+ &quot;opportunityStartDate&quot;: &quot;&quot;,
+ &quot;opportunityAmount&quot;: &quot;&quot;,
+ &quot;referralContact&quot;: &quot;&quot;,
+ &quot;jobType&quot;: &quot;&quot;,
+ &quot;budgetMentioned&quot;: &quot;&quot;,
+ &quot;currencyMentioned&quot;: &quot;&quot;
+ }
+ }
+ ]
+}
+
+STRICT RULES
+- No commentary or text outside the JSON braces.
+- No ``` or other code fences.
+- No null or &quot;unknown&quot; values; use &quot;&quot; if missing.
+- Keep numeric fields numeric only (e.g., &quot;5&quot; not &quot;5 years&quot;).
+- Keep all string values on a single line (no embedded line breaks).
+- If the Job Description does not contain a company name, set &quot;companyName&quot;: &quot;&quot;.
+- Do not use company names from email signatures, disclaimers, or sender details — only from the JD itself.
+- &quot;jobType&quot; must be either &quot;Remote&quot; or &quot;Onsite&quot; if mentioned in the Job Description. If not mentioned, set &quot;jobType&quot;: &quot;&quot;.
+- &quot;opportunityAmount&quot; must always be given in Lakhs (e.g., &quot;18&quot; for &quot;18 LPA&quot;). Do not convert to rupees.
+- If a range of experience is mentioned (e.g., &quot;3–5 years&quot;), set &quot;experience&quot; to the lower bound (e.g., &quot;3&quot;) and include the full phrase inside &quot;qualifications&quot;.
+- If the JD mentions a role title or position (e.g., “Salesforce Developer”, “Business Analyst”, “Project Manager”), set both:
+ - &quot;title&quot; = that exact text, and
+ - &quot;opportunityName&quot; = the same role title.
+- If the JD does not clearly specify a role title, infer it from the first line and use it as both &quot;title&quot; and &quot;opportunityName&quot;.
+- If the email body or job description text includes a signature or line such as “Thanks and Regards, &lt;Name&gt;”, capture the person’s full name and store it in &quot;referralContact&quot;.
+ - If not found, set &quot;referralContact&quot;: &quot;&quot;.
+ - Do not use names from email domains, earlier forwarded or replied messages, or job titles.
+ - If multiple signatures appear, use only the latest sender.
+
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Document</apiName>
+            <definition>SOBJECT://Service__c</definition>
+            <masterLabel>Document</masterLabel>
+            <referenceName>Input:Document</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:Document.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_14</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
         <content> {!$Input:Document.Id}
 
 You have received one or more Job Description documents from  
@@ -1238,132 +1364,6 @@ STRICT RULES
             <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
         </templateDataProviders>
         <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_13</versionIdentifier>
-    </templateVersions>
-    <templateVersions>
-        <content>{!$Input:Document.Id}
-
-You have received one or more Job Description documents from the following inputs:
-{!$RelatedList:Document.CombinedAttachments.Records} and {!$Input:Document.Email_Body__c}.
-
-- Never invent or expand job description content. Use only text that is present in the inputs.
-
-DOCUMENT CHECK (do this first)
-• Decide what the input is and put it in &quot;documentType&quot;: &quot;Job Description&quot; for a job description / requirement, &quot;Resume&quot; for a candidate CV/resume, &quot;Other&quot; for anything else.
-• If documentType is not &quot;Job Description&quot;, return only {&quot;documentType&quot;:&quot;&lt;value&gt;&quot;,&quot;jobs&quot;:[]} and nothing else.
-
-TASKS
-1. Parse each Job Description and output one JSON object per file.
-2. Use the exact schema below.
-3. Fill missing data as an empty string &quot;&quot; (do not use null, unknown, or omit the field).
-4. Preserve the exact spelling and formatting from the JD for all text fields.
-5. Ensure &quot;ar&quot;, &quot;experience&quot;, and &quot;opportunityAmount&quot; contain only numeric values (no words like &quot;years&quot; or &quot;months&quot;).
-5a. Populate &quot;ar&quot; ONLY if the Job Description explicitly mentions number of resources, positions, openings, or headcount (e.g., &quot;2 resources&quot;, &quot;3 positions&quot;, &quot;multiple openings (5)&quot;).
-- Do NOT infer &quot;ar&quot; from experience, seniority, skills, duration, budget, or any other numeric value.
-- If no explicit resource count is mentioned, set &quot;ar&quot;: &quot;1&quot; as a default.
-6. Dates must be in YYYY-MM-DD format.
-7. Do not add newlines inside string values; keep each value on one line.
-8. Output must be ONLY the JSON object — no code fences, no extra text, no commentary.
-9. Extract and fill &quot;duration&quot; from the Job Description text if it mentions project length or contract term (e.g., “5 months”, “6-month contract”, “3–6 months”). Use the same wording as found in the JD.
-10. If the Job Description mentions a salary, budget, or CTC (e.g., “USD 3000 per month”, “@1500 OMR”), capture the numeric amount in &quot;budgetMentioned&quot; and the currency symbol or code in &quot;currencyMentioned&quot;.
- - If multiple are mentioned (e.g., onsite/offshore), combine them as comma-separated values (e.g., &quot;1500 OMR, 900 OMR&quot;).
-11. For &quot;responsibilities&quot;, extract the part of the Job Description that describes what the candidate will do — including key duties, project goals, and role purpose.
- - If no explicit &quot;Responsibilities&quot; section is found, use the first paragraph after the role title or any sentences that describe the candidate’s tasks or role purpose.
-
-12. For &quot;skillsRequired&quot;:
- - Extract all technology names, platforms, tools, integrations, products, clouds, programming languages, and functional domains mentioned anywhere in the Job Description.
- - This includes items listed under responsibilities, scope, functionality, bullet points, or descriptive paragraphs.
- - Combine all extracted skills into a single comma-separated list.
- - Do not infer skills that are not explicitly mentioned in the Job Description.
-
-13. If the Job Description mentions the start date as &quot;Immediate&quot;:
- - Leave &quot;opportunityStartDate&quot; as an empty string &quot;&quot;.
- - Construct &quot;duration&quot; using the wording &quot;Immediate to &lt;End Date&gt;&quot; if an end date is present.
-
-14. Do not infer or auto-generate ar from experience, duration, skills, seniority, or budget. A default value of &quot;1&quot; is allowed only when no explicit resource count is mentioned.
-
-
-
-SCHEMA
-{
- &quot;documentType&quot;: &quot;Job Description&quot;,
- &quot;jobs&quot;: [
- {
- &quot;jobDescription&quot;: {
- &quot;title&quot;: &quot;&quot;,
- &quot;ar&quot;: &quot;&quot;,
- &quot;companyName&quot;: &quot;&quot;,
- &quot;experience&quot;: &quot;&quot;,
- &quot;tagline&quot;: &quot;&quot;,
- &quot;responsibilities&quot;: &quot;&quot;,
- &quot;otherLocation&quot;: &quot;&quot;,
- &quot;preferredLocation&quot;: &quot;&quot;,
- &quot;qualifications&quot;: &quot;&quot;,
- &quot;seniority&quot;: &quot;&quot;,
- &quot;skillsRequired&quot;: &quot;&quot;,
- &quot;source&quot;: &quot;&quot;,
- &quot;duration&quot;: &quot;&quot;,
- &quot;opportunityName&quot;: &quot;&quot;,
- &quot;opportunityCloseDate&quot;: &quot;&quot;,
- &quot;opportunityStartDate&quot;: &quot;&quot;,
- &quot;opportunityAmount&quot;: &quot;&quot;,
- &quot;referralContact&quot;: &quot;&quot;,
- &quot;jobType&quot;: &quot;&quot;,
- &quot;budgetMentioned&quot;: &quot;&quot;,
- &quot;currencyMentioned&quot;: &quot;&quot;
- }
- }
- ]
-}
-
-STRICT RULES
-- No commentary or text outside the JSON braces.
-- No ``` or other code fences.
-- No null or &quot;unknown&quot; values; use &quot;&quot; if missing.
-- Keep numeric fields numeric only (e.g., &quot;5&quot; not &quot;5 years&quot;).
-- Keep all string values on a single line (no embedded line breaks).
-- If the Job Description does not contain a company name, set &quot;companyName&quot;: &quot;&quot;.
-- Do not use company names from email signatures, disclaimers, or sender details — only from the JD itself.
-- &quot;jobType&quot; must be either &quot;Remote&quot; or &quot;Onsite&quot; if mentioned in the Job Description. If not mentioned, set &quot;jobType&quot;: &quot;&quot;.
-- &quot;opportunityAmount&quot; must always be given in Lakhs (e.g., &quot;18&quot; for &quot;18 LPA&quot;). Do not convert to rupees.
-- If a range of experience is mentioned (e.g., &quot;3–5 years&quot;), set &quot;experience&quot; to the lower bound (e.g., &quot;3&quot;) and include the full phrase inside &quot;qualifications&quot;.
-- If the JD mentions a role title or position (e.g., “Salesforce Developer”, “Business Analyst”, “Project Manager”), set both:
- - &quot;title&quot; = that exact text, and
- - &quot;opportunityName&quot; = the same role title.
-- If the JD does not clearly specify a role title, infer it from the first line and use it as both &quot;title&quot; and &quot;opportunityName&quot;.
-- If the email body or job description text includes a signature or line such as “Thanks and Regards, &lt;Name&gt;”, capture the person’s full name and store it in &quot;referralContact&quot;.
- - If not found, set &quot;referralContact&quot;: &quot;&quot;.
- - Do not use names from email domains, earlier forwarded or replied messages, or job titles.
- - If multiple signatures appear, use only the latest sender.
-
-</content>
-        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
-        <inputs>
-            <apiName>Document</apiName>
-            <definition>SOBJECT://Service__c</definition>
-            <masterLabel>Document</masterLabel>
-            <referenceName>Input:Document</referenceName>
-            <required>true</required>
-        </inputs>
-        <isCitationEnabled>false</isCitationEnabled>
-        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
-        <status>Published</status>
-        <templateDataProviders>
-            <definition>invocable://getRelatedList</definition>
-            <parameters>
-                <definition>primitive://String</definition>
-                <isRequired>true</isRequired>
-                <parameterName>parentRecordId</parameterName>
-                <valueExpression>{!$Input:Document.Id}</valueExpression>
-            </parameters>
-            <parameters>
-                <definition>primitive://String</definition>
-                <isRequired>true</isRequired>
-                <parameterName>relatedListName</parameterName>
-                <valueExpression>CombinedAttachments</valueExpression>
-            </parameters>
-            <referenceName>RelatedList:Document.CombinedAttachments.Records</referenceName>
-        </templateDataProviders>
-        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_14</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

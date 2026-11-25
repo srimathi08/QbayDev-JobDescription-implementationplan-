@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <deploymentStatus>Deployed</deploymentStatus>
+    <description>Carries an error to Error_Log__c. Published immediately, so the log survives a rollback of the failing transaction.</description>
     <eventType>HighVolume</eventType>
     <label>Error Log Event</label>
     <pluralLabel>Error Log Events</pluralLabel>
     <publishBehavior>PublishImmediately</publishBehavior>
-    <description>Carries an error to Error_Log__c. Published immediately, so the log survives a rollback of the failing transaction.</description>
 </CustomObject>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</activeVersionIdentifier>
+    <description>Shared intake classifier for all channels: identifies one file as Resume, Job Description or Other from its content. Used by IntakeRouter.</description>
+    <developerName>Intake_Document_Classifier</developerName>
+    <masterLabel>Intake Document Classifier</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>File: {!$Input:File.Id}
+
+You are classifying ONE file that a recruitment team received (by email, WhatsApp or upload). Read the full content of the file and decide what it is.
+
+Definitions
+- Resume: a CV, resume or profile of one or more people (name, contact details, work experience, skills, projects, education). It can be short, a one-page profile, or have no education section.
+- Job Description: a hiring requirement for a role to be filled (role or position title, responsibilities, required skills or experience, client or company that is hiring, location, budget, duration or number of positions).
+- Other: anything else, for example an invoice, NDA, contract, proposal, offer letter, timesheet, form, logo, blank page or unreadable file.
+
+Rules
+- Decide only from the content of the file, never from its file name.
+- If the file is empty or cannot be read, answer Other.
+- If the file contains several documents, choose the main purpose of the file.
+
+Return ONLY this JSON object and nothing else (no code fences, no extra text):
+{&quot;documentType&quot;:&quot;Resume or Job Description or Other&quot;,&quot;confidence&quot;:0.0,&quot;reason&quot;:&quot;short reason in at most 15 words&quot;}</content>
+        <inputs>
+            <apiName>File</apiName>
+            <definition>SOBJECT://ContentDocument</definition>
+            <masterLabel>File</masterLabel>
+            <referenceName>Input:File</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

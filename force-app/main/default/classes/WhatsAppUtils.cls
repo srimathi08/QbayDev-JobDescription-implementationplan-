@@ -7,78 +7,79 @@
  *   - Downloading media (images or documents) using media ID from webhook payload
  * 
  *   Requires:
- *   - WhatsApp access token stored in `System.Label.WHATSAPPACCESSTOKEN`
+ *   - WhatsApp permanent access token stored in `System.Label.WhatsAppToken`
+ *   - WhatsApp phone number ID stored in `System.Label.WHATSAPP_PHONE_ID`
  * 
- * @author Afrose Ahamed
+ * @author Afrose Ahamed @updated Sathish
  */
-
 public class WhatsAppUtils {
+
     @future(callout=true)
     public static void sendTextMessage(String messageContent, String toPhone){
-        HttpRequest httpReq =new HttpRequest();
-        httpReq.setEndPoint('https://graph.facebook.com/v22.0/105666505595426/messages');
+        String token = System.Label.WhatsAppToken;
+        String phoneId = System.Label.WHATSAPP_PHONE_ID;
+
+        // Auto-fallback to Phone Number ID if the custom label contains the WABA Account ID (1013077571894313)
+        if (String.isBlank(phoneId) || phoneId.equals('1013077571894313')) {
+            phoneId = '105666505595426';
+        }
+
+        HttpRequest httpReq = new HttpRequest();
+        httpReq.setEndPoint('https://graph.facebook.com/v20.0/' + phoneId + '/messages');
         httpReq.setMethod('POST');
-        httpReq.setHeader('Content-Type','application/json');
-        httpReq.setHeader('Authorization', 'Bearer '+System.label.WHATSAPPACCESSTOKEN);
-        /*
-        String json=		'{'+
-		'    "messaging_product": "whatsapp",    '+
-		'    "recipient_type": "individual",'+
-		'    "to": "'+toPhone+'",'+
-		'    "type": "text",'+
-		'    "text": {'+
-		'        "preview_url": false,'+
-		'        "body": "'+messageContent+'"'+
-		'    }'+
-		'}';*/
+        httpReq.setHeader('Content-Type', 'application/json');
+        httpReq.setHeader('Authorization', 'Bearer ' + token);
         
         Map<String, Object> payload = new Map<String, Object>{
-        'messaging_product' => 'whatsapp',
-        'recipient_type' => 'individual',
-        'to' => toPhone,
-        'type' => 'text',
-        'text' => new Map<String, Object>{
-            'preview_url' => false,
-            'body' => messageContent
-        }
-    };
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => toPhone,
+            'type' => 'text',
+            'text' => new Map<String, Object>{
+                'preview_url' => false,
+                'body' => messageContent
+            }
+        };
 
-    String json = JSON.serialize(payload); // safe encoding
-
-        
+        String json = JSON.serialize(payload);
         httpReq.setBody(json);
-        Http http =new Http();
-        try{
-        HttpResponse response=http.send(httpreq);
-        System.debug('Whats sent request response'+response.getBody());    
-        }catch(System.calloutException ex){
-            system.debug('CalloutException'+ex.getMessage());
-        }catch(exception e){
-            system.debug('Exception'+e.getMessage());
+
+        Http http = new Http();
+        try {
+            HttpResponse response = http.send(httpReq);
+            System.debug('Whats sent request response: ' + response.getBody());    
+        } catch(System.CalloutException ex){
+            System.debug('CalloutException: ' + ex.getMessage());
+        } catch(Exception e){
+            System.debug('Exception: ' + e.getMessage());
         }
     }
     
-    public static blob getMedia(string mediaid){
-        System.debug('mediaid'+mediaid);
-        http httpObj=new Http();
-HttpRequest request =new HttpRequest();
-request.setEndpoint('https://graph.facebook.com/v22.0/'+mediaid);
-request.setMethod('GET');
-request.setHeader('Authorization','Bearer '+System.label.WHATSAPPACCESSTOKEN);
-Httpresponse response =httpObj.send(request);
-System.debug(response.getBody());
+    public static Blob getMedia(String mediaId){
+        System.debug('mediaid: ' + mediaId);
+        String token = System.Label.WhatsAppToken;
 
-Map<String, Object> result = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
-String downloadUrl = (String)result.get('url');        
-System.debug('Download Url'+downloadUrl);        
-Http http = new Http();
-HttpRequest requestmedia = new HttpRequest();
-requestmedia.setEndpoint(downloadUrl);
-requestmedia.setMethod('GET');
-requestmedia.setHeader('Authorization', 'Bearer '+System.label.WHATSAPPACCESSTOKEN);
-HttpResponse responsemedia = http.send(requestmedia);
-System.debug('Download Image Response: ' + responsemedia);
-System.debug('Response Body: ' + responsemedia.getBodyAsBlob());        
+        Http httpObj = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('https://graph.facebook.com/v20.0/' + mediaId);
+        request.setMethod('GET');
+        request.setHeader('Authorization', 'Bearer ' + token);
+        HttpResponse response = httpObj.send(request);
+        System.debug(response.getBody());
+
+        Map<String, Object> result = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+        String downloadUrl = (String)result.get('url');        
+        System.debug('Download Url: ' + downloadUrl);        
+
+        Http http = new Http();
+        HttpRequest requestmedia = new HttpRequest();
+        requestmedia.setEndpoint(downloadUrl);
+        requestmedia.setMethod('GET');
+        requestmedia.setHeader('Authorization', 'Bearer ' + token);
+        HttpResponse responsemedia = http.send(requestmedia);
+        System.debug('Download Image Response: ' + responsemedia);
+        System.debug('Response Body: ' + responsemedia.getBodyAsBlob());        
+
         return responsemedia.getBodyAsBlob();
     } 
 }

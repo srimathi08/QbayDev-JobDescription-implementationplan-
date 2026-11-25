@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Enabled__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When unchecked, incoming documents are still saved (Status New) but not processed until it is checked again.</description>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Enabled</label>
+    <type>Checkbox</type>
+</CustomField>
