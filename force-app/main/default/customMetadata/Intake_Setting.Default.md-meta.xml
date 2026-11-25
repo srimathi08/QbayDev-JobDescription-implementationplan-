@@ -19,6 +19,14 @@
         <value xsi:type="xsd:double">10.0</value>
     </values>
     <values>
+        <field>Max_Files_Per_Upload__c</field>
+        <value xsi:type="xsd:double">10.0</value>
+    </values>
+    <values>
+        <field>Max_Upload_File_MB__c</field>
+        <value xsi:type="xsd:double">10.0</value>
+    </values>
+    <values>
         <field>Max_Retries__c</field>
         <value xsi:type="xsd:double">2.0</value>
     </values>

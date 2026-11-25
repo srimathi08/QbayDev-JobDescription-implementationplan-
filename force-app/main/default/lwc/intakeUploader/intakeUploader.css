@@ -1,28 +1,12 @@
-.result {
-    background: #fff;
+.drop-zone {
+    border: 2px dashed #c9c9c9;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #fafaf9;
 }
-.inline-spinner {
-    position: relative;
-    display: inline-block;
-    width: 1.5rem;
-    height: 1rem;
-    margin-left: 0.5rem;
-}
-.badge-success {
-    background: #2e844a;
-    color: #fff;
-}
-.badge-warning {
-    background: #fe9339;
-    color: #fff;
-}
-.badge-error {
-    background: #ba0517;
-    color: #fff;
-}
-.badge-info {
-    background: #0176d3;
-    color: #fff;
+.rules {
+    list-style: disc;
+    padding-left: 1.25rem;
 }
 .slds-modal__container {
     max-width: 75rem;

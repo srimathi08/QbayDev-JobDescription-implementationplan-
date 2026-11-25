@@ -68,7 +68,7 @@ private class IntakeProcessorTest {
         Test.stopTest();
         Service__c s = load(svcId);
         Assert.areEqual('Rejected', s.Status__c);
-        Assert.isTrue(s.Status_Message__c.contains('Add Job Description'));
+        Assert.isTrue(s.Status_Message__c.contains('upload it as a Job Description'));
         Assert.areEqual(0, [SELECT COUNT() FROM Account]);
     }
 
@@ -274,17 +274,32 @@ private class IntakeProcessorTest {
     }
 
     @IsTest
-    static void nameOnlyResumeOfNewPersonExplainsMissingContact() {
+    static void nameOnlyResumeOfNewPersonNeedsReview() {
         Id svcId = IntakeTestData.newIntake('Resume', 'new.pdf', 'new-bytes');
         CandidateCreationPrompt.mockResponse = nameOnlyJson('Meena Raj');
         Test.startTest();
         System.enqueueJob(new IntakeProcessor(svcId));
         Test.stopTest();
         Service__c s = load(svcId);
-        Assert.areEqual('Rejected', s.Status__c);
+        Assert.areEqual('Needs Review', s.Status__c, s.Status_Message__c);
         Assert.isTrue(s.Status_Message__c.contains('Found the name "Meena Raj"'), s.Status_Message__c);
-        Assert.isTrue(s.Status_Message__c.contains('inside an image or icon'), s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('click Continue'), s.Status_Message__c);
+        Assert.isNotNull(s.AI_Response__c, 'the AI result is kept for the recruiter');
         Assert.areEqual(0, [SELECT COUNT() FROM Account]);
+    }
+
+    @IsTest
+    static void nameOnlyResumeByEmailIsStillRejected() {
+        Id svcId = IntakeTestData.newIntake('Resume', 'new.pdf', 'new-bytes-email');
+        Service__c e = new Service__c(Id = svcId, Source_Channel__c = 'Email');
+        update e;
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Meena Raj');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Rejected', s.Status__c, 'email intakes keep the old behaviour');
+        Assert.isTrue(s.Status_Message__c.contains('inside an image or icon'), s.Status_Message__c);
     }
 
     @IsTest

@@ -35,6 +35,11 @@
                 <label>Duplicate</label>
             </value>
             <value>
+                <fullName>Needs Review</fullName>
+                <default>false</default>
+                <label>Needs Review</label>
+            </value>
+            <value>
                 <fullName>Rejected</fullName>
                 <default>false</default>
                 <label>Rejected</label>

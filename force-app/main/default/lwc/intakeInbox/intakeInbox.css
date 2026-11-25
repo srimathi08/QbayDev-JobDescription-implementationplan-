@@ -1,0 +1,9 @@
+.counts span {
+    display: inline-block;
+    margin: 0 0.5rem 0.25rem 0;
+    padding: 0.1rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    background: #f3f3f3;
+}
+.counts .needs { background: #e5f1fb; color: #014486; font-weight: 600; }

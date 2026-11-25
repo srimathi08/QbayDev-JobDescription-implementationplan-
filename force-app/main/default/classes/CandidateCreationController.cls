@@ -65,7 +65,7 @@ public without sharing class CandidateCreationController {
 
         String docType = AiJson.documentType(rawJson);
         if (strict && docType == 'Job Description') {
-            throw new IntakeProcessor.RejectException('This file looks like a Job Description, not a resume. Please upload it in the Add Job Description tab. Nothing was created.');
+            throw new IntakeProcessor.RejectException('This file looks like a Job Description, not a resume. Please upload it as a Job Description, or choose Auto-detect. Nothing was created.');
         }
         if (strict && docType == 'Other') {
             throw new IntakeProcessor.RejectException('This file does not look like a resume. Nothing was created.');
@@ -96,7 +96,9 @@ public without sharing class CandidateCreationController {
                     String name = nameOnly[0].name;
                     List<Account> same = existingCandidatesByName(name);
                     if (!same.isEmpty()) throw duplicateByName(name, same);
-                    throw new IntakeProcessor.RejectException(missingContactMessage(name));
+                    IntakeProcessor.NeedsReviewException nr = new IntakeProcessor.NeedsReviewException(missingContactMessage(name));
+                    nr.candidateName = name;
+                    throw nr;
                 }
                 throw new IntakeProcessor.RejectException('Could not find the candidate\'s name and an email, phone number or LinkedIn profile in this file. Nothing was created.');
             }
@@ -294,6 +296,32 @@ public without sharing class CandidateCreationController {
         return d;
     }
 
+    /**
+     * Adds contact details typed by the recruiter (Needs Review) to the first resume of the AI JSON,
+     * so the normal matching and save can run without a new AI call.
+     */
+    public static String withContact(String rawJson, String email, String phone, String linkedIn) {
+        Map<String, Object> parsed = AiJson.parse(rawJson);
+        if (parsed == null) throw new IntakeProcessor.RejectException('The saved AI response for this file could not be read. Please upload the file again.');
+        List<Map<String, Object>> resumes = AiJson.objList(parsed, 'resumes');
+        Map<String, Object> acc;
+        if (!resumes.isEmpty()) {
+            acc = AiJson.obj(resumes[0], 'account');
+            if (acc == null) {
+                acc = new Map<String, Object>();
+                resumes[0].put('account', acc);
+            }
+            parsed.put('resumes', resumes);
+        } else {
+            acc = AiJson.obj(parsed, 'account');
+            if (acc == null) throw new IntakeProcessor.RejectException('No candidate was found in the saved AI response. Please upload the file again.');
+        }
+        if (String.isNotBlank(email)) acc.put('email', email.trim());
+        if (String.isNotBlank(phone)) acc.put('phone', phone.trim());
+        if (String.isNotBlank(linkedIn)) acc.put('linkedin', linkedIn.trim());
+        return JSON.serialize(parsed);
+    }
+
     @TestVisible
     private static String missingContactMessage(String name) {
         return 'Found the name "' + name + '" but no email, phone number or LinkedIn profile in this file. '
@@ -452,7 +480,7 @@ public without sharing class CandidateCreationController {
         return t;
     }
 
-    private static void linkFile(String contentDocumentId, Set<Id> accountIds) {
+    public static void linkFile(String contentDocumentId, Set<Id> accountIds) {
         if (String.isBlank(contentDocumentId) || accountIds.isEmpty()) return;
         Set<Id> already = new Set<Id>();
         for (ContentDocumentLink l : [

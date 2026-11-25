@@ -47,7 +47,7 @@ public without sharing class JobDescriptionCreationController {
         }
         String docType = AiJson.documentType(rawJson);
         if (strict && docType == 'Resume') {
-            throw new IntakeProcessor.RejectException('This file looks like a resume, not a Job Description. Please upload it in the Add Candidate tab. Nothing was created.');
+            throw new IntakeProcessor.RejectException('This file looks like a resume, not a Job Description. Please upload it as a Resume, or choose Auto-detect. Nothing was created.');
         }
         if (strict && docType == 'Other') {
             throw new IntakeProcessor.RejectException('This file does not look like a Job Description. Nothing was created.');

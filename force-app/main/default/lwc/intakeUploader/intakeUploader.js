@@ -1,21 +1,17 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import submitFile from '@salesforce/apex/IntakeController.submitFile';
+import getUploadSettings from '@salesforce/apex/IntakeController.getUploadSettings';
+import submitUploadedFiles from '@salesforce/apex/IntakeController.submitUploadedFiles';
 import getStatus from '@salesforce/apex/IntakeController.getStatus';
 import getMyUploadsToday from '@salesforce/apex/IntakeController.getMyUploadsToday';
 
-const MAX_BYTES = 3 * 1024 * 1024;
-const MAX_FILES = 10;
-const ALLOWED = ['pdf', 'docx'];
-const POLL_MS = 4000;
-const POLL_LIMIT_MS = 5 * 60 * 1000;
-const FINAL = ['Completed', 'Duplicate', 'Rejected', 'Failed'];
-
-const BADGE = {
-    Completed: 'badge-success',
-    Duplicate: 'badge-warning',
-    Rejected: 'badge-error',
-    Failed: 'badge-error'
+const POLL_MS = 5000;
+const POLL_LIMIT_MS = 20 * 60 * 1000;
+const FINAL = ['Completed', 'Duplicate', 'Rejected', 'Failed', 'Needs Review'];
+const HINTS = {
+    Auto: 'Auto-detect: the AI decides whether each file is a resume or a job description. You can mix both in one upload.',
+    Resume: 'Every file is treated as a resume. A job description uploaded here is rejected.',
+    'Job Description': 'Every file is treated as a job description. A resume uploaded here is rejected.'
 };
 
 function newKey() {
@@ -29,62 +25,65 @@ function newKey() {
     return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
 }
 
-function extensionOf(name) {
-    const i = name.lastIndexOf('.');
-    return i < 0 ? '' : name.slice(i + 1).toLowerCase();
-}
-
+/**
+ * Qbay Home uploader. Files go through the standard file upload (no 3 MB limit), then one intake
+ * record per file is created and the files are read one after another.
+ * requested-type: 'Auto' | 'Resume' | 'Job Description'; show-type-switch lets the recruiter choose.
+ */
 export default class IntakeUploader extends LightningElement {
-    @api requestedType = 'Resume'; // 'Resume' | 'Job Description'
+    @api requestedType = 'Resume';
+    @api showTypeSwitch = false;
+    @api showTodayButton = false;
     @api cardTitle = 'Upload';
     @api iconName = 'custom:custom14';
-    @api fileLabel = 'Attachment';
+    @api fileLabel = 'Upload files';
 
-    maxFiles = MAX_FILES;
-    selectedFiles = [];
+    selectedType;
+    maxFiles = 10;
+    maxFileMb = 10;
+    userId;
+    ready = false;
     results = [];
     isSubmitting = false;
-    progressText = '';
-    showInput = true;
+    acceptedFormats = ['.pdf', '.docx'];
 
     showModal = false;
     todayLoading = false;
     todayRows = [];
-    todayColumns = [
-        { label: 'File', fieldName: 'fileName', type: 'text' },
-        { label: 'Status', fieldName: 'status', type: 'text', initialWidth: 110 },
-        {
-            label: 'Created record',
-            fieldName: 'recordUrl',
-            type: 'url',
-            typeAttributes: { label: { fieldName: 'recordName' }, target: '_blank' }
-        },
-        { label: 'Details', fieldName: 'message', type: 'text', wrapText: true },
-        {
-            label: 'Uploaded',
-            fieldName: 'createdDate',
-            type: 'date',
-            initialWidth: 150,
-            typeAttributes: { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }
-        }
-    ];
 
     pollTimer;
     pollStarted;
 
+    typeOptions = [
+        { label: 'Auto-detect', value: 'Auto' },
+        { label: 'Resume', value: 'Resume' },
+        { label: 'Job Description', value: 'Job Description' }
+    ];
+
+    connectedCallback() {
+        this.selectedType = this.requestedType || 'Resume';
+    }
+
+    disconnectedCallback() {
+        this.stopPolling();
+    }
+
+    @wire(getUploadSettings)
+    wiredSettings({ data, error }) {
+        if (data) {
+            this.maxFiles = data.maxFiles;
+            this.maxFileMb = data.maxFileMb;
+            this.userId = data.userId;
+            this.ready = true;
+        } else if (error) {
+            this.toast('Error', 'Could not load the upload settings: ' + this.errorText(error), 'error');
+        }
+    }
+
     // ---------------- getters ----------------
 
-    get hasSelected() {
-        return this.selectedFiles.length > 0;
-    }
-    get validFiles() {
-        return this.selectedFiles.filter((f) => !f.error);
-    }
-    get isSubmitDisabled() {
-        return this.isSubmitting || this.validFiles.length === 0;
-    }
-    get submitLabel() {
-        return this.isSubmitting ? 'Submitting...' : 'Submit';
+    get typeHint() {
+        return HINTS[this.selectedType];
     }
     get hasResults() {
         return this.results.length > 0;
@@ -92,114 +91,63 @@ export default class IntakeUploader extends LightningElement {
     get hasToday() {
         return this.todayRows.length > 0;
     }
-
-    disconnectedCallback() {
-        this.stopPolling();
+    get progressSummary() {
+        const total = this.results.length;
+        const done = this.results.filter((r) => r.isFinal).length;
+        return done === total ? `${total} of ${total} finished` : `${done} of ${total} finished, reading one at a time`;
     }
 
-    // ---------------- file selection ----------------
-
-    handleFilesSelected(event) {
-        const files = [...(event.target.files || [])];
-        let count = 0;
-        this.selectedFiles = files.map((file, i) => {
-            let error = null;
-            const ext = extensionOf(file.name);
-            if (!ALLOWED.includes(ext)) {
-                error = 'Not supported. Use PDF or DOCX.';
-            } else if (file.size === 0) {
-                error = 'The file is empty.';
-            } else if (file.size > MAX_BYTES) {
-                error = 'Larger than 3 MB.';
-            } else if (count >= MAX_FILES) {
-                error = `Only ${MAX_FILES} files per upload.`;
-            } else {
-                count++;
-            }
-            return {
-                key: `${i}-${file.name}`,
-                name: file.name,
-                file,
-                error,
-                icon: error ? 'utility:error' : 'doctype:attachment'
-            };
-        });
+    handleTypeChange(event) {
+        this.selectedType = event.detail.value;
     }
 
-    readAsBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result).split(',')[1]);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-        });
-    }
+    // ---------------- upload ----------------
 
-    // ---------------- submit ----------------
-
-    async handleSubmit() {
-        // Lock first, synchronously, so a second click cannot start a second run
-        if (this.isSubmitting) {
-            return;
-        }
-        const files = this.validFiles;
+    async handleUploadFinished(event) {
+        const files = event.detail.files || [];
         if (files.length === 0) {
-            this.toast('Error', 'Please choose at least one PDF or DOCX file.', 'error');
             return;
         }
         this.isSubmitting = true;
-        const batchKey = newKey();
-        const newRows = [];
-
         try {
-            for (let i = 0; i < files.length; i++) {
-                const f = files[i];
-                this.progressText = `${i + 1} of ${files.length}`;
-                try {
-                    const base64 = await this.readAsBase64(f.file);
-                    const st = await submitFile({
-                        requestKey: `${batchKey}-${i}`,
-                        requestedType: this.requestedType,
-                        fileName: f.name,
-                        base64
-                    });
-                    newRows.push(this.toRow(st));
-                } catch (e) {
-                    newRows.push(
-                        this.toRow({
-                            serviceId: null,
-                            fileName: f.name,
-                            status: 'Failed',
-                            message: this.errorText(e),
-                            isFinal: true
-                        })
-                    );
-                }
+            const rows = await submitUploadedFiles({
+                contentDocumentIds: files.map((f) => f.documentId),
+                requestedType: this.selectedType,
+                batchKey: newKey()
+            });
+            this.results = [...rows, ...this.results];
+            const queued = rows.filter((r) => !r.isFinal).length;
+            const refused = rows.length - queued;
+            if (queued > 0) {
+                this.toast(
+                    'Uploaded',
+                    `${queued} file(s) are being read one after another.` + (refused ? ` ${refused} file(s) were not accepted; see below.` : ''),
+                    'success'
+                );
+                this.startPolling();
+            } else {
+                this.toast('Not accepted', 'None of the files could be accepted. See the reasons below.', 'warning');
             }
+            this.dispatchEvent(new CustomEvent('uploaded'));
+        } catch (e) {
+            this.toast('Upload failed', this.errorText(e), 'error');
         } finally {
-            this.results = [...newRows, ...this.results];
-            this.clearSelection();
             this.isSubmitting = false;
-            this.progressText = '';
-        }
-
-        const queued = newRows.filter((r) => !r.isFinal).length;
-        if (queued > 0) {
-            this.toast('Uploaded', `${queued} file(s) uploaded. Processing has started; results will appear below.`, 'success');
-            this.startPolling();
-        } else {
-            this.toast('Upload finished', 'See the results below.', 'info');
         }
     }
 
-    clearSelection() {
-        this.selectedFiles = [];
-        // re-render the file input so the same file can be chosen again
-        this.showInput = false;
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        Promise.resolve().then(() => {
-            this.showInput = true;
-        });
+    clearResults() {
+        this.stopPolling();
+        this.results = [];
+    }
+
+    handleRowChange(event) {
+        const updated = event.detail;
+        this.results = this.results.map((r) => (r.serviceId === updated.serviceId ? updated : r));
+        if (!updated.isFinal) {
+            this.startPolling();
+        }
+        this.dispatchEvent(new CustomEvent('uploaded'));
     }
 
     // ---------------- status polling ----------------
@@ -219,61 +167,40 @@ export default class IntakeUploader extends LightningElement {
     }
 
     async refreshStatus() {
-        const pending = this.results.filter((r) => !r.isFinal && r.serviceId).map((r) => r.serviceId);
+        const pending = this.results.filter((r) => !r.isFinal).map((r) => r.serviceId);
         if (pending.length === 0) {
             this.stopPolling();
             return;
         }
         if (Date.now() - this.pollStarted > POLL_LIMIT_MS) {
             this.stopPolling();
-            this.results = this.results.map((r) =>
-                r.isFinal ? r : { ...r, message: 'Still processing. Check "View Today Uploads" in a few minutes.' }
-            );
             return;
         }
         try {
             const statuses = await getStatus({ serviceIds: pending });
             const byId = new Map(statuses.map((s) => [s.serviceId, s]));
-            let finishedNow = [];
+            const finishedNow = [];
             this.results = this.results.map((r) => {
                 const s = byId.get(r.serviceId);
                 if (!s) {
                     return r;
                 }
-                const row = this.toRow(s, r.key);
-                if (row.isFinal && !r.isFinal) {
-                    finishedNow.push(row);
+                if (FINAL.includes(s.status) && !r.isFinal) {
+                    finishedNow.push(s);
                 }
-                return row;
+                return s;
             });
             finishedNow.forEach((r) => {
-                const variant = r.status === 'Completed' ? 'success' : r.status === 'Duplicate' ? 'warning' : 'error';
+                const variant =
+                    r.status === 'Completed' ? 'success' : r.status === 'Duplicate' || r.status === 'Needs Review' ? 'warning' : 'error';
                 this.toast(`${r.fileName}: ${r.status}`, r.message || '', variant);
             });
+            if (finishedNow.length > 0) {
+                this.dispatchEvent(new CustomEvent('uploaded'));
+            }
         } catch (e) {
             // keep polling; a single failed refresh is not fatal
         }
-    }
-
-    toRow(s, existingKey) {
-        const isFinal = s.isFinal === true || FINAL.includes(s.status);
-        const isResume = this.requestedType === 'Resume';
-        return {
-            key: existingKey || s.serviceId || newKey(),
-            serviceId: s.serviceId,
-            fileName: s.fileName,
-            status: s.status || 'Queued',
-            message: s.message,
-            isFinal,
-            isRunning: !isFinal,
-            badgeClass: BADGE[s.status] || 'badge-info',
-            accountUrl: s.accountId ? `/${s.accountId}` : null,
-            accountLabel: s.accountId ? `${isResume ? 'Candidate' : 'Client'}: ${s.accountName}` : null,
-            opportunityUrl: s.opportunityId ? `/${s.opportunityId}` : null,
-            opportunityName: s.opportunityName,
-            jobDescriptionUrl: s.jobDescriptionId ? `/${s.jobDescriptionId}` : null,
-            jobDescriptionName: s.jobDescriptionName
-        };
     }
 
     // ---------------- today modal ----------------
@@ -282,25 +209,17 @@ export default class IntakeUploader extends LightningElement {
         this.showModal = true;
         this.todayLoading = true;
         try {
-            const rows = await getMyUploadsToday({ requestedType: this.requestedType });
-            this.todayRows = rows.map((s) => {
-                const recId = s.opportunityId || s.accountId || s.jobDescriptionId;
-                const recName = s.opportunityId ? s.opportunityName : s.accountId ? s.accountName : s.jobDescriptionName;
-                return {
-                    key: s.serviceId,
-                    fileName: s.fileName,
-                    status: s.status,
-                    message: s.message,
-                    createdDate: s.createdDate,
-                    recordUrl: recId ? `/${recId}` : null,
-                    recordName: recName
-                };
-            });
+            this.todayRows = await getMyUploadsToday({ requestedType: this.requestedType });
         } catch (e) {
-            this.toast('Error', 'Could not load today\'s uploads: ' + this.errorText(e), 'error');
+            this.toast('Error', "Could not load today's uploads: " + this.errorText(e), 'error');
         } finally {
             this.todayLoading = false;
         }
+    }
+
+    handleTodayChange(event) {
+        const updated = event.detail;
+        this.todayRows = this.todayRows.map((r) => (r.serviceId === updated.serviceId ? updated : r));
     }
 
     closeModal() {
