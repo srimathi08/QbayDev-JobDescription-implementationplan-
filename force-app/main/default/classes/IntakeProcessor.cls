@@ -126,6 +126,37 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
               AND Id != :svc.Id
             ORDER BY CreatedDate ASC LIMIT 1
         ];
+        if (!prev.isEmpty()) return prev[0];
+        return findLegacySameFile(svc);
+    }
+
+    /**
+     * Uploads made before the v1 intake (24-11-2026) have no Requested_Type__c or Status__c.
+     * They count as the same upload when they created a record of the same kind.
+     */
+    private static Service__c findLegacySameFile(Service__c svc) {
+        List<Service__c> prev;
+        if (svc.Requested_Type__c == IntakeController.TYPE_JD) {
+            prev = [
+                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c
+                FROM Service__c
+                WHERE File_Checksum__c = :svc.File_Checksum__c
+                  AND Requested_Type__c = null AND Job_Description__c != null
+                  AND Id != :svc.Id
+                ORDER BY CreatedDate ASC LIMIT 1
+            ];
+        } else {
+            Id candidateRt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+            prev = [
+                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c
+                FROM Service__c
+                WHERE File_Checksum__c = :svc.File_Checksum__c
+                  AND Requested_Type__c = null AND Account__c != null
+                  AND Account__r.RecordTypeId = :candidateRt
+                  AND Id != :svc.Id
+                ORDER BY CreatedDate ASC LIMIT 1
+            ];
+        }
         return prev.isEmpty() ? null : prev[0];
     }
 

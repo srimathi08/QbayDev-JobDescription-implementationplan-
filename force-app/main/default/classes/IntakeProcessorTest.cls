@@ -287,4 +287,33 @@ private class IntakeProcessorTest {
         Assert.areEqual(0, [SELECT COUNT() FROM Account]);
     }
 
+    @IsTest
+    static void sameFileAsLegacyUploadIsDuplicate() {
+        Account existing = newCandidate('Legacy Person');
+        Id second = IntakeTestData.newIntake('Resume', 'legacy-again.pdf', 'legacy-bytes');
+        String checksum = [SELECT File_Checksum__c FROM Service__c WHERE Id = :second].File_Checksum__c;
+        // An upload made before v1: no Requested_Type__c, no Status__c, linked to the candidate it created
+        insert new Service__c(Name = 'legacy.pdf', Account__c = existing.Id, File_Checksum__c = checksum,
+            Request_Key__c = 'legacy-' + Crypto.getRandomInteger());
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(second));
+        Test.stopTest();
+        Service__c s = load(second);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.startsWith('This exact file was already uploaded'), s.Status_Message__c);
+        Assert.areEqual(existing.Id, s.Account__c);
+    }
+
+    @IsTest
+    static void legacyUploadOfJdDoesNotBlockResume() {
+        Id second = IntakeTestData.newIntake('Resume', 'r.pdf', 'jd-legacy-bytes');
+        String checksum = [SELECT File_Checksum__c FROM Service__c WHERE Id = :second].File_Checksum__c;
+        insert new Service__c(Name = 'legacy-jd.pdf', File_Checksum__c = checksum,
+            Request_Key__c = 'legacy-' + Crypto.getRandomInteger());
+        CandidateCreationPrompt.mockResponse = IntakeTestData.resumeJson('Anu Mohan', 'anu@example.com', null);
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(second));
+        Test.stopTest();
+        Assert.areEqual('Completed', load(second).Status__c, 'a legacy row that created nothing is not a duplicate');
+    }
 }
