@@ -273,4 +273,18 @@ private class IntakeProcessorTest {
         Assert.isNotNull(s.Account__c);
     }
 
+    @IsTest
+    static void nameOnlyResumeOfNewPersonExplainsMissingContact() {
+        Id svcId = IntakeTestData.newIntake('Resume', 'new.pdf', 'new-bytes');
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Meena Raj');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Rejected', s.Status__c);
+        Assert.isTrue(s.Status_Message__c.contains('Found the name "Meena Raj"'), s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('inside an image or icon'), s.Status_Message__c);
+        Assert.areEqual(0, [SELECT COUNT() FROM Account]);
+    }
+
 }

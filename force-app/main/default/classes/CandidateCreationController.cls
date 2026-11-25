@@ -96,6 +96,7 @@ public without sharing class CandidateCreationController {
                     String name = nameOnly[0].name;
                     List<Account> same = existingCandidatesByName(name);
                     if (!same.isEmpty()) throw duplicateByName(name, same);
+                    throw new IntakeProcessor.RejectException(missingContactMessage(name));
                 }
                 throw new IntakeProcessor.RejectException('Could not find the candidate\'s name and an email, phone number or LinkedIn profile in this file. Nothing was created.');
             }
@@ -291,6 +292,12 @@ public without sharing class CandidateCreationController {
         IntakeProcessor.DuplicateException d = new IntakeProcessor.DuplicateException(msg);
         d.accountId = first.Id;
         return d;
+    }
+
+    @TestVisible
+    private static String missingContactMessage(String name) {
+        return 'Found the name "' + name + '" but no email, phone number or LinkedIn profile in this file. '
+            + 'If the contact details are inside an image or icon, add them as plain text and upload again. Nothing was created.';
     }
 
     // =====================================================================
