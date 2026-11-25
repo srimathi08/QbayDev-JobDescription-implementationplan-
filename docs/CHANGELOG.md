@@ -18,6 +18,7 @@ pushed commit. Baseline: full sandbox backup, commit e2840ba. Release v1 merged 
 | 9 | 553cb18 | Permission set + retest samples | Nobody could see the new fields | permission set NOT deployed (owner decision) |
 | 10 | fcd1bee | System Administrator profile read/edit on the 15 fields | Owner decision: profile only, no permission set | 0Afe1000002PyZJCA0 |
 | 11 | "Org metadata sync 25-11-2026 (before enhancements and bug fixes)" | Full org retrieve (manifest/full-backup.xml regenerated): v1 Intake classes/LWC/fields/prompts as deployed, new Intake_Setting__mdt, IntakeRouter, ServiceIntakeTrigger, org edits by others to parseEmail, parseEmailTest, IntakeRouter, WhatsAppUtils; profiles field perms. CustomLabels excluded (contains WhatsApp access tokens) | Org metadata snapshot before new work | n/a (retrieve only) |
+| 12 | (fix 1, 25-11-2026) | Resume with a name but no contact details: look up existing Candidates by name first; status Duplicate, linked to the existing Account (CandidateCreationController, IntakeProcessor.DuplicateException) | D-012 / T-029: re-upload of an existing candidate showed "Could not find the candidate's name and an email..." instead of a duplicate message | pending |
 
 ## Open
 - Project names end in " - None": flow `Project_Experience_Name_Update` appends TEXT(Project_Phase__c), default "None". Waiting for the owner's choice.

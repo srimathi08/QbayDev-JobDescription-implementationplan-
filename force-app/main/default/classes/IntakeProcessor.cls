@@ -14,6 +14,11 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
     /** Thrown for business rejections (wrong file type, not enough data). Not logged as errors. */
     public class RejectException extends Exception {}
 
+    /** The candidate already exists: nothing is created and the upload is linked to that Account. */
+    public class DuplicateException extends Exception {
+        public Id accountId;
+    }
+
     public void execute(QueueableContext ctx) {
         System.attachFinalizer(new IntakeFinalizer(serviceId));
 
@@ -71,6 +76,11 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                 svc.Account__c = r.primaryAccountId;
                 finish(svc, 'Completed', r.summary, rawJson);
             }
+        } catch (DuplicateException dup) {
+            Database.rollback(sp);
+            svc.Detected_Type__c = detectedTypeFrom(rawJson);
+            svc.Account__c = dup.accountId;
+            finish(svc, 'Duplicate', dup.getMessage(), rawJson);
         } catch (RejectException rej) {
             Database.rollback(sp);
             svc.Detected_Type__c = detectedTypeFrom(rawJson);

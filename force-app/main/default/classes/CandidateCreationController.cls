@@ -78,16 +78,27 @@ public without sharing class CandidateCreationController {
 
         // ---------- 1. Build candidate views, apply the minimum-data rule ----------
         List<Candidate> cands = new List<Candidate>();
+        List<Candidate> nameOnly = new List<Candidate>();
         for (Map<String, Object> r : resumes) {
             Candidate c = new Candidate(r, fileTitle);
             if (!c.hasMinimumData()) {
+                if (String.isNotBlank(c.name)) nameOnly.add(c);
                 res.skipped.add(String.isBlank(c.name) ? 'a resume with no name' : c.name);
                 continue;
             }
             cands.add(c);
         }
         if (cands.isEmpty()) {
-            if (strict) throw new IntakeProcessor.RejectException('Could not find the candidate\'s name and an email, phone number or LinkedIn profile in this file. Nothing was created.');
+            if (strict) {
+                if (resumes.size() == 1 && nameOnly.size() == 1) {
+                    // The file has a name but no contact details: the person may already exist,
+                    // so report the duplicate instead of the missing-data message.
+                    String name = nameOnly[0].name;
+                    List<Account> same = existingCandidatesByName(name);
+                    if (!same.isEmpty()) throw duplicateByName(name, same);
+                }
+                throw new IntakeProcessor.RejectException('Could not find the candidate\'s name and an email, phone number or LinkedIn profile in this file. Nothing was created.');
+            }
             res.summary = 'No candidate with enough data';
             return res;
         }
@@ -250,6 +261,36 @@ public without sharing class CandidateCreationController {
         if (!res.skipped.isEmpty()) parts.add('Skipped: ' + String.join(res.skipped, '; '));
         res.summary = String.join(parts, '. ') + '.';
         return res;
+    }
+
+    // ---------- duplicate by name (file has a name but no contact details) ----------
+
+    @TestVisible
+    private static List<Account> existingCandidatesByName(String name) {
+        if (String.isBlank(name)) return new List<Account>();
+        return [
+            SELECT Id, Name, CreatedDate, CreatedBy.Name
+            FROM Account
+            WHERE RecordTypeId = :candidateRtId AND Name = :name
+            ORDER BY CreatedDate ASC
+            LIMIT 5
+        ];
+    }
+
+    @TestVisible
+    private static IntakeProcessor.DuplicateException duplicateByName(String name, List<Account> same) {
+        Account first = same[0];
+        String msg;
+        if (same.size() == 1) {
+            msg = 'Duplicate: a candidate named ' + first.Name + ' already exists (created on '
+                + first.CreatedDate.format('dd MMM yyyy') + ' by ' + first.CreatedBy.Name + '). Nothing was created.';
+        } else {
+            msg = 'Duplicate: ' + same.size() + (same.size() == 5 ? ' or more' : '') + ' candidates named ' + name
+                + ' already exist. The oldest one is linked to this upload. Nothing was created.';
+        }
+        IntakeProcessor.DuplicateException d = new IntakeProcessor.DuplicateException(msg);
+        d.accountId = first.Id;
+        return d;
     }
 
     // =====================================================================

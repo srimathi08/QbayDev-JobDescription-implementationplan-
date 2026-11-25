@@ -224,4 +224,53 @@ private class IntakeProcessorTest {
         Assert.areEqual(2, [SELECT COUNT() FROM Skill__c]);
         Assert.areEqual(2, [SELECT COUNT() FROM Employee_Skill__c WHERE Employee_Name__c = :a.Id]);
     }
+
+    // ---------- 25-11-2026: duplicate message for resumes without contact details ----------
+
+    private static String nameOnlyJson(String name) {
+        return '{"documentType":"Resume","resumes":[{"account":{"name":"' + name
+            + '","email":"","phone":"","linkedin":"","summary":"Business Analyst"}}]}';
+    }
+
+    private static Account newCandidate(String name) {
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        Account a = new Account(Name = name, RecordTypeId = rt);
+        Database.DMLOptions opts = new Database.DMLOptions();
+        opts.DuplicateRuleHeader.allowSave = true;
+        Database.insert(a, opts);
+        return a;
+    }
+
+    @IsTest
+    static void nameOnlyResumeOfExistingCandidateIsDuplicate() {
+        Account existing = newCandidate('Rahul Venugopal');
+        Id svcId = IntakeTestData.newIntake('Resume', 'rahul.pdf', 'rahul-bytes');
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Rahul Venugopal');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.startsWith('Duplicate: a candidate named Rahul Venugopal already exists'), s.Status_Message__c);
+        Assert.areEqual(existing.Id, s.Account__c, 'the upload is linked to the existing candidate');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account]);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact]);
+    }
+
+    @IsTest
+    static void nameOnlyResumeWithSeveralSameNamesIsDuplicate() {
+        newCandidate('Rahul Venugopal');
+        newCandidate('Rahul Venugopal');
+        Id svcId = IntakeTestData.newIntake('Resume', 'rahul.pdf', 'rahul-bytes-2');
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Rahul Venugopal');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('2 candidates named Rahul Venugopal'), s.Status_Message__c);
+        Assert.areEqual(2, [SELECT COUNT() FROM Account]);
+        Assert.isNotNull(s.Account__c);
+    }
+
 }
