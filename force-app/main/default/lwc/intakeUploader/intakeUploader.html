@@ -22,16 +22,48 @@
                         accept={acceptedFormats}
                         record-id={userId}
                         multiple
-                        disabled={isSubmitting}
+                        disabled={isBusy}
                         onuploadfinished={handleUploadFinished}>
                     </lightning-file-upload>
                     <ul class="slds-text-body_small slds-text-color_weak slds-m-top_x-small rules">
                         <li>PDF or DOCX, up to {maxFileMb} MB each, up to {maxFiles} files per upload.</li>
                         <li>Phone and email must be text in the file, not inside an image or icon.</li>
                         <li>Files of one upload are read one after another (about 20 to 60 seconds each), so each result appears in turn.</li>
-                        <li>Extra files over the limit, and files that are too large, are refused after the upload with a message.</li>
+                        <li>After you add files, check the list below: change the type or remove a file, then click Start processing.</li>
                     </ul>
                 </div>
+
+                <!-- Review step: nothing is processed and no AI call is made until "Start processing" -->
+                <template lwc:if={hasStaged}>
+                    <div class="review slds-m-top_small">
+                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
+                            <h3 class="slds-text-heading_small">Files to process ({stagedCount})</h3>
+                            <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">Not processed yet. Remove any file you do not want.</span>
+                            <lightning-button variant="base" label="Remove all" class="slds-col_bump-left"
+                                disabled={isBusy} onclick={handleRemoveAll}></lightning-button>
+                        </div>
+                        <template for:each={stagedView} for:item="f">
+                            <div key={f.documentId} class="review-row slds-grid slds-grid_vertical-align-center">
+                                <lightning-icon icon-name={f.icon} size="small" alternative-text={f.extLabel} class="slds-m-right_small"></lightning-icon>
+                                <div class="slds-col slds-truncate review-name">
+                                    <div class="slds-truncate" title={f.fileName}>{f.fileName}</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">{f.extLabel} · {f.sizeLabel}</div>
+                                </div>
+                                <span class={f.badgeClass}>{f.checkLabel}</span>
+                                <lightning-combobox class="review-type slds-m-horizontal_small" variant="label-hidden"
+                                    label="Document type" options={typeOptions} value={f.type} data-id={f.documentId}
+                                    disabled={f.typeDisabled} onchange={handleFileTypeChange}></lightning-combobox>
+                                <lightning-button-icon icon-name="utility:close" variant="border-filled" size="small"
+                                    alternative-text="Remove this file" title="Remove this file" data-id={f.documentId}
+                                    disabled={isBusy} onclick={handleRemoveFile}></lightning-button-icon>
+                            </div>
+                        </template>
+                        <div class="slds-m-top_small">
+                            <lightning-button variant="brand" label={startLabel} disabled={startDisabled}
+                                onclick={handleStartProcessing}></lightning-button>
+                        </div>
+                    </div>
+                </template>
             </template>
             <template lwc:else>
                 <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
@@ -39,8 +71,8 @@
         </div>
 
         <div class="slds-m-around_medium">
-            <template lwc:if={isSubmitting}>
-                <span class="slds-text-color_weak">Creating upload records...</span>
+            <template lwc:if={isBusy}>
+                <span class="slds-text-color_weak">{busyText}</span>
             </template>
             <template lwc:if={showTodayButton}>
                 <lightning-button variant="neutral" label="View Today Uploads" onclick={openTodayModal}></lightning-button>
@@ -53,11 +85,16 @@
                 <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
                     <h3 class="slds-text-heading_small">Upload results</h3>
                     <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{progressSummary}</span>
-                    <lightning-button-icon icon-name="utility:close" variant="bare" alternative-text="Clear results"
-                        title="Clear results" class="slds-col_bump-left" onclick={clearResults}></lightning-button-icon>
+                    <lightning-button variant="base" label="Hide all results" title="Hides the list only. Nothing is deleted; results stay in the Intake inbox."
+                        class="slds-col_bump-left" onclick={clearResults}></lightning-button>
                 </div>
                 <template for:each={results} for:item="r">
-                    <c-intake-row key={r.serviceId} row={r} onrowchange={handleRowChange}></c-intake-row>
+                    <div key={r.serviceId} class="result-row">
+                        <c-intake-row class="result-body" row={r} onrowchange={handleRowChange}></c-intake-row>
+                        <lightning-button-icon icon-name="utility:close" variant="bare" size="small" class="result-hide"
+                            alternative-text="Hide this result" title="Hide this result (nothing is deleted)"
+                            data-id={r.serviceId} onclick={handleHideResult}></lightning-button-icon>
+                    </div>
                 </template>
             </div>
         </template>

@@ -269,6 +269,92 @@ private class IntakeUploadFlowTest {
         Assert.isNull(IntakeProcessor.lastChainedId, 'the waiting file is left to its own chain');
     }
 
+    // ---------------- Review step (25-11-2026) ----------------
+
+    @IsTest
+    static void reviewListShowsTypeSizeAndChecks() {
+        Id a = uploadedDoc('Resume A', 'pdf', 'aaa');
+        Id b = uploadedDoc('Notes', 'txt', 'bbb');
+        List<IntakeController.UploadedFile> files = IntakeController.getUploadedFileDetails(new List<Id>{ a, b });
+        Assert.areEqual(2, files.size());
+        Assert.areEqual('Resume A.pdf', files[0].fileName);
+        Assert.areEqual('pdf', files[0].extension);
+        Assert.areEqual(3, files[0].sizeBytes);
+        Assert.isNull(files[0].problem);
+        Assert.isTrue(files[1].problem.contains('Not supported'), files[1].problem);
+    }
+
+    @IsTest
+    static void removeDeletesAnUnprocessedFileOnly() {
+        Id a = uploadedDoc('Resume A', 'pdf', 'aaa');
+        IntakeController.removeUploadedFile(a);
+        Assert.areEqual(0, [SELECT COUNT() FROM ContentDocument WHERE Id = :a]);
+
+        Id svcId = IntakeTestData.newIntake('Resume', 'p.pdf', 'ppp');
+        Id inUse = [SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = :svcId LIMIT 1].ContentDocumentId;
+        Boolean refused = false;
+        try { IntakeController.removeUploadedFile(inUse); } catch (AuraHandledException e) { refused = true; }
+        Assert.isTrue(refused, 'a file that is already being processed is not removed');
+        Assert.areEqual(1, [SELECT COUNT() FROM ContentDocument WHERE Id = :inUse]);
+    }
+
+    @IsTest
+    static void eachFileKeepsItsOwnTypeInOneUpload() {
+        Id a = uploadedDoc('Resume A', 'pdf', 'aaa');
+        Id b = uploadedDoc('JD B', 'pdf', 'bbb');
+        Id c = uploadedDoc('Mixed C', 'docx', 'ccc');
+        Test.startTest();
+        List<IntakeController.IntakeStatus> rows = IntakeController.submitUploadedFilesWithTypes(
+            new List<Id>{ a, b, c }, new List<String>{ 'Resume', 'Job Description', 'Auto' }, 'batch-types');
+        Assert.areEqual(1, Limits.getQueueableJobs(), 'still one file at a time');
+        Map<Id, Service__c> byId = new Map<Id, Service__c>([SELECT Requested_Type__c, Upload_Batch__c FROM Service__c]);
+        Assert.areEqual('Resume', byId.get(rows[0].serviceId).Requested_Type__c);
+        Assert.areEqual('Job Description', byId.get(rows[1].serviceId).Requested_Type__c);
+        Assert.isNull(byId.get(rows[2].serviceId).Requested_Type__c, 'Auto = blank type');
+        Assert.areEqual('batch-types', byId.get(rows[2].serviceId).Upload_Batch__c);
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void jdDuplicateNeverOffersAttachResume() {
+        Id clientRt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Direct_Customers').getRecordTypeId();
+        Account client = new Account(Name = 'IBM', RecordTypeId = clientRt);
+        insert client;
+        Id svcId = IntakeTestData.newIntake(null, 'jd.pdf', 'jd-dup');
+        update new Service__c(Id = svcId, Status__c = 'Duplicate', Account__c = client.Id);
+        IntakeController.IntakeStatus st = IntakeController.getStatus(new List<Id>{ svcId })[0];
+        Assert.isFalse(st.canAttach, 'a client Account is never offered "attach resume"');
+        Boolean refused = false;
+        try { IntakeController.attachToExisting(svcId); } catch (AuraHandledException e) { refused = true; }
+        Assert.isTrue(refused);
+    }
+
+    @IsTest
+    static void autoDuplicateKeepsTheTypeOfTheEarlierUpload() {
+        Id first = IntakeTestData.newIntake('Job Description', 'jd.pdf', 'same-bytes');
+        update new Service__c(Id = first, Status__c = 'Completed', Detected_Type__c = 'Job Description');
+        Id again = IntakeTestData.newIntake(null, 'jd (1).pdf', 'same-bytes');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(again));
+        Test.stopTest();
+        Service__c s = load(again);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.areEqual('Job Description', s.Requested_Type__c);
+        Assert.areEqual('Job Description', IntakeController.getStatus(new List<Id>{ again })[0].requestedType);
+    }
+
+    @IsTest
+    static void autoFileWithNoPersonIsNotAResume() {
+        Id svcId = IntakeTestData.newIntake(null, 'review.docx', 'review-doc');
+        CandidateCreationPrompt.mockResponse = '{"documentType":"Resume","resumes":[{"account":{"name":"","email":"","phone":"","linkedin":""}}]}';
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Rejected', s.Status__c);
+        Assert.isTrue(s.Status_Message__c.contains('does not look like a resume or a job description'), s.Status_Message__c);
+    }
+
     @IsTest
     static void onlyFailedUploadsCanBeRetried() {
         Id done = IntakeTestData.newIntake('Resume', 'c.pdf', 'c');

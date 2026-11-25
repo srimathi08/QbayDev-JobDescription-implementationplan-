@@ -51,7 +51,8 @@ public with sharing class IntakeController {
     public static final Integer STUCK_MINUTES = 15;
     private static final Set<String> FINAL_STATUSES = new Set<String>{ 'Completed', 'Duplicate', 'Rejected', 'Failed', 'Needs Review' };
     private static final String STATUS_FIELDS = 'Id, Name, Status__c, Status_Message__c, Requested_Type__c, CreatedDate, LastModifiedDate, '
-        + 'Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Opportunity__c, Opportunity__r.Name, '
+        + 'Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Account__r.RecordType.DeveloperName, '
+        + 'Opportunity__c, Opportunity__r.Name, '
         + 'Job_Description__c, Job_Description__r.Name, Retry_Count__c';
 
     /**
@@ -150,7 +151,7 @@ public with sharing class IntakeController {
         List<IntakeStatus> out = new List<IntakeStatus>();
         for (Service__c s : [
             SELECT Id, Name, Status__c, Status_Message__c, Requested_Type__c, CreatedDate, LastModifiedDate,
-                   Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name,
+                   Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Account__r.RecordType.DeveloperName,
                    Opportunity__c, Opportunity__r.Name, Job_Description__c, Job_Description__r.Name, Retry_Count__c
             FROM Service__c
             WHERE CreatedById = :UserInfo.getUserId()
@@ -193,9 +194,89 @@ public with sharing class IntakeController {
      */
     @AuraEnabled
     public static List<IntakeStatus> submitUploadedFiles(List<Id> contentDocumentIds, String requestedType, String batchKey) {
+        List<String> types = new List<String>();
+        if (contentDocumentIds != null) {
+            for (Integer k = 0; k < contentDocumentIds.size(); k++) types.add(requestedType);
+        }
+        return submitUploadedFilesWithTypes(contentDocumentIds, types, batchKey);
+    }
+
+    // =====================================================================
+    // Review step (25-11-2026): the recruiter sees each uploaded file, can remove it or set its type,
+    // and then starts processing. Nothing is created and no AI call is made before "Start processing".
+    // =====================================================================
+
+    public class UploadedFile {
+        @AuraEnabled public Id documentId;
+        @AuraEnabled public String fileName;
+        @AuraEnabled public String extension;
+        @AuraEnabled public Integer sizeBytes;
+        @AuraEnabled public String problem; // null = OK
+    }
+
+    /** Name, type, size and the upload checks of files the current user just uploaded. */
+    @AuraEnabled
+    public static List<UploadedFile> getUploadedFileDetails(List<Id> contentDocumentIds) {
+        List<UploadedFile> out = new List<UploadedFile>();
+        if (contentDocumentIds == null || contentDocumentIds.isEmpty()) return out;
+        UploadSettings cfg = getUploadSettings();
+        Map<Id, ContentVersion> byDoc = new Map<Id, ContentVersion>();
+        for (ContentVersion cv : [
+            SELECT ContentDocumentId, Title, FileExtension, ContentSize, OwnerId
+            FROM ContentVersion
+            WHERE ContentDocumentId IN :contentDocumentIds AND IsLatest = true AND OwnerId = :UserInfo.getUserId()
+        ]) {
+            byDoc.put(cv.ContentDocumentId, cv);
+        }
+        for (Id docId : contentDocumentIds) {
+            ContentVersion cv = byDoc.get(docId);
+            if (cv == null) continue;
+            UploadedFile f = new UploadedFile();
+            f.documentId = docId;
+            f.extension = cv.FileExtension == null ? '' : cv.FileExtension.toLowerCase();
+            f.fileName = cv.FileExtension == null ? cv.Title : cv.Title + '.' + cv.FileExtension;
+            f.sizeBytes = cv.ContentSize;
+            if (!ALLOWED_EXTENSIONS.contains(f.extension)) {
+                f.problem = 'Not supported (PDF or DOCX only)';
+            } else if (cv.ContentSize == null || cv.ContentSize == 0) {
+                f.problem = 'Empty file';
+            } else if (cv.ContentSize > cfg.maxFileMb * 1024 * 1024) {
+                f.problem = 'Larger than ' + cfg.maxFileMb + ' MB';
+            }
+            out.add(f);
+        }
+        return out;
+    }
+
+    /** Removes a file the current user uploaded but has not started processing yet. */
+    @AuraEnabled
+    public static void removeUploadedFile(Id contentDocumentId) {
+        if (contentDocumentId == null) return;
+        List<ContentDocument> docs = [SELECT Id, OwnerId FROM ContentDocument WHERE Id = :contentDocumentId];
+        if (docs.isEmpty()) return; // already gone
+        if (docs[0].OwnerId != UserInfo.getUserId()) throw error('You can only remove files you uploaded yourself.');
+        for (ContentDocumentLink l : [
+            SELECT LinkedEntityId FROM ContentDocumentLink WHERE ContentDocumentId = :contentDocumentId
+        ]) {
+            if (l.LinkedEntityId.getSObjectType() == Service__c.SObjectType) {
+                throw error('This file is already being processed and cannot be removed here.');
+            }
+        }
+        delete docs;
+    }
+
+    /**
+     * Same as submitUploadedFiles, with a type per file ('Auto', 'Resume' or 'Job Description').
+     * All files stay in one upload, so they are still read one after another.
+     */
+    @AuraEnabled
+    public static List<IntakeStatus> submitUploadedFilesWithTypes(List<Id> contentDocumentIds, List<String> requestedTypes, String batchKey) {
         if (contentDocumentIds == null || contentDocumentIds.isEmpty()) throw error('No files were uploaded.');
         if (String.isBlank(batchKey)) throw error('Missing upload key. Please refresh the page and try again.');
-        if (requestedType != TYPE_AUTO && requestedType != TYPE_RESUME && requestedType != TYPE_JD) throw error('Unknown upload type.');
+        if (requestedTypes == null || requestedTypes.size() != contentDocumentIds.size()) throw error('Unknown upload type.');
+        for (String t : requestedTypes) {
+            if (t != TYPE_AUTO && t != TYPE_RESUME && t != TYPE_JD) throw error('Unknown upload type.');
+        }
         UploadSettings cfg = getUploadSettings();
         String batch = batchKey.left(64);
 
@@ -221,7 +302,10 @@ public with sharing class IntakeController {
         Set<Id> removeDocs = new Set<Id>();
         Integer accepted = 0;
         Integer i = 0;
+        Integer pos = -1;
         for (Id docId : contentDocumentIds) {
+            pos++;
+            String requestedType = requestedTypes[pos];
             ContentVersion cv = versionByDoc.get(docId);
             if (cv == null) continue;
             if (cv.OwnerId != UserInfo.getUserId()) throw error('You can only submit files you uploaded yourself.');
@@ -369,6 +453,9 @@ public with sharing class IntakeController {
     public static IntakeStatus attachToExisting(Id serviceId) {
         Service__c svc = loadForAction(serviceId);
         if (svc.Status__c != 'Duplicate' || svc.Account__c == null) throw error('This upload is not linked to an existing candidate.');
+        if ([SELECT COUNT() FROM Account WHERE Id = :svc.Account__c AND RecordType.DeveloperName = 'Candidates'] == 0) {
+            throw error('This upload is linked to a client, not a candidate. A resume cannot be attached to it.');
+        }
         ContentVersion file = IntakeProcessor.latestFile(svc.Id);
         if (file == null) throw error('The file of this upload was not found.');
         CandidateCreationController.linkFile(file.ContentDocumentId, new Set<Id>{ svc.Account__c });
@@ -401,6 +488,8 @@ public with sharing class IntakeController {
         st.status = s.Status__c;
         st.message = s.Status_Message__c;
         st.requestedType = s.Requested_Type__c;
+        // Auto upload answered from an earlier same file: no type stored, but a linked JD means it is a JD
+        if (String.isBlank(st.requestedType) && s.Job_Description__c != null) st.requestedType = TYPE_JD;
         st.createdDate = s.CreatedDate;
         st.accountId = s.Account__c;
         st.accountName = s.Account__r?.Name;
@@ -416,7 +505,9 @@ public with sharing class IntakeController {
         Boolean nameDuplicate = s.Status__c == 'Duplicate' && s.Status_Message__c != null
             && s.Status_Message__c.startsWith('Duplicate: ');
         st.canReview = ui && (s.Status__c == 'Needs Review' || nameDuplicate);
-        st.canAttach = ui && s.Status__c == 'Duplicate' && s.Account__c != null && s.Requested_Type__c != TYPE_JD;
+        // Attach a resume only to a candidate Account, never to a client Account of a JD
+        st.canAttach = ui && s.Status__c == 'Duplicate' && s.Account__c != null && st.requestedType != TYPE_JD
+            && s.Account__r?.RecordType?.DeveloperName == 'Candidates';
         st.canRetry = canRetry(s);
         return st;
     }

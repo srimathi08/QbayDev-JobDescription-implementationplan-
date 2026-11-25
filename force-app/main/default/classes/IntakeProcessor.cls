@@ -63,6 +63,11 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             svc.Account__c = earlier.Account__c;
             svc.Opportunity__c = earlier.Opportunity__c;
             svc.Job_Description__c = earlier.Job_Description__c;
+            if (auto) {
+                // keep what the earlier upload was, so a JD duplicate is shown as a JD (never "attach resume")
+                svc.Requested_Type__c = earlier.Requested_Type__c;
+                svc.Detected_Type__c = earlier.Detected_Type__c;
+            }
             finish(svc, 'Duplicate', 'This exact file was already uploaded on '
                 + earlier.CreatedDate.format('dd MMM yyyy HH:mm') + '. No new records were created.', null);
             return;
@@ -81,7 +86,8 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                     if (dt == IntakeController.TYPE_JD) {
                         type = IntakeController.TYPE_JD;
                         rawJson = JobDescriptionCreationPrompt.generate(svc.Id);
-                    } else if (dt == 'Other') {
+                    } else if (dt == 'Other' || !hasAnyCandidateData(rawJson)) {
+                        // "Resume" with no name and no contact at all (e.g. a project document): not a resume
                         type = null;
                     } else {
                         type = IntakeController.TYPE_RESUME;
@@ -188,11 +194,28 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         return cvs.isEmpty() ? null : cvs[0];
     }
 
+    /** True when at least one resume in the AI JSON has a name, email, phone or LinkedIn. */
+    @TestVisible
+    private static Boolean hasAnyCandidateData(String rawJson) {
+        Map<String, Object> parsed = AiJson.parse(rawJson);
+        if (parsed == null) return false;
+        List<Map<String, Object>> resumes = AiJson.objList(parsed, 'resumes');
+        if (resumes.isEmpty() && parsed.containsKey('account')) resumes.add(parsed);
+        for (Map<String, Object> r : resumes) {
+            Map<String, Object> acc = AiJson.obj(r, 'account');
+            if (acc == null) continue;
+            for (String k : new List<String>{ 'name', 'firstName', 'lastName', 'email', 'phone', 'linkedin' }) {
+                if (AiJson.str(acc, k) != null) return true;
+            }
+        }
+        return false;
+    }
+
     private static Service__c findEarlierSameFile(Service__c svc) {
         if (String.isBlank(svc.File_Checksum__c)) return null;
         List<Service__c> prev = String.isBlank(svc.Requested_Type__c)
             ? [
-                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c
+                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c, Requested_Type__c, Detected_Type__c
                 FROM Service__c
                 WHERE File_Checksum__c = :svc.File_Checksum__c
                   AND Requested_Type__c != null
@@ -201,7 +224,7 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                 ORDER BY CreatedDate ASC LIMIT 1
             ]
             : [
-                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c
+                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c, Requested_Type__c, Detected_Type__c
                 FROM Service__c
                 WHERE File_Checksum__c = :svc.File_Checksum__c
                   AND Requested_Type__c = :svc.Requested_Type__c
@@ -221,7 +244,7 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         List<Service__c> prev;
         if (svc.Requested_Type__c == IntakeController.TYPE_JD) {
             prev = [
-                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c
+                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c, Requested_Type__c, Detected_Type__c
                 FROM Service__c
                 WHERE File_Checksum__c = :svc.File_Checksum__c
                   AND Requested_Type__c = null AND Job_Description__c != null
@@ -231,7 +254,7 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         } else {
             Id candidateRt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
             prev = [
-                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c
+                SELECT Id, CreatedDate, Account__c, Opportunity__c, Job_Description__c, Requested_Type__c, Detected_Type__c
                 FROM Service__c
                 WHERE File_Checksum__c = :svc.File_Checksum__c
                   AND Requested_Type__c = null AND Account__c != null

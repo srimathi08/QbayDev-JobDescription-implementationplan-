@@ -1,7 +1,9 @@
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getUploadSettings from '@salesforce/apex/IntakeController.getUploadSettings';
-import submitUploadedFiles from '@salesforce/apex/IntakeController.submitUploadedFiles';
+import submitUploadedFilesWithTypes from '@salesforce/apex/IntakeController.submitUploadedFilesWithTypes';
+import getUploadedFileDetails from '@salesforce/apex/IntakeController.getUploadedFileDetails';
+import removeUploadedFile from '@salesforce/apex/IntakeController.removeUploadedFile';
 import getStatus from '@salesforce/apex/IntakeController.getStatus';
 import getMyUploadsToday from '@salesforce/apex/IntakeController.getMyUploadsToday';
 
@@ -13,6 +15,19 @@ const HINTS = {
     Resume: 'Every file is treated as a resume. A job description uploaded here is rejected.',
     'Job Description': 'Every file is treated as a job description. A resume uploaded here is rejected.'
 };
+
+function formatSize(bytes) {
+    if (bytes === null || bytes === undefined) {
+        return '';
+    }
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+        return `${Math.round(bytes / 1024)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function newKey() {
     try {
@@ -44,7 +59,9 @@ export default class IntakeUploader extends LightningElement {
     userId;
     ready = false;
     results = [];
+    staged = []; // review step: uploaded, not processed yet
     isSubmitting = false;
+    busyText = '';
     acceptedFormats = ['.pdf', '.docx'];
 
     showModal = false;
@@ -98,24 +115,126 @@ export default class IntakeUploader extends LightningElement {
         return (done === total ? `${total} of ${total} finished.` : `${done} of ${total} finished, reading one at a time.`) + where;
     }
 
+    get isBusy() {
+        return this.isSubmitting;
+    }
+    get hasStaged() {
+        return this.staged.length > 0;
+    }
+    get stagedCount() {
+        return this.staged.length;
+    }
+    /** Staged files with display values; files after the first maxFiles good ones are marked over the limit. */
+    get stagedView() {
+        let ok = 0;
+        return this.staged.map((f) => {
+            let problem = f.problem;
+            if (!problem) {
+                ok++;
+                if (ok > this.maxFiles) {
+                    problem = `Over the ${this.maxFiles}-file limit`;
+                }
+            }
+            const ext = (f.extension || '').toLowerCase();
+            return {
+                ...f,
+                icon: ext === 'pdf' ? 'doctype:pdf' : ext === 'docx' || ext === 'doc' ? 'doctype:word' : 'doctype:unknown',
+                extLabel: ext ? ext.toUpperCase() : 'Unknown type',
+                sizeLabel: formatSize(f.sizeBytes),
+                checkLabel: problem || 'Ready',
+                badgeClass: problem ? 'check-bad' : 'check-ok',
+                typeDisabled: !!problem || this.isBusy,
+                willProcess: !problem
+            };
+        });
+    }
+    get readyCount() {
+        return this.stagedView.filter((f) => f.willProcess).length;
+    }
+    get startLabel() {
+        const n = this.readyCount;
+        return `Start processing (${n} ${n === 1 ? 'file' : 'files'})`;
+    }
+    get startDisabled() {
+        return this.isBusy || this.readyCount === 0;
+    }
+
     handleTypeChange(event) {
         this.selectedType = event.detail.value;
     }
 
-    // ---------------- upload ----------------
+    // ---------------- upload + review step ----------------
 
+    /** Files are stored by the standard upload; they wait in the review list until "Start processing". */
     async handleUploadFinished(event) {
         const files = event.detail.files || [];
         if (files.length === 0) {
             return;
         }
-        this.isSubmitting = true;
+        this.setBusy('Reading file details...');
         try {
-            const rows = await submitUploadedFiles({
+            const details = await getUploadedFileDetails({ contentDocumentIds: files.map((f) => f.documentId) });
+            const known = new Set(this.staged.map((f) => f.documentId));
+            const added = details.filter((d) => !known.has(d.documentId)).map((d) => ({ ...d, type: this.selectedType }));
+            this.staged = [...this.staged, ...added];
+            this.toast('Files added', `${added.length} file(s) added. Check the list, then click Start processing.`, 'info');
+        } catch (e) {
+            this.toast('Upload failed', this.errorText(e), 'error');
+        } finally {
+            this.setBusy(null);
+        }
+    }
+
+    handleFileTypeChange(event) {
+        const id = event.target.dataset.id;
+        const type = event.detail.value;
+        this.staged = this.staged.map((f) => (f.documentId === id ? { ...f, type } : f));
+    }
+
+    async handleRemoveFile(event) {
+        const id = event.currentTarget.dataset.id;
+        this.setBusy('Removing file...');
+        try {
+            await removeUploadedFile({ contentDocumentId: id });
+            this.staged = this.staged.filter((f) => f.documentId !== id);
+        } catch (e) {
+            this.toast('Could not remove the file', this.errorText(e), 'error');
+        } finally {
+            this.setBusy(null);
+        }
+    }
+
+    async handleRemoveAll() {
+        this.setBusy('Removing files...');
+        const failed = [];
+        for (const f of [...this.staged]) {
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await removeUploadedFile({ contentDocumentId: f.documentId });
+                this.staged = this.staged.filter((s) => s.documentId !== f.documentId);
+            } catch (e) {
+                failed.push(f.fileName);
+            }
+        }
+        this.setBusy(null);
+        if (failed.length) {
+            this.toast('Some files were not removed', failed.join(', '), 'error');
+        }
+    }
+
+    async handleStartProcessing() {
+        const files = this.staged;
+        if (files.length === 0) {
+            return;
+        }
+        this.setBusy('Creating upload records...');
+        try {
+            const rows = await submitUploadedFilesWithTypes({
                 contentDocumentIds: files.map((f) => f.documentId),
-                requestedType: this.selectedType,
+                requestedTypes: files.map((f) => f.type || this.selectedType),
                 batchKey: newKey()
             });
+            this.staged = [];
             this.results = [...rows, ...this.results];
             const queued = rows.filter((r) => !r.isFinal).length;
             const refused = rows.length - queued;
@@ -133,13 +252,24 @@ export default class IntakeUploader extends LightningElement {
         } catch (e) {
             this.toast('Upload failed', this.errorText(e), 'error');
         } finally {
-            this.isSubmitting = false;
+            this.setBusy(null);
         }
     }
 
+    setBusy(text) {
+        this.isSubmitting = !!text;
+        this.busyText = text || '';
+    }
+
+    /** Hides the results list only; nothing is deleted (results stay in the Intake inbox). */
     clearResults() {
         this.stopPolling();
         this.results = [];
+    }
+
+    handleHideResult(event) {
+        const id = event.currentTarget.dataset.id;
+        this.results = this.results.filter((r) => r.serviceId !== id);
     }
 
     handleRowChange(event) {
