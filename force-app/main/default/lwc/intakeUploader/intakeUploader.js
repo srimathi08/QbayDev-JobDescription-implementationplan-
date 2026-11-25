@@ -94,7 +94,8 @@ export default class IntakeUploader extends LightningElement {
     get progressSummary() {
         const total = this.results.length;
         const done = this.results.filter((r) => r.isFinal).length;
-        return done === total ? `${total} of ${total} finished` : `${done} of ${total} finished, reading one at a time`;
+        const where = this.showTodayButton ? '' : ' Results also stay in the Intake inbox below.';
+        return (done === total ? `${total} of ${total} finished.` : `${done} of ${total} finished, reading one at a time.`) + where;
     }
 
     handleTypeChange(event) {

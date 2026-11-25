@@ -387,7 +387,8 @@ public with sharing class IntakeController {
         svc.Retry_Count__c = (svc.Retry_Count__c == null ? 0 : svc.Retry_Count__c) + 1;
         svc.Status_Message__c = 'Retry requested by ' + UserInfo.getName() + '.';
         update svc;
-        System.enqueueJob(new IntakeProcessor(svc.Id));
+        // Only this file: a retry never starts the rest of its upload, so at most one file per upload runs at a time
+        System.enqueueJob(new IntakeProcessor(svc.Id, false));
         return getStatus(new List<Id>{ svc.Id })[0];
     }
 

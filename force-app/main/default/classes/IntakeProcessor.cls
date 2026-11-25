@@ -12,9 +12,16 @@
 public without sharing class IntakeProcessor implements Queueable, Database.AllowsCallouts {
 
     private Id serviceId;
+    private Boolean startNext = true;
 
     public IntakeProcessor(Id serviceId) {
         this.serviceId = serviceId;
+    }
+
+    /** startNext = false: a single retried file, which must not start a second chain next to a running one. */
+    public IntakeProcessor(Id serviceId, Boolean startNext) {
+        this.serviceId = serviceId;
+        this.startNext = startNext != false;
     }
 
     /** Thrown for business rejections (wrong file type, not enough data). Not logged as errors. */
@@ -34,7 +41,7 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
     public static final String STATUS_NEEDS_REVIEW = 'Needs Review';
 
     public void execute(QueueableContext ctx) {
-        System.attachFinalizer(new IntakeFinalizer(serviceId));
+        System.attachFinalizer(new IntakeFinalizer(serviceId, startNext));
 
         Service__c svc = [
             SELECT Id, Name, Status__c, Requested_Type__c, File_Checksum__c, Source_Channel__c
@@ -248,7 +255,12 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
      */
     public class IntakeFinalizer implements Finalizer {
         private Id serviceId;
+        private Boolean startNext = true;
         public IntakeFinalizer(Id serviceId) { this.serviceId = serviceId; }
+        public IntakeFinalizer(Id serviceId, Boolean startNext) {
+            this.serviceId = serviceId;
+            this.startNext = startNext != false;
+        }
         public void execute(FinalizerContext ctx) {
             if (ctx.getResult() != ParentJobResult.SUCCESS) {
                 List<Service__c> svcs = [SELECT Id, Status__c FROM Service__c WHERE Id = :serviceId];
@@ -262,6 +274,7 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                     update svcs[0];
                 }
             }
+            if (!startNext) return;
             try {
                 startNextInBatch(serviceId);
             } catch (Exception e) {

@@ -256,6 +256,20 @@ private class IntakeUploadFlowTest {
     }
 
     @IsTest
+    static void retriedFileDoesNotStartTheRestOfItsUpload() {
+        Id failed = IntakeTestData.newIntake('Resume', 'f.pdf', 'f2');
+        Id waiting = IntakeTestData.newIntake('Resume', 'w.pdf', 'w2');
+        update new List<Service__c>{
+            new Service__c(Id = failed, Status__c = 'Failed', Upload_Batch__c = 'rb'),
+            new Service__c(Id = waiting, Upload_Batch__c = 'rb')
+        };
+        Test.startTest();
+        IntakeController.retryIntake(failed);
+        Test.stopTest();
+        Assert.isNull(IntakeProcessor.lastChainedId, 'the waiting file is left to its own chain');
+    }
+
+    @IsTest
     static void onlyFailedUploadsCanBeRetried() {
         Id done = IntakeTestData.newIntake('Resume', 'c.pdf', 'c');
         update new Service__c(Id = done, Status__c = 'Completed');
