@@ -1,32 +1,106 @@
 <template>
-<template if:true={isLoading}>
-        <lightning-spinner alternative-text="Processing..." size="medium"></lightning-spinner>
-</template>
-    <lightning-card>
-        <div class="slds-p-horizontal_small slds-p-vertical_x-small">
-        <lightning-input 
-    value={searchKey}
-    type="search"
-    onchange={handleSearchChange}
-    placeholder="Surprising context..."
-    required
-    ></lightning-input>
-        </div>
-        <div class="slds-p-horizontal_small slds-p-vertical_x-small">
-            <lightning-button 
-                variant="brand" 
-                label="Explore" 
-                title="Explore" 
-                onclick={uploadFile} 
-                class="slds-m-top_small">
-            </lightning-button>
-        </div>
-        <template if:true={htmlOutput}>
-        <div class="slds-p-around_medium">
-            <lightning-formatted-rich-text value={htmlOutput}></lightning-formatted-rich-text>
-            <!--  <div class="injected-html" lwc:dom="manual"></div>-->
-        </div>
-    </template>   
+    <lightning-card title="Magic Search" icon-name="utility:search">
+        <div class="slds-p-horizontal_medium">
+            <!-- Search box -->
+            <div class="slds-grid slds-gutters_x-small slds-wrap slds-grid_vertical-align-end">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-4" onkeyup={handleKeyUp}>
+                    <lightning-input type="search" label="Describe the person you need" value={searchKey}
+                        placeholder="e.g. Salesforce developer in Chennai with 5+ years, LWC and integration"
+                        onchange={handleSearchChange}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <lightning-button variant="brand" label="Search" icon-name="utility:search" onclick={runSearch}
+                        disabled={searchDisabled} class="search-btn"></lightning-button>
+                </div>
+            </div>
+            <div class="slds-grid slds-wrap slds-grid_vertical-align-center slds-m-top_x-small">
+                <lightning-checkbox-group name="types" label="Search in" options={typeOptions} value={types}
+                    onchange={handleTypes} class="types slds-m-right_large"></lightning-checkbox-group>
+                <div class="examples">
+                    <span class="slds-text-body_small slds-text-color_weak slds-m-right_x-small">Try:</span>
+                    <template for:each={examples} for:item="ex">
+                        <lightning-badge key={ex.label} label={ex.label} class="example" onclick={handleExample}></lightning-badge>
+                    </template>
+                </div>
+            </div>
 
+            <template lwc:if={isLoading}>
+                <div class="slds-is-relative slds-p-around_large"><lightning-spinner alternative-text="Searching" size="small"></lightning-spinner></div>
+            </template>
+
+            <template lwc:if={errorMessage}>
+                <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-top_small" role="alert">{errorMessage}</div>
+            </template>
+
+            <template lwc:if={noResults}>
+                <div class="slds-m-top_medium empty">
+                    <p class="slds-text-heading_small">No matches</p>
+                    <p class="slds-text-body_small slds-text-color_weak">{understoodText} Try fewer or different words, a lower experience, or include employees and contractors.</p>
+                </div>
+            </template>
+
+            <!-- Results -->
+            <template lwc:if={hasResults}>
+                <div class="slds-grid slds-grid_vertical-align-center slds-m-top_medium results-head">
+                    <h3 class="slds-text-heading_small">{countText}</h3>
+                    <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{understoodText}</span>
+                    <lightning-button label="AI summary" icon-name="utility:magicwand" class="slds-col_bump-left"
+                        onclick={handleSummary} disabled={summaryLoading}></lightning-button>
+                </div>
+
+                <template lwc:if={summaryLoading}>
+                    <div class="slds-is-relative slds-p-around_medium"><lightning-spinner alternative-text="Summarising" size="small"></lightning-spinner></div>
+                </template>
+                <template lwc:if={summary}>
+                    <div class="summary slds-m-top_small">
+                        <lightning-formatted-rich-text value={summary}></lightning-formatted-rich-text>
+                    </div>
+                </template>
+
+                <template for:each={pageRows} for:item="r">
+                    <div key={r.id} class="result">
+                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                            <a href={r.url} target="_blank" class="name">{r.name}</a>
+                            <span class="type slds-m-left_x-small">{r.recordType}</span>
+                            <span class="exp slds-m-left_x-small">{r.experienceText}</span>
+                            <template lwc:if={r.resumeUrl}>
+                                <a href={r.resumeUrl} target="_blank" class="slds-col_bump-left slds-text-body_small" title={r.resumeTitle}>Resume</a>
+                            </template>
+                        </div>
+                        <template lwc:if={r.meta}>
+                            <p class="slds-text-body_small slds-text-color_weak">{r.meta}</p>
+                        </template>
+                        <template lwc:if={r.matchText}>
+                            <p class={r.matchClass}>{r.matchText}</p>
+                        </template>
+                        <template lwc:if={r.hasSkills}>
+                            <div class="chips">
+                                <template for:each={r.skills} for:item="s">
+                                    <span key={s} class="chip">{s}</span>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:if={r.hasCerts}>
+                            <div class="chips">
+                                <template for:each={r.certifications} for:item="c">
+                                    <span key={c} class="chip chip-cert">{c}</span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <template lwc:if={showPager}>
+                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-vertical_small">
+                        <lightning-button label="Previous" icon-name="utility:chevronleft" onclick={handlePrev} disabled={prevDisabled}></lightning-button>
+                        <span class="slds-text-body_small">{pageText}</span>
+                        <lightning-button label="Next" icon-name="utility:chevronright" icon-position="right" onclick={handleNext} disabled={nextDisabled}></lightning-button>
+                    </div>
+                </template>
+            </template>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-vertical_small">
+                Searches names, designation, location, company, skills, certifications and projects. Only records you can see are shown.
+            </p>
+        </div>
     </lightning-card>
 </template>

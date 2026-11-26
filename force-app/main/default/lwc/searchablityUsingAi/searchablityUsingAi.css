@@ -1,0 +1,70 @@
+.search-btn {
+    display: block;
+    padding-bottom: 0.1rem;
+}
+.types {
+    display: inline-block;
+}
+.example {
+    cursor: pointer;
+    margin: 0 0.25rem 0.25rem 0;
+}
+.results-head {
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.4rem;
+}
+.summary {
+    background: #f4f6fe;
+    border: 1px solid #d8ddf9;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+.result {
+    border: 1px solid #e5e5e5;
+    border-left: 4px solid #0176d3;
+    border-radius: 0.4rem;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.5rem;
+    background: #fff;
+}
+.name {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+.type,
+.exp {
+    font-size: 0.75rem;
+    padding: 0.05rem 0.5rem;
+    border-radius: 1rem;
+    background: #f3f3f3;
+}
+.match {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-top: 0.2rem;
+}
+.match-full {
+    color: #2e844a;
+    font-weight: 600;
+}
+.chips {
+    margin-top: 0.3rem;
+}
+.chip {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.05rem 0.5rem;
+    margin: 0 0.25rem 0.25rem 0;
+    border-radius: 1rem;
+    background: #eef4ff;
+    color: #014486;
+}
+.chip-cert {
+    background: #fef3e2;
+    color: #8c4b02;
+}
+.empty {
+    padding: 1rem;
+    border: 1px dashed #c9c9c9;
+    border-radius: 0.5rem;
+}
