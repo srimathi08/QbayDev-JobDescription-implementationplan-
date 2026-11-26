@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Restrict_WhatsApp_To_Internal__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When checked, only active Salesforce Users with a matching phone/mobile number and an email domain in Acknowledgement Domains can submit resumes or JDs via WhatsApp.</description>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Restrict WhatsApp To Internal Users</label>
+    <type>Checkbox</type>
+</CustomField>

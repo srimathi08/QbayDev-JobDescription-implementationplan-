@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Email_Intake</fullName>
+    <columns>NAME</columns>
+    <columns>Status__c</columns>
+    <columns>Detected_Type__c</columns>
+    <columns>Status_Message__c</columns>
+    <columns>emailfrom__c</columns>
+    <columns>Account__c</columns>
+    <columns>Opportunity__c</columns>
+    <columns>Retry_Count__c</columns>
+    <columns>CREATED_DATE</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Source_Channel__c</field>
+        <operation>equals</operation>
+        <value>Email</value>
+    </filters>
+    <filters>
+        <field>CREATED_DATE</field>
+        <operation>equals</operation>
+        <value>TODAY</value>
+    </filters>
+    <label>Email Intake</label>
+</ListView>

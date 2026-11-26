@@ -19,5 +19,10 @@
         <operation>notContain</operation>
         <value>Candidate</value>
     </filters>
+    <filters>
+        <field>ACCOUNT.CREATED_DATE</field>
+        <operation>equals</operation>
+        <value>TODAY</value>
+    </filters>
     <label>Candidates</label>
 </ListView>

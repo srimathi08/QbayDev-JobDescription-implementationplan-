@@ -8,5 +8,10 @@
     <columns>ACCOUNT.RECORDTYPE</columns>
     <columns>Created_Date__c</columns>
     <filterScope>Everything</filterScope>
+    <filters>
+        <field>ACCOUNT.CREATED_DATE</field>
+        <operation>equals</operation>
+        <value>TODAY</value>
+    </filters>
     <label>All Accounts</label>
 </ListView>

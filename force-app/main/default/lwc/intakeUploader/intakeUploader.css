@@ -1,28 +1,57 @@
-.result {
+.drop-zone {
+    border: 2px dashed #c9c9c9;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #fafaf9;
+}
+.rules {
+    list-style: disc;
+    padding-left: 1.25rem;
+}
+.review {
+    border: 1px solid #dddbda;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
     background: #fff;
 }
-.inline-spinner {
-    position: relative;
-    display: inline-block;
-    width: 1.5rem;
-    height: 1rem;
-    margin-left: 0.5rem;
+.review-row {
+    padding: 0.4rem 0;
+    border-top: 1px solid #f3f2f2;
 }
-.badge-success {
-    background: #2e844a;
-    color: #fff;
+.review-name {
+    min-width: 0;
 }
-.badge-warning {
-    background: #fe9339;
-    color: #fff;
+.review-type {
+    width: 11rem;
+    flex: none;
 }
-.badge-error {
-    background: #ba0517;
-    color: #fff;
+.check-ok,
+.check-bad {
+    flex: none;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 1rem;
+    white-space: nowrap;
 }
-.badge-info {
-    background: #0176d3;
-    color: #fff;
+.check-ok {
+    background: #e3f3e4;
+    color: #2e844a;
+}
+.check-bad {
+    background: #fde2e1;
+    color: #ba0517;
+}
+.result-row {
+    display: flex;
+    align-items: flex-start;
+}
+.result-body {
+    flex: 1;
+    min-width: 0;
+}
+.result-hide {
+    flex: none;
+    margin: 0.5rem 0 0 0.25rem;
 }
 .slds-modal__container {
     max-width: 75rem;

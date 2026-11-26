@@ -60,6 +60,39 @@ private class IntakeProcessorTest {
     }
 
     @IsTest
+    static void samePhoneDifferentNameCreatesANewCandidate() {
+        // 25-11-2026: "dummy resume.pdf" (John Smith) had Rahul Sharma's phone and was merged into Rahul Sharma
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        Account rahul = new Account(Name = 'Rahul Sharma', RecordTypeId = rt, Phone = '9876543210',
+            Phone_Normalized__c = '9876543210', Years_of_Experience__c = '2 years');
+        insert rahul;
+        Id svcId = IntakeTestData.newIntake('Resume', 'john.pdf', 'john-1');
+        CandidateCreationPrompt.mockResponse = IntakeTestData.resumeJson('John Smith', null, '9876543210');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+
+        Service__c s = load(svcId);
+        Assert.areEqual('Completed', s.Status__c, s.Status_Message__c);
+        Assert.areNotEqual(rahul.Id, s.Account__c, 'a different person is never merged by phone alone');
+        Assert.areEqual('John Smith', [SELECT Name FROM Account WHERE Id = :s.Account__c].Name);
+        Assert.isTrue(s.Status_Message__c.contains('also on the existing candidate Rahul Sharma'), s.Status_Message__c);
+        Account r = [SELECT Name, Years_of_Experience__c FROM Account WHERE Id = :rahul.Id];
+        Assert.areEqual('Rahul Sharma', r.Name);
+        Assert.areEqual('2 years', r.Years_of_Experience__c, 'the existing candidate is not touched');
+        Assert.areEqual(0, [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :rahul.Id]);
+    }
+
+    @IsTest
+    static void phoneMatchNameCheckIsLenient() {
+        Assert.isTrue(CandidateCreationController.sameName('Rahul Sharma', 'RAHUL SHARMA'));
+        Assert.isTrue(CandidateCreationController.sameName('Rahul Sharma', 'R. Sharma'));
+        Assert.isTrue(CandidateCreationController.sameName('Ravi S', 'Ravi Shankar'));
+        Assert.isFalse(CandidateCreationController.sameName('Rahul Sharma', 'John Smith'));
+        Assert.isFalse(CandidateCreationController.sameName(null, 'John Smith'));
+    }
+
+    @IsTest
     static void jdUploadedAsResumeIsRejected() {
         Id svcId = IntakeTestData.newIntake('Resume', 'jd.pdf', 'jd-1');
         CandidateCreationPrompt.mockResponse = '{"documentType":"Job Description","resumes":[]}';
@@ -68,7 +101,7 @@ private class IntakeProcessorTest {
         Test.stopTest();
         Service__c s = load(svcId);
         Assert.areEqual('Rejected', s.Status__c);
-        Assert.isTrue(s.Status_Message__c.contains('Add Job Description'));
+        Assert.isTrue(s.Status_Message__c.contains('upload it as a Job Description'));
         Assert.areEqual(0, [SELECT COUNT() FROM Account]);
     }
 
@@ -223,5 +256,112 @@ private class IntakeProcessorTest {
         Test.stopTest();
         Assert.areEqual(2, [SELECT COUNT() FROM Skill__c]);
         Assert.areEqual(2, [SELECT COUNT() FROM Employee_Skill__c WHERE Employee_Name__c = :a.Id]);
+    }
+
+    // ---------- 25-11-2026: duplicate message for resumes without contact details ----------
+
+    private static String nameOnlyJson(String name) {
+        return '{"documentType":"Resume","resumes":[{"account":{"name":"' + name
+            + '","email":"","phone":"","linkedin":"","summary":"Business Analyst"}}]}';
+    }
+
+    private static Account newCandidate(String name) {
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        Account a = new Account(Name = name, RecordTypeId = rt);
+        Database.DMLOptions opts = new Database.DMLOptions();
+        opts.DuplicateRuleHeader.allowSave = true;
+        Database.insert(a, opts);
+        return a;
+    }
+
+    @IsTest
+    static void nameOnlyResumeOfExistingCandidateIsDuplicate() {
+        Account existing = newCandidate('Rahul Venugopal');
+        Id svcId = IntakeTestData.newIntake('Resume', 'rahul.pdf', 'rahul-bytes');
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Rahul Venugopal');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.startsWith('Duplicate: a candidate named Rahul Venugopal already exists'), s.Status_Message__c);
+        Assert.areEqual(existing.Id, s.Account__c, 'the upload is linked to the existing candidate');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account]);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contact]);
+    }
+
+    @IsTest
+    static void nameOnlyResumeWithSeveralSameNamesIsDuplicate() {
+        newCandidate('Rahul Venugopal');
+        newCandidate('Rahul Venugopal');
+        Id svcId = IntakeTestData.newIntake('Resume', 'rahul.pdf', 'rahul-bytes-2');
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Rahul Venugopal');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('2 candidates named Rahul Venugopal'), s.Status_Message__c);
+        Assert.areEqual(2, [SELECT COUNT() FROM Account]);
+        Assert.isNotNull(s.Account__c);
+    }
+
+    @IsTest
+    static void nameOnlyResumeOfNewPersonNeedsReview() {
+        Id svcId = IntakeTestData.newIntake('Resume', 'new.pdf', 'new-bytes');
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Meena Raj');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Needs Review', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('Found the name "Meena Raj"'), s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('click Continue'), s.Status_Message__c);
+        Assert.isNotNull(s.AI_Response__c, 'the AI result is kept for the recruiter');
+        Assert.areEqual(0, [SELECT COUNT() FROM Account]);
+    }
+
+    @IsTest
+    static void nameOnlyResumeByEmailIsStillRejected() {
+        Id svcId = IntakeTestData.newIntake('Resume', 'new.pdf', 'new-bytes-email');
+        Service__c e = new Service__c(Id = svcId, Source_Channel__c = 'Email');
+        update e;
+        CandidateCreationPrompt.mockResponse = nameOnlyJson('Meena Raj');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Rejected', s.Status__c, 'email intakes keep the old behaviour');
+        Assert.isTrue(s.Status_Message__c.contains('inside an image or icon'), s.Status_Message__c);
+    }
+
+    @IsTest
+    static void sameFileAsLegacyUploadIsDuplicate() {
+        Account existing = newCandidate('Legacy Person');
+        Id second = IntakeTestData.newIntake('Resume', 'legacy-again.pdf', 'legacy-bytes');
+        String checksum = [SELECT File_Checksum__c FROM Service__c WHERE Id = :second].File_Checksum__c;
+        // An upload made before v1: no Requested_Type__c, no Status__c, linked to the candidate it created
+        insert new Service__c(Name = 'legacy.pdf', Account__c = existing.Id, File_Checksum__c = checksum,
+            Request_Key__c = 'legacy-' + Crypto.getRandomInteger());
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(second));
+        Test.stopTest();
+        Service__c s = load(second);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.startsWith('This exact file was already uploaded'), s.Status_Message__c);
+        Assert.areEqual(existing.Id, s.Account__c);
+    }
+
+    @IsTest
+    static void legacyUploadOfJdDoesNotBlockResume() {
+        Id second = IntakeTestData.newIntake('Resume', 'r.pdf', 'jd-legacy-bytes');
+        String checksum = [SELECT File_Checksum__c FROM Service__c WHERE Id = :second].File_Checksum__c;
+        insert new Service__c(Name = 'legacy-jd.pdf', File_Checksum__c = checksum,
+            Request_Key__c = 'legacy-' + Crypto.getRandomInteger());
+        CandidateCreationPrompt.mockResponse = IntakeTestData.resumeJson('Anu Mohan', 'anu@example.com', null);
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(second));
+        Test.stopTest();
+        Assert.areEqual('Completed', load(second).Status__c, 'a legacy row that created nothing is not a duplicate');
     }
 }

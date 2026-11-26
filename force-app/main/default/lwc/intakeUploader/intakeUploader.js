@@ -1,22 +1,33 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import submitFile from '@salesforce/apex/IntakeController.submitFile';
+import getUploadSettings from '@salesforce/apex/IntakeController.getUploadSettings';
+import submitUploadedFilesWithTypes from '@salesforce/apex/IntakeController.submitUploadedFilesWithTypes';
+import getUploadedFileDetails from '@salesforce/apex/IntakeController.getUploadedFileDetails';
+import removeUploadedFile from '@salesforce/apex/IntakeController.removeUploadedFile';
 import getStatus from '@salesforce/apex/IntakeController.getStatus';
 import getMyUploadsToday from '@salesforce/apex/IntakeController.getMyUploadsToday';
 
-const MAX_BYTES = 3 * 1024 * 1024;
-const MAX_FILES = 10;
-const ALLOWED = ['pdf', 'docx'];
-const POLL_MS = 4000;
-const POLL_LIMIT_MS = 5 * 60 * 1000;
-const FINAL = ['Completed', 'Duplicate', 'Rejected', 'Failed'];
-
-const BADGE = {
-    Completed: 'badge-success',
-    Duplicate: 'badge-warning',
-    Rejected: 'badge-error',
-    Failed: 'badge-error'
+const POLL_MS = 5000;
+const POLL_LIMIT_MS = 20 * 60 * 1000;
+const FINAL = ['Completed', 'Duplicate', 'Rejected', 'Failed', 'Needs Review'];
+const HINTS = {
+    Auto: 'Auto-detect: the AI decides whether each file is a resume or a job description. You can mix both in one upload.',
+    Resume: 'Every file is treated as a resume. A job description uploaded here is rejected.',
+    'Job Description': 'Every file is treated as a job description. A resume uploaded here is rejected.'
 };
+
+function formatSize(bytes) {
+    if (bytes === null || bytes === undefined) {
+        return '';
+    }
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+        return `${Math.round(bytes / 1024)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function newKey() {
     try {
@@ -29,62 +40,67 @@ function newKey() {
     return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
 }
 
-function extensionOf(name) {
-    const i = name.lastIndexOf('.');
-    return i < 0 ? '' : name.slice(i + 1).toLowerCase();
-}
-
+/**
+ * Qbay Home uploader. Files go through the standard file upload (no 3 MB limit), then one intake
+ * record per file is created and the files are read one after another.
+ * requested-type: 'Auto' | 'Resume' | 'Job Description'; show-type-switch lets the recruiter choose.
+ */
 export default class IntakeUploader extends LightningElement {
-    @api requestedType = 'Resume'; // 'Resume' | 'Job Description'
+    @api requestedType = 'Resume';
+    @api showTypeSwitch = false;
+    @api showTodayButton = false;
     @api cardTitle = 'Upload';
     @api iconName = 'custom:custom14';
-    @api fileLabel = 'Attachment';
+    @api fileLabel = 'Upload files';
 
-    maxFiles = MAX_FILES;
-    selectedFiles = [];
+    selectedType;
+    maxFiles = 10;
+    maxFileMb = 10;
+    userId;
+    ready = false;
     results = [];
+    staged = []; // review step: uploaded, not processed yet
     isSubmitting = false;
-    progressText = '';
-    showInput = true;
+    busyText = '';
+    acceptedFormats = ['.pdf', '.docx'];
 
     showModal = false;
     todayLoading = false;
     todayRows = [];
-    todayColumns = [
-        { label: 'File', fieldName: 'fileName', type: 'text' },
-        { label: 'Status', fieldName: 'status', type: 'text', initialWidth: 110 },
-        {
-            label: 'Created record',
-            fieldName: 'recordUrl',
-            type: 'url',
-            typeAttributes: { label: { fieldName: 'recordName' }, target: '_blank' }
-        },
-        { label: 'Details', fieldName: 'message', type: 'text', wrapText: true },
-        {
-            label: 'Uploaded',
-            fieldName: 'createdDate',
-            type: 'date',
-            initialWidth: 150,
-            typeAttributes: { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }
-        }
-    ];
 
     pollTimer;
     pollStarted;
 
+    typeOptions = [
+        { label: 'Auto-detect', value: 'Auto' },
+        { label: 'Resume', value: 'Resume' },
+        { label: 'Job Description', value: 'Job Description' }
+    ];
+
+    connectedCallback() {
+        this.selectedType = this.requestedType || 'Resume';
+    }
+
+    disconnectedCallback() {
+        this.stopPolling();
+    }
+
+    @wire(getUploadSettings)
+    wiredSettings({ data, error }) {
+        if (data) {
+            this.maxFiles = data.maxFiles;
+            this.maxFileMb = data.maxFileMb;
+            this.userId = data.userId;
+            this.ready = true;
+        } else if (error) {
+            this.toast('Error', 'Could not load the upload settings: ' + this.errorText(error), 'error');
+        }
+    }
+
     // ---------------- getters ----------------
 
-    get hasSelected() {
-        return this.selectedFiles.length > 0;
-    }
-    get validFiles() {
-        return this.selectedFiles.filter((f) => !f.error);
-    }
-    get isSubmitDisabled() {
-        return this.isSubmitting || this.validFiles.length === 0;
-    }
-    get submitLabel() {
-        return this.isSubmitting ? 'Submitting...' : 'Submit';
+    get typeHint() {
+        return HINTS[this.selectedType];
     }
     get hasResults() {
         return this.results.length > 0;
@@ -92,114 +108,177 @@ export default class IntakeUploader extends LightningElement {
     get hasToday() {
         return this.todayRows.length > 0;
     }
-
-    disconnectedCallback() {
-        this.stopPolling();
+    get progressSummary() {
+        const total = this.results.length;
+        const done = this.results.filter((r) => r.isFinal).length;
+        const where = this.showTodayButton ? '' : ' Results also stay in the Intake inbox below.';
+        return (done === total ? `${total} of ${total} finished.` : `${done} of ${total} finished, reading one at a time.`) + where;
     }
 
-    // ---------------- file selection ----------------
-
-    handleFilesSelected(event) {
-        const files = [...(event.target.files || [])];
-        let count = 0;
-        this.selectedFiles = files.map((file, i) => {
-            let error = null;
-            const ext = extensionOf(file.name);
-            if (!ALLOWED.includes(ext)) {
-                error = 'Not supported. Use PDF or DOCX.';
-            } else if (file.size === 0) {
-                error = 'The file is empty.';
-            } else if (file.size > MAX_BYTES) {
-                error = 'Larger than 3 MB.';
-            } else if (count >= MAX_FILES) {
-                error = `Only ${MAX_FILES} files per upload.`;
-            } else {
-                count++;
+    get isBusy() {
+        return this.isSubmitting;
+    }
+    get hasStaged() {
+        return this.staged.length > 0;
+    }
+    get stagedCount() {
+        return this.staged.length;
+    }
+    /** Staged files with display values; files after the first maxFiles good ones are marked over the limit. */
+    get stagedView() {
+        let ok = 0;
+        return this.staged.map((f) => {
+            let problem = f.problem;
+            if (!problem) {
+                ok++;
+                if (ok > this.maxFiles) {
+                    problem = `Over the ${this.maxFiles}-file limit`;
+                }
             }
+            const ext = (f.extension || '').toLowerCase();
             return {
-                key: `${i}-${file.name}`,
-                name: file.name,
-                file,
-                error,
-                icon: error ? 'utility:error' : 'doctype:attachment'
+                ...f,
+                icon: ext === 'pdf' ? 'doctype:pdf' : ext === 'docx' || ext === 'doc' ? 'doctype:word' : 'doctype:unknown',
+                extLabel: ext ? ext.toUpperCase() : 'Unknown type',
+                sizeLabel: formatSize(f.sizeBytes),
+                checkLabel: problem || 'Ready',
+                badgeClass: problem ? 'check-bad' : 'check-ok',
+                typeDisabled: !!problem || this.isBusy,
+                willProcess: !problem
             };
         });
     }
-
-    readAsBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result).split(',')[1]);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-        });
+    get readyCount() {
+        return this.stagedView.filter((f) => f.willProcess).length;
+    }
+    get startLabel() {
+        const n = this.readyCount;
+        return `Start processing (${n} ${n === 1 ? 'file' : 'files'})`;
+    }
+    get startDisabled() {
+        return this.isBusy || this.readyCount === 0;
     }
 
-    // ---------------- submit ----------------
+    handleTypeChange(event) {
+        this.selectedType = event.detail.value;
+    }
 
-    async handleSubmit() {
-        // Lock first, synchronously, so a second click cannot start a second run
-        if (this.isSubmitting) {
-            return;
-        }
-        const files = this.validFiles;
+    // ---------------- upload + review step ----------------
+
+    /** Files are stored by the standard upload; they wait in the review list until "Start processing". */
+    async handleUploadFinished(event) {
+        const files = event.detail.files || [];
         if (files.length === 0) {
-            this.toast('Error', 'Please choose at least one PDF or DOCX file.', 'error');
             return;
         }
-        this.isSubmitting = true;
-        const batchKey = newKey();
-        const newRows = [];
-
+        this.setBusy('Reading file details...');
         try {
-            for (let i = 0; i < files.length; i++) {
-                const f = files[i];
-                this.progressText = `${i + 1} of ${files.length}`;
-                try {
-                    const base64 = await this.readAsBase64(f.file);
-                    const st = await submitFile({
-                        requestKey: `${batchKey}-${i}`,
-                        requestedType: this.requestedType,
-                        fileName: f.name,
-                        base64
-                    });
-                    newRows.push(this.toRow(st));
-                } catch (e) {
-                    newRows.push(
-                        this.toRow({
-                            serviceId: null,
-                            fileName: f.name,
-                            status: 'Failed',
-                            message: this.errorText(e),
-                            isFinal: true
-                        })
-                    );
-                }
-            }
+            const details = await getUploadedFileDetails({ contentDocumentIds: files.map((f) => f.documentId) });
+            const known = new Set(this.staged.map((f) => f.documentId));
+            const added = details.filter((d) => !known.has(d.documentId)).map((d) => ({ ...d, type: this.selectedType }));
+            this.staged = [...this.staged, ...added];
+            this.toast('Files added', `${added.length} file(s) added. Check the list, then click Start processing.`, 'info');
+        } catch (e) {
+            this.toast('Upload failed', this.errorText(e), 'error');
         } finally {
-            this.results = [...newRows, ...this.results];
-            this.clearSelection();
-            this.isSubmitting = false;
-            this.progressText = '';
-        }
-
-        const queued = newRows.filter((r) => !r.isFinal).length;
-        if (queued > 0) {
-            this.toast('Uploaded', `${queued} file(s) uploaded. Processing has started; results will appear below.`, 'success');
-            this.startPolling();
-        } else {
-            this.toast('Upload finished', 'See the results below.', 'info');
+            this.setBusy(null);
         }
     }
 
-    clearSelection() {
-        this.selectedFiles = [];
-        // re-render the file input so the same file can be chosen again
-        this.showInput = false;
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        Promise.resolve().then(() => {
-            this.showInput = true;
-        });
+    handleFileTypeChange(event) {
+        const id = event.target.dataset.id;
+        const type = event.detail.value;
+        this.staged = this.staged.map((f) => (f.documentId === id ? { ...f, type } : f));
+    }
+
+    async handleRemoveFile(event) {
+        const id = event.currentTarget.dataset.id;
+        this.setBusy('Removing file...');
+        try {
+            await removeUploadedFile({ contentDocumentId: id });
+            this.staged = this.staged.filter((f) => f.documentId !== id);
+        } catch (e) {
+            this.toast('Could not remove the file', this.errorText(e), 'error');
+        } finally {
+            this.setBusy(null);
+        }
+    }
+
+    async handleRemoveAll() {
+        this.setBusy('Removing files...');
+        const failed = [];
+        for (const f of [...this.staged]) {
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await removeUploadedFile({ contentDocumentId: f.documentId });
+                this.staged = this.staged.filter((s) => s.documentId !== f.documentId);
+            } catch (e) {
+                failed.push(f.fileName);
+            }
+        }
+        this.setBusy(null);
+        if (failed.length) {
+            this.toast('Some files were not removed', failed.join(', '), 'error');
+        }
+    }
+
+    async handleStartProcessing() {
+        const files = this.staged;
+        if (files.length === 0) {
+            return;
+        }
+        this.setBusy('Creating upload records...');
+        try {
+            const rows = await submitUploadedFilesWithTypes({
+                contentDocumentIds: files.map((f) => f.documentId),
+                requestedTypes: files.map((f) => f.type || this.selectedType),
+                batchKey: newKey()
+            });
+            this.staged = [];
+            this.results = [...rows, ...this.results];
+            const queued = rows.filter((r) => !r.isFinal).length;
+            const refused = rows.length - queued;
+            if (queued > 0) {
+                this.toast(
+                    'Uploaded',
+                    `${queued} file(s) are being read one after another.` + (refused ? ` ${refused} file(s) were not accepted; see below.` : ''),
+                    'success'
+                );
+                this.startPolling();
+            } else {
+                this.toast('Not accepted', 'None of the files could be accepted. See the reasons below.', 'warning');
+            }
+            this.dispatchEvent(new CustomEvent('uploaded'));
+        } catch (e) {
+            this.toast('Upload failed', this.errorText(e), 'error');
+        } finally {
+            this.setBusy(null);
+        }
+    }
+
+    setBusy(text) {
+        this.isSubmitting = !!text;
+        this.busyText = text || '';
+    }
+
+    /** Hides the results list only; nothing is deleted (results stay in the Intake inbox). */
+    clearResults() {
+        this.stopPolling();
+        this.results = [];
+    }
+
+    handleHideResult(event) {
+        const id = event.currentTarget.dataset.id;
+        this.results = this.results.filter((r) => r.serviceId !== id);
+    }
+
+    handleRowChange(event) {
+        const updated = event.detail;
+        this.results = this.results.map((r) => (r.serviceId === updated.serviceId ? updated : r));
+        if (!updated.isFinal) {
+            this.startPolling();
+        }
+        this.dispatchEvent(new CustomEvent('uploaded'));
     }
 
     // ---------------- status polling ----------------
@@ -219,61 +298,40 @@ export default class IntakeUploader extends LightningElement {
     }
 
     async refreshStatus() {
-        const pending = this.results.filter((r) => !r.isFinal && r.serviceId).map((r) => r.serviceId);
+        const pending = this.results.filter((r) => !r.isFinal).map((r) => r.serviceId);
         if (pending.length === 0) {
             this.stopPolling();
             return;
         }
         if (Date.now() - this.pollStarted > POLL_LIMIT_MS) {
             this.stopPolling();
-            this.results = this.results.map((r) =>
-                r.isFinal ? r : { ...r, message: 'Still processing. Check "View Today Uploads" in a few minutes.' }
-            );
             return;
         }
         try {
             const statuses = await getStatus({ serviceIds: pending });
             const byId = new Map(statuses.map((s) => [s.serviceId, s]));
-            let finishedNow = [];
+            const finishedNow = [];
             this.results = this.results.map((r) => {
                 const s = byId.get(r.serviceId);
                 if (!s) {
                     return r;
                 }
-                const row = this.toRow(s, r.key);
-                if (row.isFinal && !r.isFinal) {
-                    finishedNow.push(row);
+                if (FINAL.includes(s.status) && !r.isFinal) {
+                    finishedNow.push(s);
                 }
-                return row;
+                return s;
             });
             finishedNow.forEach((r) => {
-                const variant = r.status === 'Completed' ? 'success' : r.status === 'Duplicate' ? 'warning' : 'error';
+                const variant =
+                    r.status === 'Completed' ? 'success' : r.status === 'Duplicate' || r.status === 'Needs Review' ? 'warning' : 'error';
                 this.toast(`${r.fileName}: ${r.status}`, r.message || '', variant);
             });
+            if (finishedNow.length > 0) {
+                this.dispatchEvent(new CustomEvent('uploaded'));
+            }
         } catch (e) {
             // keep polling; a single failed refresh is not fatal
         }
-    }
-
-    toRow(s, existingKey) {
-        const isFinal = s.isFinal === true || FINAL.includes(s.status);
-        const isResume = this.requestedType === 'Resume';
-        return {
-            key: existingKey || s.serviceId || newKey(),
-            serviceId: s.serviceId,
-            fileName: s.fileName,
-            status: s.status || 'Queued',
-            message: s.message,
-            isFinal,
-            isRunning: !isFinal,
-            badgeClass: BADGE[s.status] || 'badge-info',
-            accountUrl: s.accountId ? `/${s.accountId}` : null,
-            accountLabel: s.accountId ? `${isResume ? 'Candidate' : 'Client'}: ${s.accountName}` : null,
-            opportunityUrl: s.opportunityId ? `/${s.opportunityId}` : null,
-            opportunityName: s.opportunityName,
-            jobDescriptionUrl: s.jobDescriptionId ? `/${s.jobDescriptionId}` : null,
-            jobDescriptionName: s.jobDescriptionName
-        };
     }
 
     // ---------------- today modal ----------------
@@ -282,25 +340,17 @@ export default class IntakeUploader extends LightningElement {
         this.showModal = true;
         this.todayLoading = true;
         try {
-            const rows = await getMyUploadsToday({ requestedType: this.requestedType });
-            this.todayRows = rows.map((s) => {
-                const recId = s.opportunityId || s.accountId || s.jobDescriptionId;
-                const recName = s.opportunityId ? s.opportunityName : s.accountId ? s.accountName : s.jobDescriptionName;
-                return {
-                    key: s.serviceId,
-                    fileName: s.fileName,
-                    status: s.status,
-                    message: s.message,
-                    createdDate: s.createdDate,
-                    recordUrl: recId ? `/${recId}` : null,
-                    recordName: recName
-                };
-            });
+            this.todayRows = await getMyUploadsToday({ requestedType: this.requestedType });
         } catch (e) {
-            this.toast('Error', 'Could not load today\'s uploads: ' + this.errorText(e), 'error');
+            this.toast('Error', "Could not load today's uploads: " + this.errorText(e), 'error');
         } finally {
             this.todayLoading = false;
         }
+    }
+
+    handleTodayChange(event) {
+        const updated = event.detail;
+        this.todayRows = this.todayRows.map((r) => (r.serviceId === updated.serviceId ? updated : r));
     }
 
     closeModal() {

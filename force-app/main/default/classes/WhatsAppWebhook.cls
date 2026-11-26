@@ -1,153 +1,554 @@
 /**
  * @class WhatsAppWebhook
- * @desc 
+ * @desc
  *   Handles inbound webhook requests from WhatsApp Business API via Meta/Facebook Webhooks.
- *   Supports:
- *   - GET verification challenge from WhatsApp (for initial webhook setup)
- *   - POST message ingestion for image and PDF content types
- *   - Auto-creates Service__c records and links uploaded media via ContentDocumentLink
- *   - Validates WhatsApp signature using HMAC SHA-256 for request integrity
- * 
+ *   Follows the shared intake pipeline used by Email and UI Upload:
+ *     WhatsAppWebhook (authorize @quadrobay.com user + save Service__c)
+ *       -> WhatsApp_Intake_Event__e (switch from Site Guest User to licensed internal user)
+ *       -> IntakeRouter (identify Resume vs JD)
+ *       -> IntakeProcessor (create Candidate or JD/Opportunity records)
+ *
+ *   - GET: verification challenge using System.Label.WHATSAPP_VERIFY_TOKEN
+ *   - POST: validates HMAC SHA-256 signature, checks active internal @quadrobay.com User
+ *     by phone number (when Restrict_WhatsApp_To_Internal__c is enabled), deduplicates by
+ *     message ID (Request_Key__c), downloads supported documents (PDF/DOCX) before DML,
+ *     converts long text messages to PDF, populates File_Checksum__c, and publishes
+ *     WhatsApp_Intake_Event__e.
+ *   - Trigger helper onServiceAfterUpdate(): sends final WhatsApp summary once processing finishes.
+ *
  * @urlMapping /whatsapp/webhooks/v1/*
- * 
- * @author Afrose Ahamed
  */
 @RestResource(urlMapping='/whatsapp/webhooks/v1/*')
 global without sharing class WhatsAppWebhook {
-    
-    private static Final String SIGNATURE_VALID_MESSAGE     = 'Signature Verified';
-    private static Final String SIGNATURE_NOT_VALID_MESSAGE = 'Signature could not be verified';
-    
-    @HttpGet // GET
+
+    public static final String CHANNEL = 'WhatsApp';
+    private static final String SIGNATURE_VALID_MESSAGE     = 'Signature Verified';
+    private static final String SIGNATURE_NOT_VALID_MESSAGE = 'Signature could not be verified';
+    private static final String DEFAULT_INTERNAL_DOMAIN     = 'quadrobay.com';
+
+    private class InboundItem {
+        Service__c service;
+        String fileName;
+        Blob fileData;
+        Boolean shouldRoute;
+        String replyTo;
+        String replyMessage;
+    }
+
+    private class ReplyNotice {
+        String toPhone;
+        String body;
+        ReplyNotice(String toPhone, String body) {
+            this.toPhone = toPhone;
+            this.body = body;
+        }
+    }
+
+    private class CollectResult {
+        List<InboundItem> items = new List<InboundItem>();
+        List<ReplyNotice> unauthorizedReplies = new List<ReplyNotice>();
+    }
+
+    @HttpGet
     global static void doGet() {
         RestResponse response = RestContext.response;
         RestRequest request = RestContext.request;
-        if(request.params.get('hub.verify_token') == 'WHATSAPPTOKEN'){
-            response.responseBody = Blob.valueOf( request.params.get('hub.challenge') );
+        String verifyToken = String.isNotBlank(System.Label.WHATSAPP_VERIFY_TOKEN)
+            ? System.Label.WHATSAPP_VERIFY_TOKEN.trim()
+            : 'WHATSAPPTOKEN';
+
+        if (request.params.get('hub.verify_token') == verifyToken) {
+            String challenge = request.params.get('hub.challenge');
+            response.statusCode = 200;
+            response.responseBody = Blob.valueOf(challenge != null ? challenge : '');
+        } else {
+            response.statusCode = 403;
         }
     }
-    
-    @HttpPost // POST
-    global static void doPost() {
-        
-        RestResponse response = RestContext.response;
-        response.addHeader('Content-type','application/json');
-        String responseString = RestContext.request.requestBody.toString();
-        Map<String, String> headers = RestContext.request.headers;
-        String responseValid = validateWhatsAppSignature(RestContext.request, responseString);
-        
-        if(responseValid == SIGNATURE_VALID_MESSAGE){
-            WhatsAppMessage messages =(WhatsAppMessage) JSON.deserialize(responseString, WhatsAppMessage.class); 
-            List<Whatsappmessage.entry> messageEntries=messages.entry;
-            System.debug(messageEntries);
-            if(messageEntries !=null && messageEntries.size()>0){
-                WhatsAppmessage.entry entrymessage=MessageEntries.get(0);
-                List<WhatsAppmessage.changes> changeMessages=entrymessage.changes;
-                if(changeMessages !=null && changeMessages.size()>0){
-                    WhatsAppmessage.changes changeMessage=changeMessages.get(0);
-                    system.debug('changeMessage'+changeMessage);
-                    List<WhatsAppmessage.messages> messageList =changeMessage.value.messages;
-                    system.debug('messageList'+messageList);
-                    List<WhatsAppmessage.contacts> contactList =changeMessage.value.contacts;
-                    System.debug('messageList'+messageList);
-                    if(messageList !=null && messageList.size()>0){
-                        //create service records
-                        Service__c serv = new Service__c();
-                        WhatsAppmessage.messages message =  messageList.get(0);
-                        System.debug('message'+message);
-                        serv.Name=message.from_x;
-                        serv.Email_Body__c=(message.text != null && message.text.body != null)?message.text.body:''; 
-                        serv.Whatsapp__c=true;
-                        if(contactList !=null && contactList.size()>0){
-                            WhatsAppmessage.contacts contact = contactList.get(0);
-                            serv.whatsappfrom__c=contact.wa_id;
-                            
-                        }
-                      //  if(message != null && message.image != null &&message.image.mime_type=='image/jpeg'){
-if(message != null && message.image != null &&  (message.image.mime_type=='image/jpeg' || message.image.mime_type=='image/png')){
-                            String imageid=message.image.id;
-                            Blob imgcontent=WhatsAppUtils.getMedia(imageid); 
-                            ContentVersion cv = new ContentVersion();
-                            cv.VersionData = imgcontent;
-                            //cv.Title = (message.document.filename != null) ? message.document.filename : 'WhatsAppDocument';
-                           // cv.PathOnClient =(message.document.filename != null) ? message.document.filename : 'WhatsAppDocument'+'.png'; //message.document.filename !=null?message.document.filename:'';
-                             cv.Title = 'WhatsAppImage';
-                          cv.PathOnClient = 'WhatsAppImage' + (message.image.mime_type == 'image/png' ? '.png' : '.jpg');
 
-                                try {
-                                upsert serv;
-                                insert cv;
-                                ContentDocumentLink cdl = new ContentDocumentLink();
-   					 cdl.ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id =: cv.Id ].ContentDocumentId;
-         cdl.LinkedEntityId = serv.Id;
-    // ShareType is either 'V', 'C', or 'I'
-    // V = Viewer, C = Collaborator, I = Inferred
-    cdl.ShareType = 'V';
-                                
-                              try {
-      insert cdl;
-                              }catch(exception e){
-                                  system.debug(e);
-                              }   
-                            } catch(DMLException e) {
-                                System.debug(e);
-                                
-                            }  
-                        }else if(message.document != null && message.document.mime_type=='application/pdf'){
-                            String docid=message.document.id;
-                            Blob doccontent=WhatsAppUtils.getMedia(docid);
-                            ContentVersion cv = new ContentVersion();
-                            cv.VersionData = doccontent;
-                            cv.Title = (message.document.filename != null) ? message.document.filename : 'WhatsAppDocument';
-                            cv.PathOnClient =(message.document.filename != null) ? message.document.filename : 'WhatsAppDocument'+'.pdf'; //message.document.filename !=null?message.document.filename:''; 
-                            try {
-                               upsert serv;
-                                insert cv;
-                                AttachmentController.createContentLinkwhatsapp(cv.Id,serv.Id);
-                             
-                 
-                            } catch(exception e) {
-                                System.debug(e);
-                                
-                            }
-                        }else{
-                            try{
-                            upsert serv;
-                            }catch(exception e){
-                                System.debug(e);
-                            }  
-                        }  
+    @HttpPost
+    global static void doPost() {
+        RestResponse response = RestContext.response;
+        response.addHeader('Content-Type', 'application/json');
+
+        String responseString = RestContext.request.requestBody != null
+            ? RestContext.request.requestBody.toString()
+            : '';
+        if (validateWhatsAppSignature(RestContext.request) != SIGNATURE_VALID_MESSAGE) {
+            response.statusCode = 401;
+            response.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+                'success' => false,
+                'event'   => 'Unknown',
+                'message' => SIGNATURE_NOT_VALID_MESSAGE
+            }));
+            return;
+        }
+
+        try {
+            IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+            CollectResult collected = collectInboundItems(responseString, cfg);
+
+            for (ReplyNotice deny : collected.unauthorizedReplies) {
+                sendWhatsAppSafe(deny.body, deny.toPhone);
+            }
+
+            List<InboundItem> items = collected.items;
+            if (items.isEmpty()) {
+                respondSuccess(response);
+                return;
+            }
+
+            List<Service__c> services = new List<Service__c>();
+            for (InboundItem it : items) {
+                services.add(it.service);
+            }
+            insert services;
+
+            List<ContentVersion> versions = new List<ContentVersion>();
+            Map<Integer, Integer> versionIndexByItem = new Map<Integer, Integer>();
+            for (Integer i = 0; i < items.size(); i++) {
+                InboundItem it = items[i];
+                if (it.fileData == null) continue;
+                versionIndexByItem.put(i, versions.size());
+                String title = it.fileName.contains('.')
+                    ? it.fileName.substringBeforeLast('.').left(255)
+                    : it.fileName.left(255);
+                versions.add(new ContentVersion(
+                    Title                  = title,
+                    PathOnClient           = it.fileName,
+                    VersionData            = it.fileData,
+                    FirstPublishLocationId = services[i].Id
+                ));
+            }
+            if (!versions.isEmpty()) {
+                insert versions;
+                Map<Id, ContentVersion> saved = new Map<Id, ContentVersion>([
+                    SELECT Id, Checksum FROM ContentVersion WHERE Id IN :versions
+                ]);
+                List<Service__c> checksumUpdates = new List<Service__c>();
+                for (Integer i : versionIndexByItem.keySet()) {
+                    Id cvId = versions[versionIndexByItem.get(i)].Id;
+                    checksumUpdates.add(new Service__c(
+                        Id = services[i].Id,
+                        File_Checksum__c = saved.get(cvId).Checksum
+                    ));
+                }
+                if (!checksumUpdates.isEmpty()) update checksumUpdates;
+            }
+
+            List<WhatsApp_Intake_Event__e> events = new List<WhatsApp_Intake_Event__e>();
+            if (cfg.enabled) {
+                for (Integer i = 0; i < items.size(); i++) {
+                    if (items[i].shouldRoute) {
+                        events.add(new WhatsApp_Intake_Event__e(
+                            Service_Id__c = String.valueOf(services[i].Id)
+                        ));
                     }
                 }
             }
-            
-        }else{
-            response.responseBody = Blob.valueOf('{success:false, event:"Unknown","message:"'+responseValid+'"}');
-            response.statusCode = 401;
+            if (!events.isEmpty()) {
+                List<Database.SaveResult> pubResults = EventBus.publish(events);
+                for (Database.SaveResult sr : pubResults) {
+                    if (!sr.isSuccess()) {
+                        String errMsg = sr.getErrors().isEmpty() ? 'Unknown Platform Event error' : sr.getErrors()[0].getMessage();
+                        UtilityClass.createElog(new DmlException(errMsg), 'WhatsAppWebhook', 'publishEvent');
+                    }
+                }
+            }
+
+            for (InboundItem it : items) {
+                sendWhatsAppSafe(it.replyMessage, it.replyTo);
+            }
+
+            respondSuccess(response);
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'WhatsAppWebhook', 'doPost');
+            response.statusCode = 500;
+            response.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+                'success' => false,
+                'event'   => 'error',
+                'message' => e.getMessage()
+            }));
+        }
+    }
+
+    // =====================================================================
+    // Inbound parsing, internal @quadrobay.com lookup & pre-DML download
+    // =====================================================================
+
+    private static CollectResult collectInboundItems(String responseString, IntakeRouter.Settings cfg) {
+        CollectResult out = new CollectResult();
+        if (String.isBlank(responseString)) return out;
+
+        Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(responseString);
+        List<Object> entries = (List<Object>) root.get('entry');
+        if (entries == null || entries.isEmpty()) return out;
+
+        List<Map<String, Object>> rawMessages = new List<Map<String, Object>>();
+        List<String> rawReplyTos = new List<String>();
+        List<String> rawKeys = new List<String>();
+        Set<String> keysToCheck = new Set<String>();
+        Set<String> phoneDigitsSet = new Set<String>();
+
+        for (Object eObj : entries) {
+            Map<String, Object> entryMap = (Map<String, Object>) eObj;
+            List<Object> changes = (List<Object>) entryMap.get('changes');
+            if (changes == null) continue;
+
+            for (Object cObj : changes) {
+                Map<String, Object> changeMap = (Map<String, Object>) cObj;
+                Map<String, Object> valueMap = (Map<String, Object>) changeMap.get('value');
+                if (valueMap == null) continue;
+
+                List<Object> messageList = (List<Object>) valueMap.get('messages');
+                if (messageList == null || messageList.isEmpty()) continue;
+
+                List<Object> contactList = (List<Object>) valueMap.get('contacts');
+                Map<String, Object> firstContact = (contactList != null && !contactList.isEmpty())
+                    ? (Map<String, Object>) contactList.get(0)
+                    : null;
+                String waId = firstContact != null ? (String) firstContact.get('wa_id') : null;
+
+                for (Object mObj : messageList) {
+                    Map<String, Object> msgMap = (Map<String, Object>) mObj;
+                    String fromPhone = firstNonBlank((String) msgMap.get('from'), (String) msgMap.get('from_x'));
+                    String replyTo = firstNonBlank(fromPhone, waId);
+                    String msgId = (String) msgMap.get('id');
+                    String reqKey = String.isNotBlank(msgId)
+                        ? ('W' + parseEmail.sha256(msgId)).left(64)
+                        : null;
+                    if (reqKey != null) keysToCheck.add(reqKey);
+
+                    String digits = AiJson.digitsOnly(replyTo);
+                    if (digits != null) phoneDigitsSet.add(digits);
+
+                    rawMessages.add(msgMap);
+                    rawReplyTos.add(replyTo);
+                    rawKeys.add(reqKey);
+                }
+            }
+        }
+
+        if (rawMessages.isEmpty()) return out;
+
+        Set<String> existingKeys = new Set<String>();
+        if (!keysToCheck.isEmpty()) {
+            for (Service__c existing : [
+                SELECT Request_Key__c FROM Service__c WHERE Request_Key__c IN :keysToCheck
+            ]) {
+                existingKeys.add(existing.Request_Key__c);
+            }
+        }
+
+        Map<String, User> internalUsersByDigits = findInternalUsersByPhone(phoneDigitsSet, cfg);
+        Set<String> seenInBatch = new Set<String>();
+        Set<String> deniedPhonesNotified = new Set<String>();
+
+        for (Integer i = 0; i < rawMessages.size(); i++) {
+            String reqKey = rawKeys[i];
+            if (reqKey != null && (existingKeys.contains(reqKey) || seenInBatch.contains(reqKey))) {
+                continue;
+            }
+            if (reqKey != null) seenInBatch.add(reqKey);
+
+            String replyTo = rawReplyTos[i];
+            String digits = AiJson.digitsOnly(replyTo);
+            User matchedUser = digits != null ? internalUsersByDigits.get(digits) : null;
+
+            if (cfg.restrictWhatsAppToInternal && matchedUser == null) {
+                if (String.isNotBlank(replyTo) && !deniedPhonesNotified.contains(replyTo)) {
+                    deniedPhonesNotified.add(replyTo);
+                    out.unauthorizedReplies.add(new ReplyNotice(
+                        replyTo,
+                        'Access restricted: your phone number is not registered to an active @quadrobay.com Salesforce user. '
+                        + 'Please ask your Salesforce admin to add your WhatsApp number to your User record.'
+                    ));
+                }
+                continue;
+            }
+
+            InboundItem item = buildInboundItem(rawMessages[i], replyTo, reqKey, matchedUser, cfg);
+            if (item != null) out.items.add(item);
+        }
+
+        return out;
+    }
+
+    /**
+     * Finds active Salesforce Users whose Email domain is in Acknowledgement_Domains__c
+     * (defaulting to quadrobay.com) and whose Phone or MobilePhone matches the last 10 digits.
+     */
+    @TestVisible
+    private static Map<String, User> findInternalUsersByPhone(Set<String> targetDigits, IntakeRouter.Settings cfg) {
+        Map<String, User> byDigits = new Map<String, User>();
+        if (targetDigits == null || targetDigits.isEmpty()) return byDigits;
+
+        Set<String> allowedDomains = new Set<String>();
+        if (cfg != null && cfg.acknowledgementDomains != null && !cfg.acknowledgementDomains.isEmpty()) {
+            allowedDomains.addAll(cfg.acknowledgementDomains);
+        } else {
+            allowedDomains.add(DEFAULT_INTERNAL_DOMAIN);
+        }
+
+        for (User u : [
+            SELECT Id, Email, Phone, MobilePhone
+            FROM User
+            WHERE IsActive = true
+              AND Email != null
+              AND (Phone != null OR MobilePhone != null)
+            LIMIT 2000
+        ]) {
+            String domain = u.Email.contains('@')
+                ? u.Email.substringAfterLast('@').trim().toLowerCase()
+                : '';
+            if (!allowedDomains.contains(domain)) continue;
+
+            String pDigits = AiJson.digitsOnly(u.Phone);
+            String mDigits = AiJson.digitsOnly(u.MobilePhone);
+            if (pDigits != null && targetDigits.contains(pDigits) && !byDigits.containsKey(pDigits)) {
+                byDigits.put(pDigits, u);
+            }
+            if (mDigits != null && targetDigits.contains(mDigits) && !byDigits.containsKey(mDigits)) {
+                byDigits.put(mDigits, u);
+            }
+        }
+        return byDigits;
+    }
+
+    private static InboundItem buildInboundItem(
+        Map<String, Object> msgMap,
+        String replyTo,
+        String reqKey,
+        User matchedUser,
+        IntakeRouter.Settings cfg
+    ) {
+        Map<String, Object> textMap  = (Map<String, Object>) msgMap.get('text');
+        Map<String, Object> imageMap = (Map<String, Object>) msgMap.get('image');
+        Map<String, Object> docMap   = (Map<String, Object>) msgMap.get('document');
+
+        String bodyText = textMap != null ? (String) textMap.get('body') : null;
+        if (String.isBlank(bodyText) && imageMap != null) {
+            bodyText = (String) imageMap.get('caption');
+        }
+        if (String.isBlank(bodyText) && docMap != null) {
+            bodyText = (String) docMap.get('caption');
+        }
+
+        InboundItem item = new InboundItem();
+        item.replyTo = replyTo;
+        item.shouldRoute = false;
+
+        Service__c serv = new Service__c(
+            Source_Channel__c = CHANNEL,
+            Whatsapp__c       = false,
+            Request_Key__c    = reqKey,
+            Retry_Count__c    = 0,
+            whatsappfrom__c   = String.isNotBlank(replyTo) ? replyTo.left(20) : null,
+            Email_Body__c     = bodyText != null ? bodyText.left(131000) : ''
+        );
+        if (matchedUser != null) {
+            serv.OwnerId = matchedUser.Id;
+            serv.emailfrom__c = matchedUser.Email != null ? matchedUser.Email.left(80) : null;
+        }
+
+        String senderLabel = String.isNotBlank(replyTo) ? replyTo : 'unknown sender';
+
+        if (docMap != null && String.isNotBlank((String) docMap.get('id'))) {
+            String mime = (String) docMap.get('mime_type');
+            String docFilename = (String) docMap.get('filename');
+            String ext = parseEmail.extensionOf(docFilename, mime);
+            String displayName = String.isNotBlank(docFilename)
+                ? docFilename.trim()
+                : ('WhatsAppDocument' + (ext == '' ? '' : '.' + ext));
+            if (!displayName.contains('.') && ext != '') displayName += '.' + ext;
+
+            if (cfg.allowedExtensions.contains(ext)) {
+                // Download media BEFORE any DML because Salesforce forbids callouts after uncommitted DML
+                item.fileData = WhatsAppUtils.getMedia((String) docMap.get('id'));
+                item.fileName = displayName;
+                item.shouldRoute = true;
+                serv.Name = displayName.left(80);
+                serv.Status__c = IntakeRouter.STATUS_NEW;
+                serv.Status_Message__c = ('Received by WhatsApp from ' + senderLabel
+                    + '. Waiting to identify whether it is a resume or a job description.').left(32000);
+                item.replyMessage = 'Thank you! We have received your document (' + displayName
+                    + ') and queued it for processing.';
+            } else {
+                String rejectMsg = ext == 'doc'
+                    ? '"' + displayName + '" is in the old Word format (.doc), which cannot be read. '
+                      + 'Please save it as PDF or DOCX and send it again. Nothing was created.'
+                    : '"' + displayName + '" is not a supported file type. Please send resumes and '
+                      + 'job descriptions as ' + String.join(new List<String>(cfg.allowedExtensions), ' or ').toUpperCase()
+                      + '. Nothing was created.';
+                serv.Name = displayName.left(80);
+                serv.Status__c = 'Rejected';
+                serv.Detected_Type__c = 'Other';
+                serv.Status_Message__c = rejectMsg.left(32000);
+                item.replyMessage = rejectMsg;
+            }
+        } else if (imageMap != null && String.isNotBlank((String) imageMap.get('id'))) {
+            String rejectMsg = 'Images are not supported. Please send resumes and job descriptions as '
+                + String.join(new List<String>(cfg.allowedExtensions), ' or ').toUpperCase()
+                + '. Nothing was created.';
+            serv.Name = firstNonBlank(replyTo, 'WhatsApp Image').left(80);
+            serv.Status__c = 'Rejected';
+            serv.Detected_Type__c = 'Other';
+            serv.Status_Message__c = rejectMsg;
+            item.replyMessage = rejectMsg;
+        } else {
+            String trimmed = bodyText == null ? '' : bodyText.trim();
+            if (trimmed.length() >= cfg.minBodyLength) {
+                String baseName = 'WhatsApp - ' + senderLabel;
+                Blob pdf = parseEmail.bodyAsPdf(baseName, trimmed);
+                item.fileData = pdf != null ? pdf : Blob.valueOf(trimmed);
+                item.fileName = pdf != null ? 'WhatsAppMessage.pdf' : 'WhatsAppMessage.txt';
+                item.shouldRoute = true;
+                serv.Name = item.fileName.left(80);
+                serv.Status__c = IntakeRouter.STATUS_NEW;
+                serv.Status_Message__c = ('Received by WhatsApp from ' + senderLabel
+                    + '. Waiting to identify whether it is a resume or a job description.').left(32000);
+                item.replyMessage = 'Thank you! We have received your message and queued it for processing.';
+            } else {
+                String rejectMsg = 'No resume or job description was found: the message has no PDF or DOCX '
+                    + 'attachment and its text is too short to be a job description or a resume. Nothing was created.';
+                serv.Name = firstNonBlank(replyTo, 'WhatsApp Message').left(80);
+                serv.Status__c = 'Rejected';
+                serv.Detected_Type__c = 'Other';
+                serv.Status_Message__c = rejectMsg;
+                item.replyMessage = 'Please send a resume or job description as a PDF or DOCX file '
+                    + '(or paste the full text) to process it in Salesforce.';
+            }
+        }
+
+        item.service = serv;
+        return item;
+    }
+
+    // =====================================================================
+    // Final WhatsApp summary notification (called from ServiceIntakeTrigger)
+    // =====================================================================
+
+    /**
+     * Trigger entry: notifies the WhatsApp sender once processing finishes
+     * (Completed, Duplicate, Rejected, or permanently Failed after retries). Never throws.
+     */
+    public static void onServiceAfterUpdate(List<Service__c> newList, Map<Id, Service__c> oldMap) {
+        try {
+            if (newList == null || newList.isEmpty()) return;
+            IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+            Set<Id> notifyIds = new Set<Id>();
+
+            for (Service__c s : newList) {
+                if (s.Source_Channel__c != CHANNEL || s.Acknowledged__c == true
+                        || String.isBlank(s.whatsappfrom__c)) {
+                    continue;
+                }
+                Service__c old = oldMap == null ? null : oldMap.get(s.Id);
+                Boolean becameFinal = IntakeRouter.FINAL_STATUSES.contains(s.Status__c)
+                    && (old == null || old.Status__c != s.Status__c);
+                if (!becameFinal) continue;
+
+                // Wait to notify on Failed until automatic retries are exhausted
+                Decimal tries = s.Retry_Count__c == null ? 0 : s.Retry_Count__c;
+                if (s.Status__c == 'Failed' && cfg.retryChannels.contains(CHANNEL) && tries < cfg.maxRetries) {
+                    continue;
+                }
+                notifyIds.add(s.Id);
+            }
+
+            if (notifyIds.isEmpty()) return;
+
+            List<Service__c> toMark = new List<Service__c>();
+            String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
+
+            for (Service__c s : [
+                SELECT Id, Name, Status__c, Status_Message__c, Detected_Type__c, whatsappfrom__c,
+                       Account__c, Account__r.Name, Opportunity__c, Opportunity__r.Name,
+                       Job_Description__c, Job_Description__r.Name
+                FROM Service__c
+                WHERE Id IN :notifyIds
+            ]) {
+                toMark.add(new Service__c(Id = s.Id, Acknowledged__c = true));
+                sendWhatsAppSafe(buildFinalSummary(s, baseUrl), s.whatsappfrom__c);
+            }
+
+            if (!toMark.isEmpty()) Database.update(toMark, false);
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'WhatsAppWebhook', 'onServiceAfterUpdate');
+        }
+    }
+
+    @TestVisible
+    private static String buildFinalSummary(Service__c s, String baseUrl) {
+        if (s.Status__c == 'Completed') {
+            if (s.Detected_Type__c == IntakeController.TYPE_RESUME && s.Account__c != null) {
+                return 'Resume processed successfully.\nCandidate: ' + s.Account__r.Name
+                    + '\nLink: ' + baseUrl + '/' + s.Account__c;
+            }
+            if (s.Detected_Type__c == IntakeController.TYPE_JD && s.Opportunity__c != null) {
+                return 'Job Description processed successfully.\nOpportunity: ' + s.Opportunity__r.Name
+                    + '\nLink: ' + baseUrl + '/' + s.Opportunity__c;
+            }
+            return 'Processed successfully: ' + (String.isNotBlank(s.Status_Message__c) ? s.Status_Message__c : s.Name);
+        }
+        if (s.Status__c == 'Duplicate') {
+            return 'Duplicate file: ' + (String.isNotBlank(s.Status_Message__c)
+                ? s.Status_Message__c
+                : 'This file was already uploaded earlier.');
+        }
+        return 'Could not process "' + s.Name + '": '
+            + (String.isNotBlank(s.Status_Message__c) ? s.Status_Message__c : s.Status__c);
+    }
+
+    // =====================================================================
+    // Helpers & signature validation
+    // =====================================================================
+
+    private static void sendWhatsAppSafe(String message, String toPhone) {
+        if (String.isBlank(message) || String.isBlank(toPhone)) return;
+        if (System.isFuture() || System.isBatch() || Limits.getFutureCalls() >= Limits.getLimitFutureCalls()) {
             return;
         }
-        
-        response.statusCode = 200;
-        response.responseBody = Blob.valueOf('{success:true, event:"success"}');
+        WhatsAppUtils.sendTextMessage(message, toPhone);
     }
-    
-    private static String validateWhatsAppSignature(RestRequest request, String responseString) {
-        // Validate Stripe signature Start 
-        Map<String, String> headers = request.headers;
-        
-        String whatsAppSignature = headers.get('X-Hub-Signature-256');
-        
-        String whatsAppPayload = RestContext.request.requestBody.toString();
-        
-        // Verify the signature using 'hmacSHA256'. I have the Webhook key stored in a Custom Label
-        String whatsAppSecret = System.Label.WHATSAPPSECRET; // Facebook Application Secret Key
-        Blob signedPayload = Crypto.generateMac('hmacSHA256', Blob.valueOf(whatsAppPayload), Blob.valueOf( whatsAppSecret ));
-        
-        String encodedPayload = 'sha256='+EncodingUtil.convertToHex(signedPayload);
-        // Return status code based on whether signed payload matches or not
-        
-        String response = (encodedPayload == whatsAppSignature)? SIGNATURE_VALID_MESSAGE : SIGNATURE_NOT_VALID_MESSAGE;
-        return response;
-        // Validate Stripe signature End 
+
+    private static void respondSuccess(RestResponse response) {
+        response.statusCode = 200;
+        response.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'success' => true,
+            'event'   => 'success'
+        }));
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        return String.isNotBlank(a) ? a : (String.isNotBlank(b) ? b : null);
+    }
+
+    private static String getHeaderIgnoreCase(Map<String, String> headers, String targetKey) {
+        if (headers == null || String.isBlank(targetKey)) return null;
+        if (headers.containsKey(targetKey)) return headers.get(targetKey);
+        for (String key : headers.keySet()) {
+            if (key != null && key.equalsIgnoreCase(targetKey)) {
+                return headers.get(key);
+            }
+        }
+        return null;
+    }
+
+    private static String validateWhatsAppSignature(RestRequest request) {
+        if (request == null || request.requestBody == null) {
+            return SIGNATURE_NOT_VALID_MESSAGE;
+        }
+        String whatsAppSignature = getHeaderIgnoreCase(request.headers, 'X-Hub-Signature-256');
+        String whatsAppSecret = System.Label.WHATSAPPSECRET;
+        if (String.isBlank(whatsAppSignature) || String.isBlank(whatsAppSecret)) {
+            return SIGNATURE_NOT_VALID_MESSAGE;
+        }
+
+        Blob signedPayload = Crypto.generateMac('hmacSHA256', request.requestBody, Blob.valueOf(whatsAppSecret.trim()));
+        String encodedPayload = 'sha256=' + EncodingUtil.convertToHex(signedPayload);
+        return encodedPayload.equalsIgnoreCase(whatsAppSignature.trim())
+            ? SIGNATURE_VALID_MESSAGE
+            : SIGNATURE_NOT_VALID_MESSAGE;
     }
 }
