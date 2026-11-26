@@ -3,6 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import completeReview from '@salesforce/apex/IntakeController.completeReview';
 import attachToExisting from '@salesforce/apex/IntakeController.attachToExisting';
 import retryIntake from '@salesforce/apex/IntakeController.retryIntake';
+import resolveJdDuplicate from '@salesforce/apex/IntakeController.resolveJdDuplicate';
 
 const LOOK = {
     Completed: 'success',
@@ -36,7 +37,14 @@ export default class IntakeRow extends LightningElement {
         return !this.row.isFinal;
     }
     get waitingText() {
-        return this.row.status === 'Queued' ? 'Waiting to be read' : 'Reading';
+        if (this.row.status !== 'Queued') {
+            return 'Reading';
+        }
+        // Files of one upload are read one after another
+        if (this.row.batchTotal > 1 && this.row.batchPosition) {
+            return `Waiting, file ${this.row.batchPosition} of ${this.row.batchTotal}`;
+        }
+        return 'Waiting to be read';
     }
     get fileIcon() {
         const n = (this.row.fileName || '').toLowerCase();
@@ -81,7 +89,7 @@ export default class IntakeRow extends LightningElement {
         return this.row.jobDescriptionId ? `/${this.row.jobDescriptionId}` : null;
     }
     get hasActions() {
-        return this.row.canReview || this.row.canAttach || this.row.canRetry;
+        return this.row.canReview || this.row.canAttach || this.row.canRetry || this.row.canChooseJd;
     }
     get reviewLabel() {
         return this.row.status === 'Duplicate' ? 'Different person? Add contact details' : 'Add contact details';
@@ -122,6 +130,14 @@ export default class IntakeRow extends LightningElement {
 
     async handleAttach() {
         await this.run(() => attachToExisting({ serviceId: this.row.serviceId }), false);
+    }
+
+    async handleUseExistingOpp() {
+        await this.run(() => resolveJdDuplicate({ serviceId: this.row.serviceId, useExisting: true }), false);
+    }
+
+    async handleCreateNewOpp() {
+        await this.run(() => resolveJdDuplicate({ serviceId: this.row.serviceId, useExisting: false }), false);
     }
 
     async handleRetry() {

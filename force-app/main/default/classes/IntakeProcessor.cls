@@ -37,6 +37,12 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         public String candidateName;
     }
 
+    /** A JD with the same role as an open Opportunity of the client but other text (T-071). Qbay Home uploads only. */
+    public class PossibleDuplicateJdException extends Exception {
+        public Id opportunityId;
+        public Id accountId;
+    }
+
     public static final String CHANNEL_UI = 'UI Upload';
     public static final String STATUS_NEEDS_REVIEW = 'Needs Review';
 
@@ -126,6 +132,14 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                 svc.Account__c = r.primaryAccountId;
                 finish(svc, 'Completed', r.summary, rawJson);
             }
+        } catch (PossibleDuplicateJdException pd) {
+            Database.rollback(sp);
+            // The recruiter decides in the inbox: Use existing Opportunity / Create new Opportunity
+            svc.Detected_Type__c = 'Job Description';
+            svc.Requested_Type__c = IntakeController.TYPE_JD;
+            svc.Account__c = pd.accountId;
+            svc.Opportunity__c = pd.opportunityId;
+            finish(svc, STATUS_NEEDS_REVIEW, pd.getMessage(), rawJson);
         } catch (NeedsReviewException nr) {
             Database.rollback(sp);
             svc.Detected_Type__c = 'Resume';
@@ -141,7 +155,8 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             finish(svc, 'Duplicate', dup.getMessage(), rawJson);
         } catch (RejectException rej) {
             Database.rollback(sp);
-            svc.Detected_Type__c = detectedTypeFrom(rawJson);
+            svc.Detected_Type__c = rej.getMessage() == JobDescriptionCreationController.NOT_A_JD_MESSAGE
+                ? 'Other' : detectedTypeFrom(rawJson);
             finish(svc, 'Rejected', rej.getMessage(), rawJson);
         } catch (Exception e) {
             Database.rollback(sp);

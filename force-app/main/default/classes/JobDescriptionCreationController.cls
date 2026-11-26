@@ -5,9 +5,16 @@
  *  - Client Account: matched on a normalized company name ("Infosys Ltd." = "infosys"),
  *    never on Candidate / Employee / Contractor Accounts. New clients get the Direct_Customers
  *    record type and Account_Type__c = Customer.
- *  - Opportunity: an existing one is reused only if it is OPEN, belongs to that client,
- *    was created in the last 90 days, has the same role and a near-identical JD text.
- *    Otherwise a new Resourcing Opportunity is created. Closed deals are never changed.
+ *  - Opportunity (T-071, 26-11-2026): only OPEN Opportunities of that client created in the last 90 days are compared.
+ *      Same requirement  = same role (normalized: "Sr. SFDC Dev" = "Senior Salesforce Developer") and the JD is
+ *                          similar (50% of the words of role + responsibilities + skills + qualifications, or 60% of
+ *                          the skills), or, when a role is missing on either side, 80% of those words.
+ *                          -> the Opportunity is reused.
+ *      Possible duplicate = same role but the text differs (the AI writes the text differently each time).
+ *                          -> Qbay Home upload: the intake waits in Needs Review and the recruiter chooses
+ *                             "Use existing" or "Create new" (jdDecision).
+ *                          -> email / WhatsApp: a new Opportunity is created and the summary names the possible duplicate.
+ *      Otherwise a new Resourcing Opportunity is created. Closed deals are never changed.
  *  - Re-using an Opportunity only fills empty fields; nothing is blanked.
  *  - Every number/date is parsed safely: a bad value leaves that field empty.
  */
@@ -39,6 +46,20 @@ public without sharing class JobDescriptionCreationController {
     // Main entry point. strict = true for the UI upload.
     // =====================================================================
     public static Result process(String rawJson, Id serviceId, Boolean strict) {
+        return process(rawJson, serviceId, strict, null);
+    }
+
+    /** Recruiter's answer to a possible duplicate JD (Qbay Home upload, Needs Review). */
+    public static final String DECISION_EXISTING = 'existing';
+    public static final String DECISION_NEW = 'new';
+    public static final String POSSIBLE_DUPLICATE_PREFIX = 'Possible duplicate: ';
+    public static final String NOT_A_JD_MESSAGE = 'This file does not look like a resume or a job description: '
+        + 'no company, skills, experience, qualifications or location were found. Nothing was created.';
+
+    /**
+     * @param jdDecision null = normal run; DECISION_EXISTING / DECISION_NEW = the recruiter's choice for a possible duplicate
+     */
+    public static Result process(String rawJson, Id serviceId, Boolean strict, String jdDecision) {
         Result res = new Result();
         Map<String, Object> parsed = AiJson.parse(rawJson);
         if (parsed == null) {
@@ -50,7 +71,7 @@ public without sharing class JobDescriptionCreationController {
             throw new IntakeProcessor.RejectException('This file looks like a resume, not a Job Description. Please upload it as a Resume, or choose Auto-detect. Nothing was created.');
         }
         if (strict && docType == 'Other') {
-            throw new IntakeProcessor.RejectException('This file does not look like a Job Description. Nothing was created.');
+            throw new IntakeProcessor.RejectException('This file does not look like a Job Description. Nothing was created. Please upload it as a Resume, or choose Auto-detect.');
         }
 
         List<Map<String, Object>> jdList = new List<Map<String, Object>>();
@@ -86,6 +107,8 @@ public without sharing class JobDescriptionCreationController {
         Map<String, Decimal> rates = loadRates();
         Id ownerId = resolveOwner(svc);
         String source = sourceOf(svc);
+        // Only Qbay Home uploads have a screen where the recruiter can answer a possible duplicate
+        Boolean askOnPossible = strict && jdDecision == null && svc != null && svc.Source_Channel__c == IntakeProcessor.CHANNEL_UI;
 
         Id resourcingRt = rtId(Opportunity.SObjectType, 'Resourcing');
         Id clientRt = rtId(Account.SObjectType, 'Direct_Customers');
@@ -103,6 +126,10 @@ public without sharing class JobDescriptionCreationController {
             // ---------- company ----------
             String companyName = AiJson.str(jd, 'companyName');
             if (companyName != null && companyName.equalsIgnoreCase(TEMP_ACCOUNT)) companyName = null;
+            if (companyName == null && strict && !hasJobSignals(jd)) {
+                // e.g. a report or meeting notes that the AI called a JD: say so, not "no company name"
+                throw new IntakeProcessor.RejectException(NOT_A_JD_MESSAGE);
+            }
             if (companyName == null) {
                 if (strict) throw new IntakeProcessor.RejectException('No company name was found in the Job Description. Please add the client name to the JD and upload again. Nothing was created.');
                 companyName = TEMP_ACCOUNT; // legacy behaviour for email / WhatsApp
@@ -128,7 +155,29 @@ public without sharing class JobDescriptionCreationController {
             String seniority = matchPicklist(AiJson.str(jd, 'seniority'), seniorities);
 
             // ---------- opportunity ----------
-            Opportunity opp = findSameOpenOpportunity(client.Id, role, responsibilities);
+            OppMatch match = findSameOpenOpportunity(client.Id, role, responsibilities, skills, qualifications);
+            Opportunity opp = null;
+            String possibleNote = null;
+            if (match != null && match.same) {
+                opp = match.opp;
+            } else if (match != null) {
+                if (jdDecision == DECISION_EXISTING) {
+                    opp = match.opp;
+                } else if (jdDecision != DECISION_NEW) {
+                    String createdOn = match.opp.CreatedDate == null ? '' : ' on ' + match.opp.CreatedDate.format('dd MMM yyyy');
+                    if (askOnPossible) {
+                        IntakeProcessor.PossibleDuplicateJdException pd = new IntakeProcessor.PossibleDuplicateJdException(
+                            POSSIBLE_DUPLICATE_PREFIX + 'the open Opportunity "' + match.opp.Name + '" for ' + client.Name
+                            + ' has the same role and was created' + createdOn + '. The job text differs, so it may be the same '
+                            + 'requirement or a new one. Choose "Use existing Opportunity" or "Create new Opportunity".');
+                        pd.opportunityId = match.opp.Id;
+                        pd.accountId = client.Id;
+                        throw pd;
+                    }
+                    possibleNote = ' Possible duplicate of the open Opportunity "' + match.opp.Name + '" created' + createdOn
+                        + ' (same role); please check and merge if it is the same requirement.';
+                }
+            }
             Boolean isNewOpp = opp == null;
             if (isNewOpp) {
                 opp = new Opportunity(
@@ -213,7 +262,8 @@ public without sharing class JobDescriptionCreationController {
             }
             res.legacy.add(client.Name);
             res.legacy.add(String.valueOf(opp.Id));
-            summaries.add((isNewOpp ? 'Created Opportunity ' : 'Updated open Opportunity ') + opp.Name + ' for ' + client.Name);
+            summaries.add((isNewOpp ? 'Created Opportunity ' : 'Updated open Opportunity ') + opp.Name + ' for ' + client.Name
+                + (possibleNote == null ? '' : '.' + possibleNote.removeEnd('.')));
         }
 
         if (!needMatch.isEmpty()) update needMatch;
@@ -258,11 +308,33 @@ public without sharing class JobDescriptionCreationController {
         return acc;
     }
 
-    private static Opportunity findSameOpenOpportunity(Id accountId, String role, String jdText) {
-        if (String.isBlank(role) && String.isBlank(jdText)) return null;
+    /** An open Opportunity of the same client: same = reuse it; not same = possible duplicate (same role, other text). */
+    public class OppMatch {
+        public Opportunity opp;
+        public Boolean same = false;
+        OppMatch(Opportunity opp, Boolean same) {
+            this.opp = opp;
+            this.same = same;
+        }
+    }
+
+    @TestVisible private static final Decimal SAME_ROLE_TEXT_MIN = 0.5;
+    @TestVisible private static final Decimal SAME_ROLE_SKILLS_MIN = 0.6;
+    @TestVisible private static final Decimal NO_ROLE_TEXT_MIN = 0.8;
+
+    /**
+     * T-071. The AI writes the responsibilities in different words on every run, so text alone
+     * cannot decide. The role (normalized) is the main key; the text and skills confirm it.
+     */
+    @TestVisible
+    private static OppMatch findSameOpenOpportunity(Id accountId, String role, String jdText, String skills, String quals) {
+        String newRole = roleKey(role);
+        String newText = joinNonBlankAll(new List<String>{ role, jdText, skills, quals });
+        if (newRole == '' && String.isBlank(newText)) return null;
         Datetime since = Datetime.now().addDays(-90);
+        OppMatch possible = null;
         for (Opportunity o : [
-            SELECT Id, Name, AccountId, JD_Lookup__c, Job_Description__c, Role_Required__c, Skills_Required__c,
+            SELECT Id, Name, CreatedDate, AccountId, JD_Lookup__c, Job_Description__c, Role_Required__c, Skills_Required__c,
                    Experience_Required__c, Job_Location__c, Source_Content__c, Source_Of_Requirement__c,
                    StageName, Start_Date__c, Amount, Budget_In_JD__c, Currency_Mentioned_In_JD__c,
                    Original_Budget_Amount__c, Original_Currency__c, Job_Duration__c, Resource_Needed__c,
@@ -272,14 +344,85 @@ public without sharing class JobDescriptionCreationController {
             WHERE AccountId = :accountId AND IsClosed = false AND CreatedDate >= :since
             ORDER BY CreatedDate DESC LIMIT 50
         ]) {
-            // Different roles are never the same requirement. When either side has no role,
-            // the job description text alone decides (80% word overlap).
-            Boolean bothHaveRole = String.isNotBlank(role) && String.isNotBlank(o.Role_Required__c);
-            if (bothHaveRole && normalizeText(role) != normalizeText(o.Role_Required__c)) continue;
-            if (String.isBlank(jdText) || String.isBlank(o.Job_Description__c)) continue;
-            if (similarity(jdText, o.Job_Description__c) >= 0.8) return o;
+            String oldRole = roleKey(o.Role_Required__c);
+            Boolean bothHaveRole = newRole != '' && oldRole != '';
+            // Different roles are never the same requirement
+            if (bothHaveRole && newRole != oldRole) continue;
+            String oldText = joinNonBlankAll(new List<String>{
+                o.Role_Required__c, o.Job_Description__c, o.Skills_Required__c, o.Required_Qualifications__c
+            });
+            Decimal textSim = similarity(newText, oldText);
+            Boolean same = bothHaveRole
+                ? (textSim >= SAME_ROLE_TEXT_MIN || skillSimilarity(skills, o.Skills_Required__c) >= SAME_ROLE_SKILLS_MIN)
+                : textSim >= NO_ROLE_TEXT_MIN;
+            if (same) return new OppMatch(o, true);
+            if (bothHaveRole && possible == null) possible = new OppMatch(o, false); // newest first
         }
-        return null;
+        return possible;
+    }
+
+    private static final Map<String, String> ROLE_WORDS = new Map<String, String>{
+        'sr' => 'senior', 'snr' => 'senior', 'jr' => 'junior', 'jnr' => 'junior',
+        'dev' => 'developer', 'developers' => 'developer', 'engg' => 'engineer', 'engr' => 'engineer', 'engineers' => 'engineer',
+        'mgr' => 'manager', 'admin' => 'administrator', 'sfdc' => 'salesforce', 'sf' => 'salesforce',
+        'consultants' => 'consultant', 'analysts' => 'analyst', 'architects' => 'architect', 'qa' => 'quality'
+    };
+    private static final Set<String> ROLE_FILLER = new Set<String>{
+        'role', 'position', 'opening', 'openings', 'vacancy', 'requirement', 'hiring', 'urgent', 'job',
+        'for', 'the', 'a', 'an', 'of', 'and', 'with', 'in', 'at', 'needed', 'required'
+    };
+
+    /** Role compared word by word, any order, common short forms expanded: "Sr. SFDC Dev" = "Senior Salesforce Developer". */
+    @TestVisible
+    private static String roleKey(String role) {
+        if (String.isBlank(role)) return '';
+        List<String> out = new List<String>();
+        for (String w : normalizeText(role).split(' ')) {
+            if (w == '') continue;
+            String v = ROLE_WORDS.containsKey(w) ? ROLE_WORDS.get(w) : w;
+            if (!ROLE_FILLER.contains(v) && !out.contains(v)) out.add(v);
+        }
+        out.sort();
+        return String.join(out, ' ');
+    }
+
+    /** Overlap of the listed skills ("Apex, LWC, REST API"), 0..1. */
+    @TestVisible
+    private static Decimal skillSimilarity(String a, String b) {
+        Set<String> s1 = skillSet(a), s2 = skillSet(b);
+        if (s1.isEmpty() || s2.isEmpty()) return 0;
+        Set<String> inter = new Set<String>(s1);
+        inter.retainAll(s2);
+        Set<String> uni = new Set<String>(s1);
+        uni.addAll(s2);
+        return Decimal.valueOf(inter.size()) / uni.size();
+    }
+
+    private static Set<String> skillSet(String s) {
+        Set<String> out = new Set<String>();
+        if (String.isBlank(s)) return out;
+        for (String p : s.toLowerCase().split('[,;/|\\n]+|\\band\\b')) {
+            String v = p.replaceAll('[^a-z0-9+#.]+', ' ').normalizeSpace();
+            if (v != '') out.add(v);
+        }
+        return out;
+    }
+
+    /** A JD without a company still counts as a JD when it has at least one of these. */
+    private static Boolean hasJobSignals(Map<String, Object> jd) {
+        for (String k : new List<String>{ 'skillsRequired', 'experience', 'qualifications', 'seniority',
+                'preferredLocation', 'otherLocation', 'jobType', 'duration' }) {
+            if (AiJson.str(jd, k) != null) return true;
+        }
+        return false;
+    }
+
+    private static String joinNonBlankAll(List<String> parts) {
+        List<String> kept = new List<String>();
+        for (String p : parts) {
+            if (String.isNotBlank(p)) kept.add(p);
+        }
+        return String.join(kept, ' ');
     }
 
     private static String normalizeText(String s) {

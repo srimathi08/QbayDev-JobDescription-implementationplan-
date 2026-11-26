@@ -68,7 +68,7 @@ public without sharing class CandidateCreationController {
             throw new IntakeProcessor.RejectException('This file looks like a Job Description, not a resume. Please upload it as a Job Description, or choose Auto-detect. Nothing was created.');
         }
         if (strict && docType == 'Other') {
-            throw new IntakeProcessor.RejectException('This file does not look like a resume. Nothing was created.');
+            throw new IntakeProcessor.RejectException('This file does not look like a resume. Nothing was created. Please upload it as a Job Description, or choose Auto-detect.');
         }
 
         List<Map<String, Object>> resumes = AiJson.objList(parsed, 'resumes');

@@ -2,19 +2,16 @@
  * Entry point for the Qbay Home uploaders and the intake inbox.
  * New upload path (25-11-2026): the standard file upload stores the files, then submitUploadedFiles()
  * creates one intake per file and starts the first; the rest run one after another (IntakeProcessor finalizer).
- * Inbox actions for Qbay Home uploads: completeReview (Needs Review), attachToExisting (Duplicate), retryIntake.
+ * Inbox actions for Qbay Home uploads: completeReview (Needs Review), attachToExisting (Duplicate), retryIntake,
+ * resolveJdDuplicate (Needs Review for a possible duplicate JD, T-071).
  * Email and WhatsApp intakes are shown read-only; their processing is owned by their own classes.
- *
- * Original description:
- * One call = one file = one Service__c intake record, created atomically with its file.
- * Idempotent on Request_Key__c: repeating the same request (double click, network retry)
- * returns the existing intake instead of creating a second one.
+ * 26-11-2026: the old one-call upload (submitFile, 3 MB, no review step) was removed; nothing called it.
+ * Idempotency: submitUploadedFiles returns the existing intakes when the same upload key is sent again.
  */
 public with sharing class IntakeController {
 
     public static final String TYPE_RESUME = 'Resume';
     public static final String TYPE_JD = 'Job Description';
-    public static final Integer MAX_FILE_BYTES = 3 * 1024 * 1024; // Aura request limit is ~4 MB after base64
     public static final Set<String> ALLOWED_EXTENSIONS = new Set<String>{ 'pdf', 'docx' };
 
     public class IntakeStatus {
@@ -36,6 +33,11 @@ public with sharing class IntakeController {
         @AuraEnabled public Boolean canReview;
         @AuraEnabled public Boolean canAttach;
         @AuraEnabled public Boolean canRetry;
+        /** Possible duplicate JD: the recruiter picks "Use existing" or "Create new". */
+        @AuraEnabled public Boolean canChooseJd;
+        /** Queued file of a multi-file upload: "Waiting, file 3 of 5". Null otherwise. */
+        @AuraEnabled public Integer batchPosition;
+        @AuraEnabled public Integer batchTotal;
     }
 
     public class UploadSettings {
@@ -53,82 +55,7 @@ public with sharing class IntakeController {
     private static final String STATUS_FIELDS = 'Id, Name, Status__c, Status_Message__c, Requested_Type__c, CreatedDate, LastModifiedDate, '
         + 'Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Account__r.RecordType.DeveloperName, '
         + 'Opportunity__c, Opportunity__r.Name, '
-        + 'Job_Description__c, Job_Description__r.Name, Retry_Count__c';
-
-    /**
-     * Creates (or returns) the intake for one file and queues processing.
-     * @param requestKey  unique per file per Submit, generated in the browser
-     * @param requestedType 'Resume' or 'Job Description' (the tab the user used)
-     * @param fileName original file name with extension
-     * @param base64 file content
-     */
-    @AuraEnabled
-    public static IntakeStatus submitFile(String requestKey, String requestedType, String fileName, String base64) {
-        if (String.isBlank(requestKey)) throw error('Missing request key. Please refresh the page and try again.');
-        if (requestedType != TYPE_RESUME && requestedType != TYPE_JD) throw error('Unknown upload type.');
-        if (String.isBlank(fileName)) throw error('File name is missing.');
-        if (String.isBlank(base64)) throw error('The file "' + fileName + '" is empty.');
-
-        String ext = extensionOf(fileName);
-        if (!ALLOWED_EXTENSIONS.contains(ext)) {
-            throw error('"' + fileName + '" is not supported. Please upload a PDF or DOCX file.');
-        }
-
-        // Idempotency: same key -> same intake, no second run
-        List<Service__c> existing = [SELECT Id FROM Service__c WHERE Request_Key__c = :requestKey LIMIT 1];
-        if (!existing.isEmpty()) {
-            return getStatus(new List<Id>{ existing[0].Id })[0];
-        }
-
-        Blob data;
-        try {
-            data = EncodingUtil.base64Decode(base64);
-        } catch (Exception e) {
-            throw error('The file "' + fileName + '" could not be read.');
-        }
-        if (data.size() == 0) throw error('The file "' + fileName + '" is empty.');
-        if (data.size() > MAX_FILE_BYTES) throw error('"' + fileName + '" is larger than 3 MB. Please upload a smaller file.');
-
-        Savepoint sp = Database.setSavepoint();
-        Service__c svc = new Service__c(
-            Name = fileName.left(80),
-            Source_Channel__c = 'UI Upload',
-            Requested_Type__c = requestedType,
-            Status__c = 'Queued',
-            Request_Key__c = requestKey
-        );
-        try {
-            insert svc;
-        } catch (DmlException e) {
-            // Two identical requests at the same moment: the unique key wins, return the first one
-            if (e.getDmlType(0) == StatusCode.DUPLICATE_VALUE) {
-                Database.rollback(sp);
-                Service__c first = [SELECT Id FROM Service__c WHERE Request_Key__c = :requestKey LIMIT 1];
-                return getStatus(new List<Id>{ first.Id })[0];
-            }
-            throw error('Could not create the upload record: ' + e.getDmlMessage(0));
-        }
-
-        try {
-            ContentVersion cv = new ContentVersion(
-                Title = titleOf(fileName),
-                PathOnClient = fileName,
-                VersionData = data,
-                FirstPublishLocationId = svc.Id
-            );
-            insert cv;
-            cv = [SELECT Id, Checksum, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
-            svc.File_Checksum__c = cv.Checksum;
-            update svc;
-
-            System.enqueueJob(new IntakeProcessor(svc.Id));
-        } catch (Exception e) {
-            Database.rollback(sp);
-            UtilityClass.createElog(e, 'IntakeController', 'submitFile');
-            throw error('Upload failed for "' + fileName + '": ' + e.getMessage());
-        }
-        return getStatus(new List<Id>{ svc.Id })[0];
-    }
+        + 'Job_Description__c, Job_Description__r.Name, Retry_Count__c, Upload_Batch__c';
 
     /** Current status of the given intakes, for the LWC to refresh. Not cacheable on purpose. */
     @AuraEnabled
@@ -138,9 +65,42 @@ public with sharing class IntakeController {
         Map<Id, Service__c> byId = new Map<Id, Service__c>(
             (List<Service__c>) Database.query('SELECT ' + STATUS_FIELDS + ' FROM Service__c WHERE Id IN :serviceIds')
         );
+        List<Service__c> rows = new List<Service__c>();
         for (Id i : serviceIds) {
             Service__c s = byId.get(i);
-            if (s != null) out.add(toStatus(s));
+            if (s != null) rows.add(s);
+        }
+        return statusesOf(rows);
+    }
+
+    /** Statuses in the given order, with the queue position of waiting files ("file 3 of 5"). */
+    private static List<IntakeStatus> statusesOf(List<Service__c> rows) {
+        List<IntakeStatus> out = new List<IntakeStatus>();
+        Set<String> batches = new Set<String>();
+        for (Service__c s : rows) {
+            out.add(toStatus(s));
+            if (s.Status__c == 'Queued' && String.isNotBlank(s.Upload_Batch__c)) batches.add(s.Upload_Batch__c);
+        }
+        if (batches.isEmpty()) return out;
+        Map<Id, Integer> position = new Map<Id, Integer>();
+        Map<String, Integer> total = new Map<String, Integer>();
+        for (Service__c b : [
+            SELECT Id, Upload_Batch__c FROM Service__c
+            WHERE Upload_Batch__c IN :batches
+            ORDER BY CreatedDate ASC, Name ASC
+            LIMIT 2000
+        ]) {
+            Integer n = total.containsKey(b.Upload_Batch__c) ? total.get(b.Upload_Batch__c) + 1 : 1;
+            total.put(b.Upload_Batch__c, n);
+            position.put(b.Id, n);
+        }
+        for (Integer k = 0; k < rows.size(); k++) {
+            Service__c s = rows[k];
+            if (s.Status__c != 'Queued' || String.isBlank(s.Upload_Batch__c)) continue;
+            Integer t = total.get(s.Upload_Batch__c);
+            if (t == null || t < 2) continue;
+            out[k].batchPosition = position.get(s.Id);
+            out[k].batchTotal = t;
         }
         return out;
     }
@@ -148,11 +108,10 @@ public with sharing class IntakeController {
     /** Uploads the current user made today (replaces "View Today Uploads"). */
     @AuraEnabled
     public static List<IntakeStatus> getMyUploadsToday(String requestedType) {
-        List<IntakeStatus> out = new List<IntakeStatus>();
-        for (Service__c s : [
+        return statusesOf([
             SELECT Id, Name, Status__c, Status_Message__c, Requested_Type__c, CreatedDate, LastModifiedDate,
                    Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Account__r.RecordType.DeveloperName,
-                   Opportunity__c, Opportunity__r.Name, Job_Description__c, Job_Description__r.Name, Retry_Count__c
+                   Opportunity__c, Opportunity__r.Name, Job_Description__c, Job_Description__r.Name, Retry_Count__c, Upload_Batch__c
             FROM Service__c
             WHERE CreatedById = :UserInfo.getUserId()
               AND CreatedDate = TODAY
@@ -160,10 +119,7 @@ public with sharing class IntakeController {
               AND Requested_Type__c = :requestedType
             ORDER BY CreatedDate DESC
             LIMIT 200
-        ]) {
-            out.add(toStatus(s));
-        }
-        return out;
+        ]);
     }
 
     // =====================================================================
@@ -401,9 +357,7 @@ public with sharing class IntakeController {
         if (mineOnly == true) conds.add('CreatedById = :me');
         String q = 'SELECT ' + STATUS_FIELDS + ' FROM Service__c WHERE ' + String.join(conds, ' AND ')
             + ' ORDER BY CreatedDate DESC LIMIT 200';
-        List<IntakeStatus> out = new List<IntakeStatus>();
-        for (Service__c s : (List<Service__c>) Database.query(q)) out.add(toStatus(s));
-        return out;
+        return statusesOf((List<Service__c>) Database.query(q));
     }
 
     /** Needs Review / Duplicate by name: the recruiter adds the missing contact details, the saved AI result is reused. */
@@ -465,6 +419,45 @@ public with sharing class IntakeController {
         return getStatus(new List<Id>{ svc.Id })[0];
     }
 
+    /**
+     * Possible duplicate JD (Needs Review, T-071): the recruiter keeps the existing Opportunity (only its empty
+     * fields are filled, the file is linked) or creates a new one. The saved AI result is reused: no new AI call.
+     */
+    @AuraEnabled
+    public static IntakeStatus resolveJdDuplicate(Id serviceId, Boolean useExisting) {
+        Service__c svc = loadForAction(serviceId);
+        if (svc.Status__c != 'Needs Review' || svc.Requested_Type__c != TYPE_JD) {
+            throw error('This upload is not waiting for a duplicate Job Description decision.');
+        }
+        if (String.isBlank(svc.AI_Response__c)) throw error('The saved AI result for this file is missing. Please upload the file again.');
+        String decision = useExisting == true
+            ? JobDescriptionCreationController.DECISION_EXISTING
+            : JobDescriptionCreationController.DECISION_NEW;
+        Savepoint sp = Database.setSavepoint();
+        try {
+            JobDescriptionCreationController.Result r =
+                JobDescriptionCreationController.process(svc.AI_Response__c, svc.Id, true, decision);
+            svc.Account__c = r.accountId;
+            svc.Opportunity__c = r.opportunityId;
+            svc.Job_Description__c = r.jobDescriptionId;
+            svc.Detected_Type__c = TYPE_JD;
+            svc.Status__c = 'Completed';
+            svc.Status_Message__c = ((useExisting == true
+                    ? 'Kept the existing Opportunity (chosen by ' + UserInfo.getName() + '). '
+                    : 'New Opportunity created (chosen by ' + UserInfo.getName() + '). ')
+                + (r.summary == null ? '' : r.summary)).left(32000);
+            update svc;
+        } catch (IntakeProcessor.RejectException rej) {
+            Database.rollback(sp);
+            throw error(rej.getMessage());
+        } catch (Exception e) {
+            Database.rollback(sp);
+            UtilityClass.createElog(e, 'IntakeController', 'resolveJdDuplicate');
+            throw error('Could not save the Job Description: ' + e.getMessage());
+        }
+        return getStatus(new List<Id>{ svc.Id })[0];
+    }
+
     /** Failed (or stuck in Queued for 15+ minutes): runs the file again. */
     @AuraEnabled
     public static IntakeStatus retryIntake(Id serviceId) {
@@ -504,7 +497,9 @@ public with sharing class IntakeController {
         // Duplicate found by name only (no contact details in the file): the recruiter may add details for a different person
         Boolean nameDuplicate = s.Status__c == 'Duplicate' && s.Status_Message__c != null
             && s.Status_Message__c.startsWith('Duplicate: ');
-        st.canReview = ui && (s.Status__c == 'Needs Review' || nameDuplicate);
+        Boolean jd = st.requestedType == TYPE_JD;
+        st.canReview = ui && !jd && (s.Status__c == 'Needs Review' || nameDuplicate);
+        st.canChooseJd = ui && jd && s.Status__c == 'Needs Review' && s.Opportunity__c != null;
         // Attach a resume only to a candidate Account, never to a client Account of a JD
         st.canAttach = ui && s.Status__c == 'Duplicate' && s.Account__c != null && st.requestedType != TYPE_JD
             && s.Account__r?.RecordType?.DeveloperName == 'Candidates';

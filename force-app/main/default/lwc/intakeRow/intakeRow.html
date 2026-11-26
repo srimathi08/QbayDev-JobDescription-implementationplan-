@@ -32,6 +32,10 @@
                 <template lwc:if={row.canReview}>
                     <lightning-button label={reviewLabel} icon-name="utility:edit" variant={reviewVariant} onclick={toggleForm} disabled={busy} class="slds-m-right_x-small"></lightning-button>
                 </template>
+                <template lwc:if={row.canChooseJd}>
+                    <lightning-button variant="brand" label="Use existing Opportunity" icon-name="utility:link" onclick={handleUseExistingOpp} disabled={busy} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label="Create new Opportunity" icon-name="utility:add" onclick={handleCreateNewOpp} disabled={busy} class="slds-m-right_x-small"></lightning-button>
+                </template>
                 <template lwc:if={row.canAttach}>
                     <lightning-button label="Attach resume to existing candidate" icon-name="utility:attach" onclick={handleAttach} disabled={busy} class="slds-m-right_x-small"></lightning-button>
                 </template>
