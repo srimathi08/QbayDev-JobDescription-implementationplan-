@@ -122,6 +122,7 @@ public without sharing class CandidateCreationController {
         Map<String, Account> candByLinkedIn = new Map<String, Account>();
         Map<String, Account> candByNameDob = new Map<String, Account>();
         Map<String, Account> otherByEmail = new Map<String, Account>();
+        Map<String, Account> candByName = new Map<String, Account>();
 
         for (Account a : [
             SELECT Id, Name, RecordTypeId, RecordType.Name, Phone, Phone_Normalized__c, Personal_Email__c,
@@ -149,6 +150,7 @@ public without sharing class CandidateCreationController {
             String li = AiJson.normalizeUrl(a.LinkedIn__c);
             if (li != null) candByLinkedIn.put(li, a);
             if (a.Date_of_Birth__c != null) candByNameDob.put(a.Name.toLowerCase() + '|' + a.Date_of_Birth__c, a);
+            if (a.Name != null) candByName.put(a.Name.trim().toLowerCase(), a);
         }
 
         // ---------- 3. Match or create ----------
@@ -193,6 +195,9 @@ public without sharing class CandidateCreationController {
                 c.isNew = false;
             } else {
                 Account a = c.toNewAccount(candidateRtId);
+                if (c.name != null && candByName.containsKey(c.name.trim().toLowerCase())) {
+                    c.sameNameAs = candByName.get(c.name.trim().toLowerCase()).Name;
+                }
                 toInsert.add(a);
                 c.account = a;
                 c.isNew = true;
@@ -281,6 +286,10 @@ public without sharing class CandidateCreationController {
                 line += ' (the phone number ' + c.phone + ' is also on the existing candidate ' + c.phoneConflict
                     + ', but the names differ, so the two were kept separate)';
             }
+            if (c.isNew && c.sameNameAs != null) {
+                line += '. Please check: a candidate named ' + c.sameNameAs + ' already exists with a different email and phone,'
+                    + ' so a new candidate was created. If it is the same person, merge the two';
+            }
             parts.add(line);
         }
         if (!res.skipped.isEmpty()) parts.add('Skipped: ' + String.join(res.skipped, '; '));
@@ -358,6 +367,7 @@ public without sharing class CandidateCreationController {
         Map<String, Object> acc;
         String name, email, phone, phoneKey, linkedIn, linkedInKey, fileTitle;
         String phoneConflict; // name of an existing candidate with the same phone but a different name
+        String sameNameAs;    // an existing candidate with exactly this name but other contact details
         Date dob;
         Account account;
         Boolean isNew;
@@ -475,26 +485,38 @@ public without sharing class CandidateCreationController {
     // =====================================================================
 
     /**
-     * Lenient name check for phone matches: true when the two names share at least one word of 2+ letters
-     * ("Rahul Sharma" = "RAHUL SHARMA" = "Rahul S" = "R. Sharma"; "John Smith" != "Rahul Sharma").
+     * Name check for phone matches (stricter since 26-11-2026). Every word of the shorter name must match a word
+     * of the longer one, either fully or as an initial, and at least one full word must be the same:
+     * "Rahul Sharma" = "RAHUL SHARMA" = "Rahul S" = "R. Sharma" = "Rahul Kumar Sharma";
+     * "Arjun Menon" != "Arjun Kumar" and "Arun Kumar" != "Arjun Kumar" (they were wrongly merged by one shared word).
      */
     @TestVisible
     private static Boolean sameName(String a, String b) {
         if (String.isBlank(a) || String.isBlank(b)) return false;
-        Set<String> wa = nameWords(a);
-        for (String w : nameWords(b)) {
-            if (wa.contains(w)) return true;
+        List<String> wa = nameTokens(a), wb = nameTokens(b);
+        if (wa.isEmpty() || wb.isEmpty()) return false;
+        List<String> shorter = wa.size() <= wb.size() ? wa : wb;
+        List<String> longer = wa.size() <= wb.size() ? wb : wa;
+        Boolean fullWordShared = false;
+        for (String s : shorter) {
+            Boolean found = false;
+            for (String l : longer) {
+                if (s == l) { found = true; if (s.length() >= 2) fullWordShared = true; break; }
+                if ((s.length() == 1 && l.startsWith(s)) || (l.length() == 1 && s.startsWith(l))) { found = true; break; }
+            }
+            if (!found) return false;
         }
-        return false;
+        return fullWordShared;
     }
 
-    private static Set<String> nameWords(String s) {
-        Set<String> out = new Set<String>();
+    private static List<String> nameTokens(String s) {
+        List<String> out = new List<String>();
         for (String w : s.toLowerCase().replaceAll('[^a-z ]', ' ').split('\\s+')) {
-            if (w.length() >= 2) out.add(w);
+            if (w != '') out.add(w);
         }
         return out;
     }
+
 
     private static Boolean k_fileNameIsId(Account a) {
         // Earlier versions stored a ContentDocument Id (069...) in FileName__c

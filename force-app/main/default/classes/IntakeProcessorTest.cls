@@ -89,6 +89,12 @@ private class IntakeProcessorTest {
         Assert.isTrue(CandidateCreationController.sameName('Rahul Sharma', 'R. Sharma'));
         Assert.isTrue(CandidateCreationController.sameName('Ravi S', 'Ravi Shankar'));
         Assert.isFalse(CandidateCreationController.sameName('Rahul Sharma', 'John Smith'));
+        // 26-11-2026: one shared word is not enough (these were wrongly merged into "Arjun Kumar")
+        Assert.isFalse(CandidateCreationController.sameName('Arjun Kumar', 'Arjun Menon'));
+        Assert.isFalse(CandidateCreationController.sameName('Arjun Kumar', 'Arun Kumar'));
+        Assert.isTrue(CandidateCreationController.sameName('Rahul Kumar Sharma', 'Rahul Sharma'));
+        Assert.isTrue(CandidateCreationController.sameName('Arjun', 'Arjun Kumar'));
+        Assert.isFalse(CandidateCreationController.sameName('A', 'Arjun Kumar'));
         Assert.isFalse(CandidateCreationController.sameName(null, 'John Smith'));
     }
 

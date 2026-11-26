@@ -21,10 +21,6 @@
 .review-name {
     min-width: 0;
 }
-.review-type {
-    width: 11rem;
-    flex: none;
-}
 .check-ok,
 .check-bad {
     flex: none;
@@ -60,4 +56,62 @@
 .slds-modal__header {
     background: #ff962e;
     color: #fff;
+}
+/* Vertical steps */
+.steps {
+    list-style: none;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+.step {
+    position: relative;
+    display: flex;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+}
+.step::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 1.75rem;
+    bottom: 0;
+    width: 2px;
+    background: #dddbda;
+}
+.step:last-child::before {
+    display: none;
+}
+.step-dot {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #f3f3f3;
+    border: 2px solid #c9c9c9;
+    color: #444;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+.step-done .step-dot {
+    background: #e3f3e4;
+    border-color: #2e844a;
+    color: #2e844a;
+}
+.step-active .step-dot {
+    background: #0176d3;
+    border-color: #0176d3;
+    color: #fff;
+}
+.step-body {
+    flex: 1;
+    min-width: 0;
+}
+.step-title {
+    font-weight: 700;
+    font-size: 0.875rem;
+    margin-bottom: 0.4rem;
 }

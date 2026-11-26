@@ -280,6 +280,94 @@ private class IntakeControllerTest {
         Assert.isTrue(s.Status_Message__c.contains('already waiting in Needs Review'), s.Status_Message__c);
     }
 
+    // ---------------- Same content already on a candidate, stricter names, inbox (26-11-2026) ----------------
+
+    private static Account candidateWithFile(String name, String content) {
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        Account a = new Account(Name = name, RecordTypeId = rt);
+        insert a;
+        insert new ContentVersion(Title = name + ' resume', PathOnClient = name + '.pdf',
+            VersionData = Blob.valueOf(content), FirstPublishLocationId = a.Id);
+        return a;
+    }
+
+    @IsTest
+    static void renamedCopyOfACandidateFileIsFlaggedAndRefused() {
+        Account aman = candidateWithFile('Aman Ahuja', 'aman-resume-bytes');
+        Id doc = uploadedDoc('aman-resume-bytes'); // same content, other name
+        IntakeController.UploadedFile f = IntakeController.getUploadedFileDetails(new List<Id>{ doc })[0];
+        Assert.areEqual('Already on candidate Aman Ahuja', f.problem);
+        Assert.isTrue(f.pendingMessage.contains('Renaming a file does not change its content'), f.pendingMessage);
+        List<IntakeController.IntakeStatus> st = IntakeController.submitUploadedFilesWithClient(
+            new List<Id>{ doc }, new List<String>{ 'Resume' }, 'B-RENAMED', null);
+        Assert.areEqual('Rejected', st[0].status);
+        Assert.isTrue(st[0].message.contains('already on the candidate Aman Ahuja'), st[0].message);
+        Assert.areEqual(1, [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :aman.Id], 'not attached again');
+    }
+
+    @IsTest
+    static void processorMarksACopyOfACandidateFileAsDuplicate() {
+        Account aman = candidateWithFile('Aman Ahuja', 'same-content');
+        Id svcId = IntakeTestData.newIntake(null, 'Dhanya_SFDC.pdf', 'same-content');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.areEqual(aman.Id, s.Account__c);
+        IntakeController.IntakeStatus st = IntakeController.getStatus(new List<Id>{ svcId })[0];
+        Assert.isFalse(st.canAttach, 'the same file is already on the candidate, so no attach button');
+        try {
+            IntakeController.attachToExisting(svcId);
+            Assert.fail('attaching the same content twice must be refused');
+        } catch (AuraHandledException e) {
+            Assert.isTrue(e.getMessage().contains('Nothing was attached'), e.getMessage());
+        }
+    }
+
+    @IsTest
+    static void sameNameWithOtherContactsIsCreatedWithAWarning() {
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        insert new Account(Name = 'Arjun Menon', RecordTypeId = rt, Personal_Email__c = 'arjun.one@example.com',
+            Phone = '9947055667', Phone_Normalized__c = '9947055667');
+        Id svcId = IntakeTestData.newIntake('Resume', 'arjun2.pdf', 'arjun-2');
+        CandidateCreationPrompt.mockResponse = IntakeTestData.resumeJson('Arjun Menon', 'arjun.two@example.com', '9123456780');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Completed', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('a candidate named Arjun Menon already exists'), s.Status_Message__c);
+    }
+
+    @IsTest
+    static void phoneSharedWithADifferentNameIsNotMerged() {
+        Id rt = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId();
+        Account kumar = new Account(Name = 'Arjun Kumar', RecordTypeId = rt, Phone = '9876543210', Phone_Normalized__c = '9876543210');
+        insert kumar;
+        Id svcId = IntakeTestData.newIntake('Resume', 'menon.pdf', 'menon');
+        CandidateCreationPrompt.mockResponse = IntakeTestData.resumeJson('Arjun Menon', 'arjun.menon@example.com', '+91 98765 43210');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areNotEqual(kumar.Id, s.Account__c, 'Arjun Menon is never merged into Arjun Kumar');
+        Assert.isTrue(s.Status_Message__c.contains('also on the existing candidate Arjun Kumar'), s.Status_Message__c);
+    }
+
+    @IsTest
+    static void inboxReturnsAllStatusesAndHonoursOnlyMine() {
+        insert new List<Service__c>{
+            new Service__c(Name = 'w1', Source_Channel__c = 'WhatsApp', Status__c = 'Completed', Request_Key__c = 'w1', OwnerId = UserInfo.getUserId()),
+            new Service__c(Name = 'u1', Source_Channel__c = 'UI Upload', Status__c = 'Failed', Request_Key__c = 'u1')
+        };
+        Assert.areEqual(2, IntakeController.getInbox('All', 'All', 7, true).size());
+        Assert.areEqual(1, IntakeController.getInbox('WhatsApp', 'All', 7, true).size());
+        Assert.areEqual(1, IntakeController.getInbox('All', 'Action needed', 7, false).size());
+        IntakeController.IntakeStatus st = IntakeController.getInbox('UI Upload', 'All', 7, false)[0];
+        Assert.isFalse(st.isStuck);
+    }
+
     @IsTest
     static void helpers() {
         Assert.areEqual('pdf', IntakeController.extensionOf('A.B.PDF'));

@@ -1,46 +1,68 @@
 <template>
     <lightning-card title={cardTitle} icon-name={iconName}>
-        <div class="slds-m-horizontal_medium">
-            <template lwc:if={showTypeSwitch}>
-                <lightning-radio-group
-                    name="intakeType"
-                    label="What are you uploading?"
-                    options={typeOptions}
-                    value={selectedType}
-                    type="button"
-                    onchange={handleTypeChange}
-                    class="slds-m-bottom_small">
-                </lightning-radio-group>
-                <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">{typeHint}</p>
-            </template>
-
-            <template lwc:if={ready}>
-                <div class="drop-zone">
-                    <lightning-file-upload
-                        label={fileLabel}
-                        name="intakeFiles"
-                        accept={acceptedFormats}
-                        record-id={userId}
-                        multiple
-                        disabled={isBusy}
-                        onuploadfinished={handleUploadFinished}>
-                    </lightning-file-upload>
-                    <ul class="slds-text-body_small slds-text-color_weak slds-m-top_x-small rules">
-                        <li>PDF or DOCX, up to {maxFileMb} MB each, up to {maxFiles} files per upload.</li>
-                        <li>Phone and email must be text in the file, not inside an image or icon.</li>
-                        <li>Files of one upload are read one after another (about 20 to 60 seconds each), so each result appears in turn.</li>
-                        <li>After you add files, check the list below: change the type or remove a file, then click Start processing.</li>
-                    </ul>
+        <!-- Vertical steps (26-11-2026): 1 type, 2 files, 3 review (several files only), 4 results. Logic unchanged. -->
+        <ol class="steps slds-m-horizontal_medium">
+            <!-- Step 1: what is uploaded -->
+            <li class={stepTypeClass}>
+                <span class="step-dot">1</span>
+                <div class="step-body">
+                    <h3 class="step-title">What are you uploading?</h3>
+                    <template lwc:if={showTypeSwitch}>
+                        <lightning-radio-group name="intakeType" label="Type" variant="label-hidden" options={typeOptions}
+                            value={selectedType} type="button" onchange={handleTypeChange} disabled={isBusy}>
+                        </lightning-radio-group>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">{typeHint}</p>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_small">{typeLabel}</p>
+                    </template>
+                    <template lwc:if={showClientName}>
+                        <div class="slds-m-top_small client-name">
+                            <lightning-input label="Client name (optional)" value={clientName} max-length="255"
+                                placeholder="e.g. Carewell Insurance Ltd" disabled={isBusy} onchange={handleClientName}
+                                field-level-help="Used only when a job description does not name the company. Leave blank if the JD names it.">
+                            </lightning-input>
+                        </div>
+                    </template>
                 </div>
+            </li>
 
-                <!-- Review step: nothing is processed and no AI call is made until "Start processing" -->
-                <template lwc:if={hasStaged}>
-                    <div class="review slds-m-top_small">
+            <!-- Step 2: add files -->
+            <li class={stepFilesClass}>
+                <span class="step-dot">2</span>
+                <div class="step-body">
+                    <h3 class="step-title">Add files</h3>
+                    <template lwc:if={ready}>
+                        <div class="drop-zone">
+                            <lightning-file-upload label={fileLabel} name="intakeFiles" accept={acceptedFormats}
+                                record-id={userId} multiple disabled={isBusy} onuploadfinished={handleUploadFinished}>
+                            </lightning-file-upload>
+                            <ul class="slds-text-body_small slds-text-color_weak slds-m-top_x-small rules">
+                                <li>PDF or DOCX, up to {maxFileMb} MB each, up to {maxFiles} files per upload.</li>
+                                <li>One file is processed straight away. Several files wait in a review list until you click Start processing.</li>
+                                <li>Phone and email must be text in the file, not inside an image or icon.</li>
+                                <li>The same file (even renamed) is never uploaded twice for a candidate.</li>
+                            </ul>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                    </template>
+                    <template lwc:if={isBusy}>
+                        <p class="slds-text-color_weak slds-m-top_x-small">{busyText}</p>
+                    </template>
+                </div>
+            </li>
+
+            <!-- Step 3: review (several files). Nothing is processed and no AI call is made until "Start processing" -->
+            <template lwc:if={hasStaged}>
+                <li class={stepReviewClass}>
+                    <span class="step-dot">3</span>
+                    <div class="step-body">
                         <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
-                            <h3 class="slds-text-heading_small">Files to process ({stagedCount})</h3>
+                            <h3 class="step-title">Review and start ({stagedCount})</h3>
                             <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">Not processed yet. Remove any file you do not want.</span>
-                            <lightning-button variant="base" label="Remove all" class="slds-col_bump-left"
-                                disabled={isBusy} onclick={handleRemoveAll}></lightning-button>
+                            <lightning-button variant="base" label="Remove all" class="slds-col_bump-left" disabled={isBusy} onclick={handleRemoveAll}></lightning-button>
                         </div>
                         <template for:each={stagedView} for:item="f">
                             <div key={f.documentId} class="review-row slds-grid slds-grid_vertical-align-center">
@@ -49,61 +71,46 @@
                                     <div class="slds-truncate" title={f.fileName}>{f.fileName}</div>
                                     <div class="slds-text-body_small slds-text-color_weak">{f.extLabel} · {f.sizeLabel}</div>
                                 </div>
-                                <span class={f.badgeClass}>{f.checkLabel}</span>
-                                <lightning-combobox class="review-type slds-m-horizontal_small" variant="label-hidden"
-                                    label="Document type" options={typeOptions} value={f.type} data-id={f.documentId}
-                                    disabled={f.typeDisabled} onchange={handleFileTypeChange}></lightning-combobox>
-                                <lightning-button-icon icon-name="utility:close" variant="border-filled" size="small"
+                                <span class={f.badgeClass} title={f.pendingMessage}>{f.checkLabel}</span>
+                                <lightning-button-icon icon-name="utility:close" variant="border-filled" size="small" class="slds-m-left_small"
                                     alternative-text="Remove this file" title="Remove this file" data-id={f.documentId}
                                     disabled={isBusy} onclick={handleRemoveFile}></lightning-button-icon>
                             </div>
                         </template>
-                        <template lwc:if={showClientName}>
-                            <div class="slds-m-top_small client-name">
-                                <lightning-input label="Client name (optional)" value={clientName} max-length="255"
-                                    placeholder="e.g. Carewell Insurance Ltd" disabled={isBusy} onchange={handleClientName}
-                                    field-level-help="Used only when a job description does not name the company. Leave blank if the JD names it.">
-                                </lightning-input>
-                            </div>
-                        </template>
                         <div class="slds-m-top_small">
-                            <lightning-button variant="brand" label={startLabel} disabled={startDisabled}
-                                onclick={handleStartProcessing}></lightning-button>
+                            <lightning-button variant="brand" label={startLabel} disabled={startDisabled} onclick={handleStartProcessing}></lightning-button>
                         </div>
                     </div>
-                </template>
+                </li>
             </template>
-            <template lwc:else>
-                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-            </template>
-        </div>
 
-        <div class="slds-m-around_medium">
-            <template lwc:if={isBusy}>
-                <span class="slds-text-color_weak">{busyText}</span>
-            </template>
-            <template lwc:if={showTodayButton}>
-                <lightning-button variant="neutral" label="View Today Uploads" onclick={openTodayModal}></lightning-button>
-            </template>
-        </div>
-
-        <!-- Results of this session -->
-        <template lwc:if={hasResults}>
-            <div class="slds-m-horizontal_medium slds-m-bottom_medium">
-                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
-                    <h3 class="slds-text-heading_small">Upload results</h3>
-                    <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{progressSummary}</span>
-                    <lightning-button variant="base" label="Hide all results" title="Hides the list only. Nothing is deleted; results stay in the Intake inbox."
-                        class="slds-col_bump-left" onclick={clearResults}></lightning-button>
-                </div>
-                <template for:each={results} for:item="r">
-                    <div key={r.serviceId} class="result-row">
-                        <c-intake-row class="result-body" row={r} onrowchange={handleRowChange}></c-intake-row>
-                        <lightning-button-icon icon-name="utility:close" variant="bare" size="small" class="result-hide"
-                            alternative-text="Hide this result" title="Hide this result (nothing is deleted)"
-                            data-id={r.serviceId} onclick={handleHideResult}></lightning-button-icon>
+            <!-- Step 4: results of this session -->
+            <template lwc:if={hasResults}>
+                <li class={stepResultsClass}>
+                    <span class="step-dot">4</span>
+                    <div class="step-body">
+                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
+                            <h3 class="step-title">Results</h3>
+                            <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{progressSummary}</span>
+                            <lightning-button variant="base" label="Hide all results" title="Hides the list only. Nothing is deleted; results stay in the Intake inbox."
+                                class="slds-col_bump-left" onclick={clearResults}></lightning-button>
+                        </div>
+                        <template for:each={results} for:item="r">
+                            <div key={r.serviceId} class="result-row">
+                                <c-intake-row class="result-body" row={r} onrowchange={handleRowChange}></c-intake-row>
+                                <lightning-button-icon icon-name="utility:close" variant="bare" size="small" class="result-hide"
+                                    alternative-text="Hide this result" title="Hide this result (nothing is deleted)"
+                                    data-id={r.serviceId} onclick={handleHideResult}></lightning-button-icon>
+                            </div>
+                        </template>
                     </div>
-                </template>
+                </li>
+            </template>
+        </ol>
+
+        <template lwc:if={showTodayButton}>
+            <div class="slds-m-around_medium">
+                <lightning-button variant="neutral" label="View Today Uploads" onclick={openTodayModal}></lightning-button>
             </div>
         </template>
     </lightning-card>

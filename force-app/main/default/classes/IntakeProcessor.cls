@@ -94,6 +94,24 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             }
         }
 
+        // 1c. Same content already attached to a candidate (renamed copy, or a file attached before intake
+        //     records existed): Duplicate, linked to that candidate, no AI call, file not attached again
+        if (svc.Source_Channel__c == CHANNEL_UI && svc.Requested_Type__c != IntakeController.TYPE_JD
+                && String.isNotBlank(svc.File_Checksum__c)) {
+            Map<String, IntakeController.FileOnCandidate> onCand =
+                IntakeController.filesOnCandidates(new Set<String>{ svc.File_Checksum__c }, null);
+            if (onCand.containsKey(svc.File_Checksum__c)) {
+                IntakeController.FileOnCandidate oc = onCand.get(svc.File_Checksum__c);
+                svc.Account__c = oc.accountId;
+                if (auto) {
+                    svc.Requested_Type__c = IntakeController.TYPE_RESUME;
+                    svc.Detected_Type__c = IntakeController.TYPE_RESUME;
+                }
+                finish(svc, 'Duplicate', oc.message() + ' No new records were created.', null);
+                return;
+            }
+        }
+
         // 2. AI extraction (callout happens before any DML in this transaction)
         String rawJson;
         String type = svc.Requested_Type__c;

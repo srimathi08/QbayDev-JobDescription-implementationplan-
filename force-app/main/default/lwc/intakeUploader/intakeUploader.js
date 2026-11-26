@@ -116,9 +116,28 @@ export default class IntakeUploader extends LightningElement {
         return (done === total ? `${total} of ${total} finished.` : `${done} of ${total} finished, reading one at a time.`) + where;
     }
 
-    /** The Client name box is shown when at least one file may be a job description. */
+    /** The Client name box is shown before upload whenever the files may be job descriptions (JD or Auto-detect). */
     get showClientName() {
-        return this.staged.some((f) => (f.type || this.selectedType) !== 'Resume');
+        return this.selectedType !== 'Resume';
+    }
+
+    // ---------------- vertical steps ----------------
+
+    get stepTypeClass() {
+        return 'step step-done';
+    }
+    get stepFilesClass() {
+        return this.hasStaged || this.hasResults ? 'step step-done' : 'step step-active';
+    }
+    get stepReviewClass() {
+        return this.hasStaged ? 'step step-active' : 'step';
+    }
+    get stepResultsClass() {
+        return this.hasResults ? 'step step-active' : 'step';
+    }
+    get typeLabel() {
+        const o = this.typeOptions.find((x) => x.value === this.selectedType);
+        return o ? o.label : this.selectedType;
     }
     handleClientName(event) {
         this.clientName = event.target.value;
@@ -152,7 +171,6 @@ export default class IntakeUploader extends LightningElement {
                 sizeLabel: formatSize(f.sizeBytes),
                 checkLabel: problem || 'Ready',
                 badgeClass: problem ? 'check-bad' : 'check-ok',
-                typeDisabled: !!problem || this.isBusy,
                 willProcess: !problem
             };
         });
@@ -185,7 +203,14 @@ export default class IntakeUploader extends LightningElement {
             const details = await getUploadedFileDetails({ contentDocumentIds: files.map((f) => f.documentId) });
             const known = new Set(this.staged.map((f) => f.documentId));
             const added = details.filter((d) => !known.has(d.documentId)).map((d) => ({ ...d, type: this.selectedType }));
+            const single = this.staged.length === 0 && added.length === 1;
             this.staged = [...this.staged, ...added];
+            if (single) {
+                // One file: no review step, it is processed straight away (all checks still run on the server)
+                this.setBusy(null);
+                await this.handleStartProcessing();
+                return;
+            }
             this.toast('Files added', `${added.length} file(s) added. Check the list, then click Start processing.`, 'info');
             // Same file already waiting in Needs Review or being read: say so now, before any processing
             const pending = added.filter((d) => d.pendingMessage);
@@ -201,12 +226,6 @@ export default class IntakeUploader extends LightningElement {
         } finally {
             this.setBusy(null);
         }
-    }
-
-    handleFileTypeChange(event) {
-        const id = event.target.dataset.id;
-        const type = event.detail.value;
-        this.staged = this.staged.map((f) => (f.documentId === id ? { ...f, type } : f));
     }
 
     async handleRemoveFile(event) {
@@ -249,7 +268,7 @@ export default class IntakeUploader extends LightningElement {
         try {
             const rows = await submitUploadedFilesWithClient({
                 contentDocumentIds: files.map((f) => f.documentId),
-                requestedTypes: files.map((f) => f.type || this.selectedType),
+                requestedTypes: files.map(() => this.selectedType),
                 batchKey: newKey(),
                 clientName: this.showClientName ? this.clientName : null
             });

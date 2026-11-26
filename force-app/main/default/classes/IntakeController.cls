@@ -38,6 +38,8 @@ public with sharing class IntakeController {
         /** Queued file of a multi-file upload: "Waiting, file 3 of 5". Null otherwise. */
         @AuraEnabled public Integer batchPosition;
         @AuraEnabled public Integer batchTotal;
+        /** New or Queued for more than an hour (any channel). */
+        @AuraEnabled public Boolean isStuck;
     }
 
     public class UploadSettings {
@@ -55,7 +57,9 @@ public with sharing class IntakeController {
     private static final String STATUS_FIELDS = 'Id, Name, Status__c, Status_Message__c, Requested_Type__c, CreatedDate, LastModifiedDate, '
         + 'Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Account__r.RecordType.DeveloperName, '
         + 'Opportunity__c, Opportunity__r.Name, '
-        + 'Job_Description__c, Job_Description__r.Name, Retry_Count__c, Upload_Batch__c';
+        + 'Job_Description__c, Job_Description__r.Name, Retry_Count__c, Upload_Batch__c, File_Checksum__c';
+    /** New or Queued for this long = stuck; shown under "Needs my action". */
+    public static final Integer STUCK_INBOX_MINUTES = 60;
 
     /** Current status of the given intakes, for the LWC to refresh. Not cacheable on purpose. */
     @AuraEnabled
@@ -77,9 +81,24 @@ public with sharing class IntakeController {
     private static List<IntakeStatus> statusesOf(List<Service__c> rows) {
         List<IntakeStatus> out = new List<IntakeStatus>();
         Set<String> batches = new Set<String>();
+        Set<Id> attachAccounts = new Set<Id>();
+        Set<String> attachSums = new Set<String>();
         for (Service__c s : rows) {
-            out.add(toStatus(s));
+            IntakeStatus st = toStatus(s);
+            out.add(st);
             if (s.Status__c == 'Queued' && String.isNotBlank(s.Upload_Batch__c)) batches.add(s.Upload_Batch__c);
+            if (st.canAttach == true && String.isNotBlank(s.File_Checksum__c)) {
+                attachAccounts.add(s.Account__c);
+                attachSums.add(s.File_Checksum__c);
+            }
+        }
+        // "Attach resume to existing candidate" only when the candidate does not already have this exact file
+        if (!attachAccounts.isEmpty()) {
+            Map<String, FileOnCandidate> already = filesOnCandidates(attachSums, attachAccounts);
+            for (Integer k = 0; k < rows.size(); k++) {
+                FileOnCandidate f = already.get(rows[k].File_Checksum__c);
+                if (out[k].canAttach == true && f != null && f.accountId == rows[k].Account__c) out[k].canAttach = false;
+            }
         }
         if (batches.isEmpty()) return out;
         Map<Id, Integer> position = new Map<Id, Integer>();
@@ -111,7 +130,8 @@ public with sharing class IntakeController {
         return statusesOf([
             SELECT Id, Name, Status__c, Status_Message__c, Requested_Type__c, CreatedDate, LastModifiedDate,
                    Source_Channel__c, CreatedBy.Name, CreatedById, Account__c, Account__r.Name, Account__r.RecordType.DeveloperName,
-                   Opportunity__c, Opportunity__r.Name, Job_Description__c, Job_Description__r.Name, Retry_Count__c, Upload_Batch__c
+                   Opportunity__c, Opportunity__r.Name, Job_Description__c, Job_Description__r.Name, Retry_Count__c, Upload_Batch__c,
+                   File_Checksum__c
             FROM Service__c
             WHERE CreatedById = :UserInfo.getUserId()
               AND CreatedDate = TODAY
@@ -199,6 +219,65 @@ public with sharing class IntakeController {
             : 'This file is already being processed' + uploadedOn + '. Please wait for its result in the Intake inbox.';
     }
 
+    /** A file with the same content (checksum) already linked to a candidate Account (26-11-2026, items 8 and 9). */
+    public class FileOnCandidate {
+        public Id accountId;
+        public String accountName;
+        public String fileTitle;
+        public Datetime addedOn;
+        public String message() {
+            return 'This exact file (same content' + (String.isBlank(fileTitle) ? '' : ' as "' + fileTitle + '"')
+                + ') is already on the candidate ' + accountName
+                + (addedOn == null ? '' : ', added on ' + addedOn.format('dd MMM yyyy'))
+                + '. Renaming a file does not change its content, so it is not uploaded again.';
+        }
+    }
+
+    /**
+     * Checksum -> candidate Account that already has a file with that content. Finds renamed copies too,
+     * including files attached before the intake records existed. onlyAccounts limits the search (null = all candidates).
+     */
+    public static Map<String, FileOnCandidate> filesOnCandidates(Set<String> checksums, Set<Id> onlyAccounts) {
+        Map<String, FileOnCandidate> out = new Map<String, FileOnCandidate>();
+        Set<String> sums = new Set<String>(checksums == null ? new Set<String>() : checksums);
+        sums.remove(null);
+        if (sums.isEmpty()) return out;
+        List<ContentDocumentLink> links = onlyAccounts == null
+            ? [
+                SELECT ContentDocumentId, LinkedEntityId, ContentDocument.Title, ContentDocument.CreatedDate
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN (SELECT Id FROM Account WHERE RecordType.DeveloperName = 'Candidates')
+            ]
+            : [
+                SELECT ContentDocumentId, LinkedEntityId, ContentDocument.Title, ContentDocument.CreatedDate
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :onlyAccounts
+            ];
+        if (links.isEmpty()) return out;
+        Map<Id, ContentDocumentLink> linkByDoc = new Map<Id, ContentDocumentLink>();
+        Set<Id> accIds = new Set<Id>();
+        for (ContentDocumentLink l : links) {
+            linkByDoc.put(l.ContentDocumentId, l);
+            accIds.add(l.LinkedEntityId);
+        }
+        Map<Id, Account> accs = new Map<Id, Account>([SELECT Id, Name FROM Account WHERE Id IN :accIds]);
+        Set<Id> docIds = linkByDoc.keySet();
+        for (ContentVersion cv : [
+            SELECT ContentDocumentId, Checksum FROM ContentVersion
+            WHERE ContentDocumentId IN :docIds AND IsLatest = true AND Checksum IN :sums
+        ]) {
+            if (out.containsKey(cv.Checksum)) continue;
+            ContentDocumentLink l = linkByDoc.get(cv.ContentDocumentId);
+            FileOnCandidate f = new FileOnCandidate();
+            f.accountId = l.LinkedEntityId;
+            f.accountName = accs.containsKey(l.LinkedEntityId) ? accs.get(l.LinkedEntityId).Name : 'an existing candidate';
+            f.fileTitle = l.ContentDocument.Title;
+            f.addedOn = l.ContentDocument.CreatedDate;
+            out.put(cv.Checksum, f);
+        }
+        return out;
+    }
+
     /** Name, type, size and the upload checks of files the current user just uploaded. */
     @AuraEnabled
     public static List<UploadedFile> getUploadedFileDetails(List<Id> contentDocumentIds) {
@@ -216,9 +295,14 @@ public with sharing class IntakeController {
         Set<String> sums = new Set<String>();
         for (ContentVersion cv : byDoc.values()) sums.add(cv.Checksum);
         Map<String, Service__c> pending = pendingSameFiles(sums, new Set<Id>());
+        Map<String, FileOnCandidate> onCandidate = filesOnCandidates(sums, null);
+        Map<String, String> firstNameBySum = new Map<String, String>();
         for (Id docId : contentDocumentIds) {
             ContentVersion cv = byDoc.get(docId);
             if (cv == null) continue;
+            String thisName = cv.FileExtension == null ? cv.Title : cv.Title + '.' + cv.FileExtension;
+            String sameAs = cv.Checksum == null ? null : firstNameBySum.get(cv.Checksum);
+            if (cv.Checksum != null && sameAs == null) firstNameBySum.put(cv.Checksum, thisName);
             UploadedFile f = new UploadedFile();
             f.documentId = docId;
             f.extension = cv.FileExtension == null ? '' : cv.FileExtension.toLowerCase();
@@ -234,6 +318,13 @@ public with sharing class IntakeController {
                 Service__c earlier = pending.get(cv.Checksum);
                 f.problem = earlier.Status__c == 'Needs Review' ? 'Already waiting in Needs Review' : 'Already being processed';
                 f.pendingMessage = pendingText(earlier);
+            } else if (onCandidate.containsKey(cv.Checksum)) {
+                FileOnCandidate oc = onCandidate.get(cv.Checksum);
+                f.problem = 'Already on candidate ' + oc.accountName;
+                f.pendingMessage = oc.message();
+            } else if (sameAs != null) {
+                f.problem = 'Same file as ' + sameAs;
+                f.pendingMessage = 'This file has the same content as "' + sameAs + '" in this upload, so only one of them will be read.';
             }
             out.add(f);
         }
@@ -303,6 +394,7 @@ public with sharing class IntakeController {
         Set<String> sums = new Set<String>();
         for (ContentVersion cv : versionByDoc.values()) sums.add(cv.Checksum);
         Map<String, Service__c> pending = pendingSameFiles(sums, new Set<Id>());
+        Map<String, FileOnCandidate> onCandidate = filesOnCandidates(sums, null);
         Set<String> seenInUpload = new Set<String>();
 
         List<Service__c> services = new List<Service__c>();
@@ -328,6 +420,8 @@ public with sharing class IntakeController {
                 reason = '"' + fileName + '" is larger than ' + cfg.maxFileMb + ' MB. Please upload a smaller file. Nothing was created.';
             } else if (pending.containsKey(cv.Checksum)) {
                 reason = pendingText(pending.get(cv.Checksum)) + ' Nothing was created.';
+            } else if (onCandidate.containsKey(cv.Checksum)) {
+                reason = onCandidate.get(cv.Checksum).message() + ' Nothing was created.';
             } else if (cv.Checksum != null && seenInUpload.contains(cv.Checksum)) {
                 reason = '"' + fileName + '" is the same file as another file in this upload, so it was read only once. Nothing was created.';
             } else if (accepted >= cfg.maxFiles) {
@@ -406,13 +500,19 @@ public with sharing class IntakeController {
         String ch = channel;
         if (String.isNotBlank(ch) && ch != 'All') conds.add('Source_Channel__c = :ch');
         Set<String> statuses = new Set<String>();
+        Datetime stuckBefore = Datetime.now().addMinutes(-STUCK_INBOX_MINUTES);
         if (status == 'Action needed') {
             statuses = new Set<String>{ 'Needs Review', 'Duplicate', 'Failed' };
+            // also records stuck in New / Queued (any channel)
+            conds.add('(Status__c IN :statuses OR (Status__c IN (\'New\', \'Queued\') AND LastModifiedDate < :stuckBefore))');
         } else if (String.isNotBlank(status) && status != 'All') {
             statuses.add(status);
+            conds.add('Status__c IN :statuses');
         }
-        if (!statuses.isEmpty()) conds.add('Status__c IN :statuses');
-        if (mineOnly == true) conds.add('CreatedById = :me');
+        // "Only mine": what I uploaded, plus email / WhatsApp intakes sent by me (owner = me or my email address).
+        // WhatsApp records are created by the site guest user, so CreatedById alone never matched them.
+        String myEmail = UserInfo.getUserEmail();
+        if (mineOnly == true) conds.add('(CreatedById = :me OR OwnerId = :me OR EmailFrom__c = :myEmail)');
         String q = 'SELECT ' + STATUS_FIELDS + ' FROM Service__c WHERE ' + String.join(conds, ' AND ')
             + ' ORDER BY CreatedDate DESC LIMIT 200';
         return statusesOf((List<Service__c>) Database.query(q));
@@ -470,6 +570,9 @@ public with sharing class IntakeController {
         }
         ContentVersion file = IntakeProcessor.latestFile(svc.Id);
         if (file == null) throw error('The file of this upload was not found.');
+        // The same content is already on this candidate (e.g. renamed copy): do not attach it twice
+        Map<String, FileOnCandidate> already = filesOnCandidates(new Set<String>{ file.Checksum }, new Set<Id>{ svc.Account__c });
+        if (already.containsKey(file.Checksum)) throw error(already.get(file.Checksum).message() + ' Nothing was attached.');
         CandidateCreationController.linkFile(file.ContentDocumentId, new Set<Id>{ svc.Account__c });
         svc.Status__c = 'Completed';
         svc.Status_Message__c = ('Resume attached to the existing candidate by ' + UserInfo.getName() + '. No new candidate was created.').left(32000);
@@ -562,6 +665,8 @@ public with sharing class IntakeController {
         st.canAttach = ui && s.Status__c == 'Duplicate' && s.Account__c != null && st.requestedType != TYPE_JD
             && s.Account__r?.RecordType?.DeveloperName == 'Candidates';
         st.canRetry = canRetry(s);
+        st.isStuck = (s.Status__c == 'New' || s.Status__c == 'Queued') && s.LastModifiedDate != null
+            && s.LastModifiedDate < Datetime.now().addMinutes(-STUCK_INBOX_MINUTES);
         return st;
     }
 
