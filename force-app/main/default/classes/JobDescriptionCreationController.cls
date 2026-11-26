@@ -90,7 +90,7 @@ public without sharing class JobDescriptionCreationController {
         String fileTitle = null;
         if (serviceId != null) {
             List<Service__c> svcs = [
-                SELECT Id, Name, EmailFrom__c, WhatsappFrom__c, Email_Body__c, Source_Channel__c
+                SELECT Id, Name, EmailFrom__c, WhatsappFrom__c, Email_Body__c, Source_Channel__c, Client_Name__c
                 FROM Service__c WHERE Id = :serviceId LIMIT 1
             ];
             if (!svcs.isEmpty()) svc = svcs[0];
@@ -130,8 +130,17 @@ public without sharing class JobDescriptionCreationController {
                 // e.g. a report or meeting notes that the AI called a JD: say so, not "no company name"
                 throw new IntakeProcessor.RejectException(NOT_A_JD_MESSAGE);
             }
+            // The JD names no company: use the client name the recruiter typed on the upload screen, if any
+            if (companyName == null && svc != null && String.isNotBlank(svc.Client_Name__c)
+                    && !svc.Client_Name__c.trim().equalsIgnoreCase(TEMP_ACCOUNT)) {
+                companyName = svc.Client_Name__c.trim();
+            }
             if (companyName == null) {
-                if (strict) throw new IntakeProcessor.RejectException('No company name was found in the Job Description. Please add the client name to the JD and upload again. Nothing was created.');
+                if (strict) throw new IntakeProcessor.RejectException('No company name was found in the Job Description. '
+                    + (svc != null && svc.Source_Channel__c == IntakeProcessor.CHANNEL_UI
+                        ? 'Please type the client name in the Client name box (or add it to the JD) and upload again.'
+                        : 'Please add the client name to the JD and upload again.')
+                    + ' Nothing was created.');
                 companyName = TEMP_ACCOUNT; // legacy behaviour for email / WhatsApp
             }
             Account client = findOrCreateClient(companyName, clientRt);

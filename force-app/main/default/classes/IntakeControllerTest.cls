@@ -165,6 +165,66 @@ private class IntakeControllerTest {
         Assert.isNull(IntakeController.getStatus(new List<Id>{ batch[0].Id })[0].batchPosition, 'only waiting files show a place');
     }
 
+    // ---------------- Client name box (26-11-2026) ----------------
+
+    private static Id uploadedDoc(String title) {
+        ContentVersion cv = new ContentVersion(Title = title, PathOnClient = title + '.pdf', VersionData = Blob.valueOf(title));
+        insert cv;
+        return [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId;
+    }
+
+    @IsTest
+    static void typedClientNameIsKeptOnJdAndAutoFilesOnly() {
+        List<Id> docs = new List<Id>{ uploadedDoc('cv'), uploadedDoc('jd'), uploadedDoc('auto') };
+        Test.startTest();
+        IntakeController.submitUploadedFilesWithClient(docs, new List<String>{ 'Resume', 'Job Description', 'Auto' }, 'B-CLIENT', '  Carewell   Insurance Ltd ');
+        Test.stopTest();
+        Map<String, String> clientByType = new Map<String, String>();
+        for (Service__c s : [SELECT Requested_Type__c, Client_Name__c, Name FROM Service__c WHERE Upload_Batch__c = 'B-CLIENT']) {
+            clientByType.put(s.Name, s.Client_Name__c);
+        }
+        Assert.isNull(clientByType.get('cv.pdf'));
+        Assert.areEqual('Carewell Insurance Ltd', clientByType.get('jd.pdf'));
+        Assert.areEqual('Carewell Insurance Ltd', clientByType.get('auto.pdf'));
+    }
+
+    @IsTest
+    static void typedClientNameIsUsedWhenTheJdNamesNoCompany() {
+        Id svcId = IntakeTestData.newIntake('Job Description', 'jd.pdf', 'jd-no-company');
+        update new Service__c(Id = svcId, Client_Name__c = CLIENT);
+        JobDescriptionCreationPrompt.mockResponse = IntakeTestData.jdJson('', ROLE, 'Job Description');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Completed', s.Status__c, s.Status_Message__c);
+        Assert.areEqual(CLIENT, [SELECT Name FROM Account WHERE Id = :s.Account__c].Name);
+    }
+
+    @IsTest
+    static void companyInTheJdWinsOverTheTypedName() {
+        Id svcId = IntakeTestData.newIntake('Job Description', 'jd.pdf', 'jd-with-company');
+        update new Service__c(Id = svcId, Client_Name__c = 'Someone Else Ltd');
+        JobDescriptionCreationPrompt.mockResponse = IntakeTestData.jdJson('Infosys Ltd.', ROLE, 'Job Description');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Infosys Ltd.', [SELECT Name FROM Account WHERE Id = :s.Account__c].Name);
+    }
+
+    @IsTest
+    static void noCompanyAndNoTypedNameAsksForTheClientName() {
+        Id svcId = IntakeTestData.newIntake('Job Description', 'jd.pdf', 'jd-nothing');
+        JobDescriptionCreationPrompt.mockResponse = IntakeTestData.jdJson('', ROLE, 'Job Description');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Rejected', s.Status__c);
+        Assert.isTrue(s.Status_Message__c.contains('Client name box'), s.Status_Message__c);
+    }
+
     @IsTest
     static void helpers() {
         Assert.areEqual('pdf', IntakeController.extensionOf('A.B.PDF'));

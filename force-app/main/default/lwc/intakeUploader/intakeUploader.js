@@ -1,7 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getUploadSettings from '@salesforce/apex/IntakeController.getUploadSettings';
-import submitUploadedFilesWithTypes from '@salesforce/apex/IntakeController.submitUploadedFilesWithTypes';
+import submitUploadedFilesWithClient from '@salesforce/apex/IntakeController.submitUploadedFilesWithClient';
 import getUploadedFileDetails from '@salesforce/apex/IntakeController.getUploadedFileDetails';
 import removeUploadedFile from '@salesforce/apex/IntakeController.removeUploadedFile';
 import getStatus from '@salesforce/apex/IntakeController.getStatus';
@@ -63,6 +63,7 @@ export default class IntakeUploader extends LightningElement {
     isSubmitting = false;
     busyText = '';
     acceptedFormats = ['.pdf', '.docx'];
+    clientName = ''; // optional: used only when a JD names no company
 
     showModal = false;
     todayLoading = false;
@@ -113,6 +114,14 @@ export default class IntakeUploader extends LightningElement {
         const done = this.results.filter((r) => r.isFinal).length;
         const where = this.showTodayButton ? '' : ' Results also stay in the Intake inbox below.';
         return (done === total ? `${total} of ${total} finished.` : `${done} of ${total} finished, reading one at a time.`) + where;
+    }
+
+    /** The Client name box is shown when at least one file may be a job description. */
+    get showClientName() {
+        return this.staged.some((f) => (f.type || this.selectedType) !== 'Resume');
+    }
+    handleClientName(event) {
+        this.clientName = event.target.value;
     }
 
     get isBusy() {
@@ -229,12 +238,14 @@ export default class IntakeUploader extends LightningElement {
         }
         this.setBusy('Creating upload records...');
         try {
-            const rows = await submitUploadedFilesWithTypes({
+            const rows = await submitUploadedFilesWithClient({
                 contentDocumentIds: files.map((f) => f.documentId),
                 requestedTypes: files.map((f) => f.type || this.selectedType),
-                batchKey: newKey()
+                batchKey: newKey(),
+                clientName: this.showClientName ? this.clientName : null
             });
             this.staged = [];
+            this.clientName = '';
             this.results = [...rows, ...this.results];
             const queued = rows.filter((r) => !r.isFinal).length;
             const refused = rows.length - queued;

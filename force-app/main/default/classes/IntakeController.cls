@@ -227,6 +227,18 @@ public with sharing class IntakeController {
      */
     @AuraEnabled
     public static List<IntakeStatus> submitUploadedFilesWithTypes(List<Id> contentDocumentIds, List<String> requestedTypes, String batchKey) {
+        return submitUploadedFilesWithClient(contentDocumentIds, requestedTypes, batchKey, null);
+    }
+
+    /**
+     * Same as submitUploadedFilesWithTypes, plus the optional client name typed on screen (26-11-2026).
+     * It is kept on Job Description and Auto-detect files (Service__c.Client_Name__c) and used only when
+     * the JD itself names no company.
+     */
+    @AuraEnabled
+    public static List<IntakeStatus> submitUploadedFilesWithClient(List<Id> contentDocumentIds, List<String> requestedTypes,
+            String batchKey, String clientName) {
+        String client = String.isBlank(clientName) ? null : clientName.normalizeSpace().left(255);
         if (contentDocumentIds == null || contentDocumentIds.isEmpty()) throw error('No files were uploaded.');
         if (String.isBlank(batchKey)) throw error('Missing upload key. Please refresh the page and try again.');
         if (requestedTypes == null || requestedTypes.size() != contentDocumentIds.size()) throw error('Unknown upload type.');
@@ -288,7 +300,8 @@ public with sharing class IntakeController {
                 Status_Message__c = reason,
                 Request_Key__c = (batch + '-' + i).left(255),
                 Upload_Batch__c = reason == null ? batch : null,
-                File_Checksum__c = reason == null ? cv.Checksum : null
+                File_Checksum__c = reason == null ? cv.Checksum : null,
+                Client_Name__c = requestedType == TYPE_RESUME ? null : client
             ));
             fileOf.add(cv);
             i++;

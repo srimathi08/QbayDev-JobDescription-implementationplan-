@@ -58,6 +58,14 @@
                                     disabled={isBusy} onclick={handleRemoveFile}></lightning-button-icon>
                             </div>
                         </template>
+                        <template lwc:if={showClientName}>
+                            <div class="slds-m-top_small client-name">
+                                <lightning-input label="Client name (optional)" value={clientName} max-length="255"
+                                    placeholder="e.g. Carewell Insurance Ltd" disabled={isBusy} onchange={handleClientName}
+                                    field-level-help="Used only when a job description does not name the company. Leave blank if the JD names it.">
+                                </lightning-input>
+                            </div>
+                        </template>
                         <div class="slds-m-top_small">
                             <lightning-button variant="brand" label={startLabel} disabled={startDisabled}
                                 onclick={handleStartProcessing}></lightning-button>
