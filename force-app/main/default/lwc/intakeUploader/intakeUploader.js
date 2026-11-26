@@ -187,6 +187,15 @@ export default class IntakeUploader extends LightningElement {
             const added = details.filter((d) => !known.has(d.documentId)).map((d) => ({ ...d, type: this.selectedType }));
             this.staged = [...this.staged, ...added];
             this.toast('Files added', `${added.length} file(s) added. Check the list, then click Start processing.`, 'info');
+            // Same file already waiting in Needs Review or being read: say so now, before any processing
+            const pending = added.filter((d) => d.pendingMessage);
+            if (pending.length) {
+                this.toast(
+                    'Already uploaded',
+                    pending.map((d) => `${d.fileName}: ${d.pendingMessage}`).join(' '),
+                    'warning'
+                );
+            }
         } catch (e) {
             this.toast('Upload failed', this.errorText(e), 'error');
         } finally {

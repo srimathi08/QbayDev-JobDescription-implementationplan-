@@ -168,6 +168,35 @@ public with sharing class IntakeController {
         @AuraEnabled public String extension;
         @AuraEnabled public Integer sizeBytes;
         @AuraEnabled public String problem; // null = OK
+        /** Same file already waiting in Needs Review / being read: the full sentence for the recruiter. */
+        @AuraEnabled public String pendingMessage;
+    }
+
+    /**
+     * Qbay Home uploads of the same file (same checksum) that are not finished: waiting in Needs Review
+     * or still being read. A second copy is refused so the recruiter finishes the first one (26-11-2026).
+     */
+    private static Map<String, Service__c> pendingSameFiles(Set<String> checksums, Set<Id> exclude) {
+        Map<String, Service__c> out = new Map<String, Service__c>();
+        checksums.remove(null);
+        if (checksums.isEmpty()) return out;
+        for (Service__c s : [
+            SELECT Id, Status__c, CreatedDate, File_Checksum__c FROM Service__c
+            WHERE File_Checksum__c IN :checksums AND Source_Channel__c = :CHANNEL_UI
+              AND Status__c IN ('Needs Review', 'Queued') AND Id NOT IN :exclude
+            ORDER BY CreatedDate ASC
+        ]) {
+            if (!out.containsKey(s.File_Checksum__c)) out.put(s.File_Checksum__c, s);
+        }
+        return out;
+    }
+
+    /** "is already waiting in Needs Review (uploaded 26 Nov 2026 13:20). Please finish it in the Intake inbox." */
+    public static String pendingText(Service__c earlier) {
+        String uploadedOn = ' (uploaded ' + earlier.CreatedDate.format('dd MMM yyyy HH:mm') + ')';
+        return earlier.Status__c == 'Needs Review'
+            ? 'This file is already waiting in Needs Review' + uploadedOn + '. Please finish it in the Intake inbox instead of uploading it again.'
+            : 'This file is already being processed' + uploadedOn + '. Please wait for its result in the Intake inbox.';
     }
 
     /** Name, type, size and the upload checks of files the current user just uploaded. */
@@ -178,12 +207,15 @@ public with sharing class IntakeController {
         UploadSettings cfg = getUploadSettings();
         Map<Id, ContentVersion> byDoc = new Map<Id, ContentVersion>();
         for (ContentVersion cv : [
-            SELECT ContentDocumentId, Title, FileExtension, ContentSize, OwnerId
+            SELECT ContentDocumentId, Title, FileExtension, ContentSize, OwnerId, Checksum
             FROM ContentVersion
             WHERE ContentDocumentId IN :contentDocumentIds AND IsLatest = true AND OwnerId = :UserInfo.getUserId()
         ]) {
             byDoc.put(cv.ContentDocumentId, cv);
         }
+        Set<String> sums = new Set<String>();
+        for (ContentVersion cv : byDoc.values()) sums.add(cv.Checksum);
+        Map<String, Service__c> pending = pendingSameFiles(sums, new Set<Id>());
         for (Id docId : contentDocumentIds) {
             ContentVersion cv = byDoc.get(docId);
             if (cv == null) continue;
@@ -198,6 +230,10 @@ public with sharing class IntakeController {
                 f.problem = 'Empty file';
             } else if (cv.ContentSize > cfg.maxFileMb * 1024 * 1024) {
                 f.problem = 'Larger than ' + cfg.maxFileMb + ' MB';
+            } else if (pending.containsKey(cv.Checksum)) {
+                Service__c earlier = pending.get(cv.Checksum);
+                f.problem = earlier.Status__c == 'Needs Review' ? 'Already waiting in Needs Review' : 'Already being processed';
+                f.pendingMessage = pendingText(earlier);
             }
             out.add(f);
         }
@@ -264,6 +300,10 @@ public with sharing class IntakeController {
         ]) {
             versionByDoc.put(cv.ContentDocumentId, cv);
         }
+        Set<String> sums = new Set<String>();
+        for (ContentVersion cv : versionByDoc.values()) sums.add(cv.Checksum);
+        Map<String, Service__c> pending = pendingSameFiles(sums, new Set<Id>());
+        Set<String> seenInUpload = new Set<String>();
 
         List<Service__c> services = new List<Service__c>();
         List<ContentVersion> fileOf = new List<ContentVersion>();
@@ -286,10 +326,15 @@ public with sharing class IntakeController {
                 reason = '"' + fileName + '" is empty. Nothing was created.';
             } else if (cv.ContentSize > cfg.maxFileMb * 1024 * 1024) {
                 reason = '"' + fileName + '" is larger than ' + cfg.maxFileMb + ' MB. Please upload a smaller file. Nothing was created.';
+            } else if (pending.containsKey(cv.Checksum)) {
+                reason = pendingText(pending.get(cv.Checksum)) + ' Nothing was created.';
+            } else if (cv.Checksum != null && seenInUpload.contains(cv.Checksum)) {
+                reason = '"' + fileName + '" is the same file as another file in this upload, so it was read only once. Nothing was created.';
             } else if (accepted >= cfg.maxFiles) {
                 reason = 'Only ' + cfg.maxFiles + ' files can be uploaded at a time. Please upload "' + fileName + '" again in a new upload. Nothing was created.';
             } else {
                 accepted++;
+                if (cv.Checksum != null) seenInUpload.add(cv.Checksum);
             }
             if (reason != null) removeDocs.add(docId);
             services.add(new Service__c(

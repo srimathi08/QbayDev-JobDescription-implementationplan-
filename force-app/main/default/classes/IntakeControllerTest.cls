@@ -225,6 +225,61 @@ private class IntakeControllerTest {
         Assert.isTrue(s.Status_Message__c.contains('Client name box'), s.Status_Message__c);
     }
 
+    // ---------------- Same file already waiting in Needs Review (26-11-2026) ----------------
+
+    private static Id waitingReview(Id docId) {
+        String sum = [SELECT Checksum FROM ContentVersion WHERE ContentDocumentId = :docId AND IsLatest = true].Checksum;
+        Service__c s = new Service__c(Name = 'first.pdf', Source_Channel__c = 'UI Upload', Status__c = 'Needs Review',
+            Requested_Type__c = 'Resume', File_Checksum__c = sum, Request_Key__c = 'first-' + docId);
+        insert s;
+        return s.Id;
+    }
+
+    @IsTest
+    static void reviewListFlagsAFileWaitingInNeedsReview() {
+        Id doc = uploadedDoc('abhishek');
+        waitingReview(doc);
+        IntakeController.UploadedFile f = IntakeController.getUploadedFileDetails(new List<Id>{ doc })[0];
+        Assert.areEqual('Already waiting in Needs Review', f.problem);
+        Assert.isTrue(f.pendingMessage.contains('Please finish it in the Intake inbox'), f.pendingMessage);
+    }
+
+    @IsTest
+    static void submitRefusesAFileWaitingInNeedsReview() {
+        Id doc = uploadedDoc('abhishek');
+        Id first = waitingReview(doc);
+        List<IntakeController.IntakeStatus> st = IntakeController.submitUploadedFilesWithClient(
+            new List<Id>{ doc }, new List<String>{ 'Auto' }, 'B-AGAIN', null);
+        Assert.areEqual('Rejected', st[0].status);
+        Assert.isTrue(st[0].message.contains('already waiting in Needs Review'), st[0].message);
+        Assert.areEqual(0, [SELECT COUNT() FROM ContentDocument WHERE Id = :doc], 'the second copy is removed');
+        Assert.areEqual('Needs Review', load(first).Status__c, 'the first one is untouched');
+    }
+
+    @IsTest
+    static void sameFileTwiceInOneUploadIsReadOnce() {
+        List<Id> docs = new List<Id>{ uploadedDoc('same'), uploadedDoc('same') };
+        Test.startTest();
+        List<IntakeController.IntakeStatus> st = IntakeController.submitUploadedFilesWithClient(
+            docs, new List<String>{ 'Resume', 'Resume' }, 'B-TWICE', null);
+        Test.stopTest();
+        Assert.areEqual('Rejected', st[1].status);
+        Assert.isTrue(st[1].message.contains('same file as another file in this upload'), st[1].message);
+    }
+
+    @IsTest
+    static void processorDoesNotAskTwiceForTheSameFile() {
+        Id first = IntakeTestData.newIntake('Resume', 'a.pdf', 'same-bytes');
+        update new Service__c(Id = first, Status__c = 'Needs Review');
+        Id second = IntakeTestData.newIntake('Resume', 'a.pdf', 'same-bytes');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(second));
+        Test.stopTest();
+        Service__c s = load(second);
+        Assert.areEqual('Duplicate', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('already waiting in Needs Review'), s.Status_Message__c);
+    }
+
     @IsTest
     static void helpers() {
         Assert.areEqual('pdf', IntakeController.extensionOf('A.B.PDF'));

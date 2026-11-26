@@ -79,6 +79,21 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             return;
         }
 
+        // 1b. Same file already waiting in Needs Review (Qbay Home upload): finish that one, do not ask twice
+        if (svc.Source_Channel__c == CHANNEL_UI && String.isNotBlank(svc.File_Checksum__c)) {
+            List<Service__c> waiting = [
+                SELECT Id, Status__c, CreatedDate, Account__c, Opportunity__c FROM Service__c
+                WHERE File_Checksum__c = :svc.File_Checksum__c AND Source_Channel__c = :CHANNEL_UI
+                  AND Status__c = :STATUS_NEEDS_REVIEW AND Id != :svc.Id
+                ORDER BY CreatedDate ASC LIMIT 1
+            ];
+            if (!waiting.isEmpty()) {
+                svc.Opportunity__c = waiting[0].Opportunity__c;
+                finish(svc, 'Duplicate', IntakeController.pendingText(waiting[0]) + ' No new records were created.', null);
+                return;
+            }
+        }
+
         // 2. AI extraction (callout happens before any DML in this transaction)
         String rawJson;
         String type = svc.Requested_Type__c;
