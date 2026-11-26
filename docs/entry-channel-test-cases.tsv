@@ -1,0 +1,83 @@
+TC ID	Channel	Area	Scenario	Test data and steps	Expected result	Priority
+UP-01	Upload	Happy path	Clean resume, Resume tab	Upload 1 text PDF resume with name, email and phone; choose Resume; Start processing	Service Completed; new candidate Account (Candidates) and Contact; skills, certifications and projects created; file linked to Account	High
+UP-02	Upload	Happy path	Clean JD with company, JD tab	Upload 1 DOCX JD naming the client; choose Job Description	Service Completed; client Account found or created (Direct_Customers); Opportunity (Resourcing, Discovery); Job Description record; file linked to both; matching starts	High
+UP-03	Upload	Auto-detect	Auto-detect a resume	Upload a resume with Auto-detect	Detected as Resume; same records as UP-01	High
+UP-04	Upload	Auto-detect	Auto-detect a JD	Upload a JD with Auto-detect	Detected as Job Description; same records as UP-02	High
+UP-05	Upload	Auto-detect	Auto-detect a non-resume non-JD	Upload a project report or meeting notes with Auto-detect	Rejected with "does not look like a resume or a job description"; nothing created (check finding 8)	Medium
+UP-06	Upload	Wrong tab	JD uploaded as Resume	Upload a JD; choose Resume	Rejected: "looks like a Job Description, not a resume"; nothing created	High
+UP-07	Upload	Wrong tab	Resume uploaded as JD	Upload a resume; choose Job Description	Rejected: "looks like a resume, not a Job Description"; nothing created	High
+UP-08	Upload	File checks	Unsupported type	Upload .doc, .xlsx, .png and .txt files	Each flagged "Not supported (PDF or DOCX only)" in the review step; Rejected if submitted; uploaded copy deleted	High
+UP-09	Upload	File checks	Empty file	Upload a 0 KB PDF	Flagged "Empty file"; Rejected; nothing created	Medium
+UP-10	Upload	File checks	File over size limit	Upload an 11 MB PDF	Flagged "Larger than 10 MB"; Rejected; nothing created	Medium
+UP-11	Upload	File checks	File exactly at size limit	Upload a 10 MB text PDF	Accepted and processed	Low
+UP-12	Upload	File checks	More files than allowed	Upload 11 valid files in one go	First 10 processed; 11th Rejected "Only 10 files can be uploaded at a time"	Medium
+UP-13	Upload	Review step	Remove a file before processing	Upload 3 files; remove 1 in the review step; Start processing	Removed file deleted; only 2 Service records created	Medium
+UP-14	Upload	Review step	Per-file type	Upload 2 files; set one to Resume and one to Job Description	Each processed with its own type	Medium
+UP-15	Upload	Duplicates	Same file uploaded again	Upload the file from UP-01 again	Duplicate: "This exact file was already uploaded on ..."; linked to the same Account; no new records	High
+UP-16	Upload	Duplicates	Same person, different file	Upload a second resume of the UP-01 candidate (same email, new layout)	Existing candidate updated, not renamed or blanked; no second Account	High
+UP-17	Upload	Duplicates	Same phone, different name	Upload a resume whose phone matches an existing candidate with another name	New candidate created; message notes the shared phone; existing candidate unchanged	Medium
+UP-18	Upload	Duplicates	Two resumes of one person in one upload	Upload 2 different files of the same person together	Processed one after another; 1 candidate created, the other updates or is Duplicate	High
+UP-19	Upload	Duplicates	Same JD as a new file	Upload a JD already processed, re-saved as a new PDF	Existing open Opportunity reused or flagged; no second Opportunity (finding 2)	High
+UP-20	Upload	Needs Review	Name but no contact details	Upload a resume with a name only (contact in an image)	Needs Review; recruiter enters email or phone and clicks Continue; candidate created	High
+UP-21	Upload	Needs Review	Invalid contact entered	In UP-20 enter "abc" as email	Error "is not a valid email address"; nothing created	Medium
+UP-22	Upload	Duplicate actions	Attach resume to existing candidate	On a Duplicate resume click Attach	File linked to existing candidate; Service Completed; no new candidate	Medium
+UP-23	Upload	Retry	Retry a failed upload	Force a Failed record (AI error); click Retry	Status Queued then final; Retry_Count__c +1	Medium
+UP-24	Upload	Retry	Retry button timing	Look at a record Queued for under 15 minutes	No Retry button; appears after 15 minutes	Low
+UP-25	Upload	JD rules	JD without company name	Upload a JD with no client name	Rejected "No company name was found"; nothing created	High
+UP-26	Upload	JD rules	Company name with suffix	Upload JD for "Infosys Ltd." when "Infosys" exists	Existing Infosys Account reused; no new client	Medium
+UP-27	Upload	Resume rules	No name and no contact	Upload a resume template with blank fields	Rejected "Could not find the candidate's name and an email, phone number or LinkedIn"	High
+UP-28	Upload	Resume rules	Scanned image-only PDF	Upload a scanned resume with no text layer	Rejected or Needs Review with a clear message; nothing half-created	Medium
+UP-29	Upload	Access	Another user's file	Call submit with a file another user uploaded	Error "You can only submit files you uploaded yourself"	Low
+UP-30	Upload	Inbox	My uploads today	Open the intake inbox, Today, Mine only	Only the current user's uploads of today shown with correct status	Low
+EM-01	Email	Happy path	Resume attached	Authorized sender emails 1 resume PDF	Service (Email) New, then Completed; candidate created; acknowledgement email to quadrobay.com sender	High
+EM-02	Email	Happy path	JD attached	Email 1 JD DOCX naming the client	Opportunity, Job Description and client Account created; acknowledgement lists the Opportunity	High
+EM-03	Email	Happy path	JD pasted in the body, no attachment	Email with a 300+ character JD in the body	Body saved as PDF; identified as JD; Opportunity created	High
+EM-04	Email	Text rules	Short body, no attachment	Email "Please find details" with no file	Rejected "No resume or job description was found"; nothing created	Medium
+EM-05	Email	Text rules	Resumes attached plus long JD in body	Email 2 resumes and an 800+ character JD in the body	3 records; body checked as JD only; candidates and Opportunity created	High
+EM-06	Email	Text rules	Resumes attached plus short covering note	Email 2 resumes with a 2-line note	2 records only; body not processed	Medium
+EM-07	Email	Multiple files	Several resumes in one email	Email 5 resumes	5 records processed one after another; 5 candidates; one acknowledgement for the whole email	High
+EM-08	Email	Multiple files	Over the per-email limit	Email 11 PDFs	First 10 processed; 11th Rejected "an email can carry at most 10 files"	Medium
+EM-09	Email	File checks	Old Word .doc	Email a .doc resume	Rejected "old Word format (.doc)"	Medium
+EM-10	Email	File checks	Outlook .msg attachment	Attach a .msg item	Rejected "Outlook item (.msg)"	Low
+EM-11	Email	File checks	Signature logo and inline images	Email 1 resume plus a signature logo	Logo ignored; only the resume processed	Medium
+EM-12	Email	File checks	Photo of a resume	Attach a 500 KB JPG of a resume	Rejected "is an image... cannot be read"	Medium
+EM-13	Email	File checks	Attachment over 10 MB	Attach an 11 MB PDF	Rejected "larger than 10 MB"	Medium
+EM-14	Email	File checks	File without extension	Attach "CV - J.Smith" sent as application/pdf	Saved as "CV - J.Smith.pdf" and processed	Low
+EM-15	Email	Forwarded mail	Forwarded email with attachments	Forward an email (as .eml attachment) that carries 2 resumes	Both resumes found inside and processed	Medium
+EM-16	Email	Duplicates	Same file twice in one email	Attach the same PDF twice	Processed once; second listed as ignored	Medium
+EM-17	Email	Duplicates	Same email delivered twice	Re-deliver the same message (same Message-Id)	Second delivery ignored; no new records	Medium
+EM-18	Email	Duplicates	Same resume in a new email	Email a resume already processed	Duplicate; no new candidate	High
+EM-19	Email	Classifier	Non-resume non-JD document	Email an invoice PDF	Rejected "This file is not a resume or a job description"	Medium
+EM-20	Email	JD rules	JD without company	Email a JD with no client name	Rejected "No company name was found"; acknowledgement explains	High
+EM-21	Email	Resume rules	Name but no contact	Email a resume with no email, phone or LinkedIn	Rejected with reason (no Needs Review for email today)	Medium
+EM-22	Email	Security	Unauthorized sender	Email from a gmail.com address	Refused by Salesforce (finding 1); no Service record; sender gets a bounce	High
+EM-23	Email	Security	Second internal sender	Email from another quadrobay.com recruiter	Accepted once finding 1 is fixed; today refused	High
+EM-24	Email	Acknowledgement	External sender acknowledgement	Process an email from a non-quadrobay.com sender (when allowed)	Records processed; no acknowledgement sent	Low
+EM-25	Email	Retry	AI failure then retry	Make the classifier fail once	Failed; hourly job retries up to 2 times; failure alert to Anantha after the last retry	High
+EM-26	Email	Retry	Stuck record	Leave a record in New or Queued over 60 minutes	Hourly job restarts it; Retry_Count__c +1	Medium
+EM-27	Email	Settings	Intake disabled	Set Enabled__c = false; send an email	Records saved as New; not processed; processed after re-enabling and the next hourly run	Low
+WA-01	WhatsApp	Happy path	Resume PDF from registered number	Registered recruiter sends 1 resume PDF	"Received" reply; Service (WhatsApp) Completed; candidate created; final reply with candidate link	High
+WA-02	WhatsApp	Happy path	JD DOCX from registered number	Send 1 JD DOCX naming the client	Opportunity and Job Description created; final reply with Opportunity link	High
+WA-03	WhatsApp	Happy path	JD pasted as text	Send a 300+ character JD as a text message	Saved as WhatsAppMessage.pdf; Opportunity created	High
+WA-04	WhatsApp	Text rules	Short text	Send "hi"	Reply asking for a PDF or DOCX; Rejected record (finding 10)	Low
+WA-05	WhatsApp	File checks	Image	Send a photo of a resume	Rejected "Images are not supported"; reply sent	Medium
+WA-06	WhatsApp	File checks	Old Word .doc	Send a .doc file	Rejected ".doc cannot be read"; reply sent	Medium
+WA-07	WhatsApp	File checks	Large file	Send a 15 MB PDF	Rejected with a size message and reply (finding 6; today may fail with no record)	High
+WA-08	WhatsApp	Access	Unregistered number	Send a resume from a number not on any User	"Access restricted" reply once; no Service record	High
+WA-09	WhatsApp	Access	Number format	User Mobile saved as "+91 98765 43210"; WhatsApp sends 919876543210	Matched on last 10 digits; accepted	Medium
+WA-10	WhatsApp	Access	Inactive or non-quadrobay user	Number belongs to an inactive user or a non-quadrobay.com email	Access restricted	Medium
+WA-11	WhatsApp	Security	Bad signature	POST to the webhook without a valid X-Hub-Signature-256	HTTP 401; nothing saved	High
+WA-12	WhatsApp	Security	Webhook verification	GET with the right and the wrong verify token	Right token returns the challenge (200); wrong token 403	Medium
+WA-13	WhatsApp	Duplicates	Same message delivered twice	Meta re-sends the same message id	Second delivery ignored	Medium
+WA-14	WhatsApp	Duplicates	Same file sent again later	Re-send a processed resume	Duplicate reply; no new candidate	High
+WA-15	WhatsApp	Duplicates	Same JD as text and as PDF	Send a JD as text, then the same JD as PDF	One Opportunity only (finding 2; failed on 25 Nov)	High
+WA-16	WhatsApp	Multiple files	Two resumes of one person together	Send 2 files of the same person at once	One candidate only (finding 5)	Medium
+WA-17	WhatsApp	Classifier	Non-resume non-JD PDF	Send an invoice PDF	Rejected "not a resume or a job description"; reply sent	Medium
+WA-18	WhatsApp	Retry	AI failure	Make the classifier fail	Failed; retried hourly once WhatsApp is in Retry_Channels (finding 3); reply only after the last retry	High
+WA-19	WhatsApp	Run-as user	Processing user	Check Created By on a new WhatsApp Opportunity	A dedicated integration user, not a person (finding 4)	Medium
+WA-20	WhatsApp	Owner	Record owner	Check the Service record owner	Owner = the recruiter matched by phone	Low
+X-01	All	Consistency	Same resume via all 3 channels	Send the same resume by upload, email and WhatsApp	1 candidate; the 2nd and 3rd are Duplicate	High
+X-02	All	Consistency	Same JD via all 3 channels	Send the same JD by upload, email and WhatsApp	1 Opportunity and 1 JD; the rest Duplicate or reuse	High
+X-03	All	Inbox	Inbox shows all channels	Open the intake inbox with channel All	Upload, Email and WhatsApp records listed with status and message; email and WhatsApp read-only	Medium
+X-04	All	Status	Every record ends in a final status	After a mixed test run, list Service records from today	None left in New or Queued after 60 minutes	High
+X-05	All	Errors	Error log	Cause one failure per channel	Error_Log__c entry with class and method; user sees a plain message, not a stack trace	Medium
