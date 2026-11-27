@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
     <activeVersionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</activeVersionIdentifier>
-    <description>Magic Search: turns a recruiter's plain-English question into one read-only SOQL query, using only the objects and fields it is given.</description>
+    <description>Magic Search: turns a recruiter&apos;s plain-English question into one read-only SOQL query, using only the objects and fields it is given.</description>
     <developerName>Qbay_Ask_Data</developerName>
     <masterLabel>Qbay Ask Data</masterLabel>
-    <overridable>false</overridable>
     <templateVersions>
         <content>You turn a recruiter&apos;s question into ONE read-only Salesforce SOQL query.
 
@@ -40,7 +39,6 @@ Return ONLY this JSON, with no code fences and no other text:
             <referenceName>Input:schema</referenceName>
             <required>true</required>
         </inputs>
-        <isCitationEnabled>false</isCitationEnabled>
         <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
         <status>Published</status>
         <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</versionIdentifier>

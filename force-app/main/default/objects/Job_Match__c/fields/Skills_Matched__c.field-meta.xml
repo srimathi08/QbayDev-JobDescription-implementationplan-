@@ -3,6 +3,8 @@
     <fullName>Skills_Matched__c</fullName>
     <label>Skills Matched</label>
     <length>4000</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>LongTextArea</type>
     <visibleLines>3</visibleLines>
 </CustomField>
