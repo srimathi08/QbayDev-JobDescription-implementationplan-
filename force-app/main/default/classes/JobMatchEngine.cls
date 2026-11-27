@@ -10,7 +10,7 @@
  * is at least AI_MIN_QUICK, and only when the job or the candidate changed since the last AI answer.
  *
  * One Job_Match__c per job and candidate (Match_Key__c = Opportunity Id + Account Id).
- * Match_Score__c = AI fit when there is one, else quick fit, always 0-100.
+ * Match_Score__c = average of quick fit and AI fit when there is an AI fit, else quick fit, always 0-100.
  */
 public without sharing class JobMatchEngine {
 
@@ -356,7 +356,7 @@ public without sharing class JobMatchEngine {
                 Job_Match__c m = new Job_Match__c(
                     Match_Key__c = k,
                     Quick_Fit_Score__c = f.total,
-                    Match_Score__c = hasAi ? old.AI_Fit_Score__c : f.total,
+                    Match_Score__c = hasAi ? blend(f.total, old.AI_Fit_Score__c) : f.total,
                     Skills_Matched__c = left(String.join(f.matched, ', '), 4000),
                     Skills_Missing__c = left(String.join(f.missing, ', '), 4000),
                     Scored_On__c = now
@@ -445,8 +445,18 @@ public without sharing class JobMatchEngine {
         return String.join(out, '\n');
     }
 
+    /** Change PROMPT_VERSION when the AI rules change, so the top matches are checked once more with the new rules. */
+    public static final String PROMPT_VERSION = 'v2';
+
     public static String fingerprint(String job, String person) {
-        return EncodingUtil.convertToHex(Crypto.generateDigest('SHA-256', Blob.valueOf(job + '\n#\n' + person)));
+        return EncodingUtil.convertToHex(Crypto.generateDigest('SHA-256', Blob.valueOf(PROMPT_VERSION + '\n' + job + '\n#\n' + person)));
+    }
+
+    /** Final score: average of the rule score and the AI score, so one odd AI answer moves a score only a little. */
+    public static Integer blend(Decimal quick, Decimal ai) {
+        if (ai == null) return quick == null ? 0 : quick.intValue();
+        if (quick == null) return ai.intValue();
+        return Math.round((quick + ai) / 2);
     }
 
     // =====================================================================

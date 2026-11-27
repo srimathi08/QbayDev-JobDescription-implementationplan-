@@ -107,13 +107,14 @@ private class JobMatchEngine_Test {
         System.assertEquals(0, second, 'nothing changed, so no second AI call');
         Job_Match__c m = [SELECT AI_Fit_Score__c, Match_Score__c, Match_Status__c, Explanation__c FROM Job_Match__c WHERE Id = :res.aiQueue[0]];
         System.assertEquals(88, m.AI_Fit_Score__c);
-        System.assertEquals(88, m.Match_Score__c);
+        Decimal quick = [SELECT Quick_Fit_Score__c FROM Job_Match__c WHERE Id = :res.aiQueue[0]].Quick_Fit_Score__c;
+        System.assertEquals(Math.round((quick + 88) / 2), m.Match_Score__c, 'average of quick fit and AI fit');
         System.assertEquals('AI Scored', m.Match_Status__c);
         System.assert(m.Explanation__c.contains('Strengths'));
 
         // a later quick-fit run keeps the AI score
         JobMatchEngine.scoreJobs(new Set<Id>{ job.Id });
-        System.assertEquals(88, [SELECT Match_Score__c FROM Job_Match__c WHERE Id = :res.aiQueue[0]].Match_Score__c);
+        System.assertEquals(m.Match_Score__c, [SELECT Match_Score__c FROM Job_Match__c WHERE Id = :res.aiQueue[0]].Match_Score__c);
     }
 
     @isTest

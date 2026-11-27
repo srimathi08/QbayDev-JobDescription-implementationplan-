@@ -134,11 +134,11 @@ public without sharing class JobMatchJob implements Queueable, Database.AllowsCa
                 String strengths = parsed.get('strengths') == null ? '' : String.valueOf(parsed.get('strengths'));
                 String gaps = parsed.get('gaps') == null ? '' : String.valueOf(parsed.get('gaps'));
                 u.AI_Fit_Score__c = score;
-                u.Match_Score__c = score;
+                u.Match_Score__c = JobMatchEngine.blend(m.Quick_Fit_Score__c, score);
                 u.AI_Input_Hash__c = hash;
                 u.Match_Status__c = 'AI Scored';
                 u.Error_Message__c = null;
-                u.Explanation__c = 'AI fit ' + score + '/100 (quick fit ' + m.Quick_Fit_Score__c + '). '
+                u.Explanation__c = 'Score ' + u.Match_Score__c + '/100 = average of quick fit ' + m.Quick_Fit_Score__c + ' and AI fit ' + score + '. '
                     + (String.isNotBlank(strengths) ? 'Strengths: ' + strengths.trim() + ' ' : '')
                     + (String.isNotBlank(gaps) ? 'Gaps: ' + gaps.trim() : '');
             } catch (Exception e) {

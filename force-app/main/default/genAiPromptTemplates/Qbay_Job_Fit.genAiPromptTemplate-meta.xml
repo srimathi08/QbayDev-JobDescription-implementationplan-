@@ -14,7 +14,12 @@ Job:
 Candidate:
 {!$Input:candidate}
 
-Guide: 85-100 has nearly all required skills and the experience; 65-84 strong with small gaps; 45-64 partial fit; 20-44 weak; 0-19 different field. Count related skills and real project use. Do not give 0 only because the industry or job title wording differs.
+Rules:
+1. Judge ONLY against what the Job lists (skills, experience, role, qualifications). Skills or tools the candidate has that the Job does not ask for are never a gap and never lower the score.
+2. If the candidate has all the listed skills and the experience, score 85 or more.
+3. A different location takes off at most 5 points. A missing certificate takes off at most 5 points, unless the Job asks for one.
+4. Guide: 85-100 has nearly all required skills and the experience; 65-84 strong with small gaps; 45-64 partial fit; 20-44 weak; 0-19 different field. Count related skills and real project use. Do not give 0 only because the industry or job title wording differs.
+5. &quot;gaps&quot; may only name things the Job asks for that the candidate lacks; write &quot;None&quot; if nothing is missing.
 
 Return ONLY this JSON, no code fences:
 {&quot;score&quot;: 0, &quot;strengths&quot;: &quot;max 20 words&quot;, &quot;gaps&quot;: &quot;max 20 words&quot;}</content>
