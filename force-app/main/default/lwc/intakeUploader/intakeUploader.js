@@ -63,7 +63,7 @@ export default class IntakeUploader extends LightningElement {
     isSubmitting = false;
     busyText = '';
     acceptedFormats = ['.pdf', '.docx'];
-    clientName = ''; // optional: used only when a JD names no company
+    hiddenResults = []; // "Hide" only moves results here; "Show hidden" brings them back
 
     showModal = false;
     todayLoading = false;
@@ -116,9 +116,32 @@ export default class IntakeUploader extends LightningElement {
         return (done === total ? `${total} of ${total} finished.` : `${done} of ${total} finished, reading one at a time.`) + where;
     }
 
-    /** The Client name box is shown before upload whenever the files may be job descriptions (JD or Auto-detect). */
-    get showClientName() {
-        return this.selectedType !== 'Resume';
+    /** Type choice as a segmented control (shared theme). */
+    get typeButtons() {
+        return this.typeOptions.map((o) => ({
+            ...o,
+            cls: 'qb-segment-btn' + (o.value === this.selectedType ? ' is-active' : '')
+        }));
+    }
+    handleTypeClick(event) {
+        this.selectedType = event.currentTarget.dataset.value;
+    }
+    get hasHidden() {
+        return this.hiddenResults.length > 0;
+    }
+    get showResultsStep() {
+        return this.hasResults || this.hasHidden;
+    }
+    get hiddenLabel() {
+        return `Show ${this.hiddenResults.length} hidden `
+            + (this.hiddenResults.length === 1 ? 'result' : 'results');
+    }
+    showHidden() {
+        this.results = [...this.results, ...this.hiddenResults];
+        this.hiddenResults = [];
+        if (this.results.some((r) => !r.isFinal)) {
+            this.startPolling();
+        }
     }
 
     // ---------------- vertical steps ----------------
@@ -138,9 +161,6 @@ export default class IntakeUploader extends LightningElement {
     get typeLabel() {
         const o = this.typeOptions.find((x) => x.value === this.selectedType);
         return o ? o.label : this.selectedType;
-    }
-    handleClientName(event) {
-        this.clientName = event.target.value;
     }
 
     get isBusy() {
@@ -270,10 +290,9 @@ export default class IntakeUploader extends LightningElement {
                 contentDocumentIds: files.map((f) => f.documentId),
                 requestedTypes: files.map(() => this.selectedType),
                 batchKey: newKey(),
-                clientName: this.showClientName ? this.clientName : null
+                clientName: null
             });
             this.staged = [];
-            this.clientName = '';
             this.results = [...rows, ...this.results];
             const queued = rows.filter((r) => !r.isFinal).length;
             const refused = rows.length - queued;
@@ -302,12 +321,13 @@ export default class IntakeUploader extends LightningElement {
 
     /** Hides the results list only; nothing is deleted (results stay in the Intake inbox). */
     clearResults() {
-        this.stopPolling();
+        this.hiddenResults = [...this.hiddenResults, ...this.results];
         this.results = [];
     }
 
     handleHideResult(event) {
         const id = event.currentTarget.dataset.id;
+        this.hiddenResults = [...this.hiddenResults, ...this.results.filter((r) => r.serviceId === id)];
         this.results = this.results.filter((r) => r.serviceId !== id);
     }
 

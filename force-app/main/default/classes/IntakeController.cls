@@ -38,6 +38,8 @@ public with sharing class IntakeController {
         /** Queued file of a multi-file upload: "Waiting, file 3 of 5". Null otherwise. */
         @AuraEnabled public Integer batchPosition;
         @AuraEnabled public Integer batchTotal;
+        /** JD without a company: the recruiter types the client name (27-11-2026). */
+        @AuraEnabled public Boolean canGiveClient;
         /** New or Queued for more than an hour (any channel). */
         @AuraEnabled public Boolean isStuck;
     }
@@ -619,11 +621,51 @@ public with sharing class IntakeController {
         return getStatus(new List<Id>{ svc.Id })[0];
     }
 
-    /** Failed (or stuck in Queued for 15+ minutes): runs the file again. */
+    /**
+     * JD without a company (Needs Review): the recruiter types the client name; the saved AI result is reused
+     * (no new AI call) and the client Account, Opportunity and JD are created (27-11-2026).
+     */
     @AuraEnabled
+    public static IntakeStatus provideClientName(Id serviceId, String clientName) {
+        Service__c svc = loadForAction(serviceId);
+        String client = String.isBlank(clientName) ? null : clientName.normalizeSpace().left(255);
+        if (client == null || client.length() < 2) throw error('Please type the client (company) name.');
+        if (svc.Status__c != 'Needs Review' || svc.Requested_Type__c != TYPE_JD) {
+            throw error('This upload is not waiting for a client name.');
+        }
+        if (String.isBlank(svc.AI_Response__c)) throw error('The saved AI result for this file is missing. Please upload the file again.');
+        svc.Client_Name__c = client;
+        update svc;
+        Savepoint sp = Database.setSavepoint();
+        try {
+            JobDescriptionCreationController.Result r = JobDescriptionCreationController.process(svc.AI_Response__c, svc.Id, true);
+            svc.Account__c = r.accountId;
+            svc.Opportunity__c = r.opportunityId;
+            svc.Job_Description__c = r.jobDescriptionId;
+            svc.Detected_Type__c = TYPE_JD;
+            svc.Status__c = 'Completed';
+            svc.Status_Message__c = ('Client name "' + client + '" added by ' + UserInfo.getName() + '. ' + (r.summary == null ? '' : r.summary)).left(32000);
+        } catch (IntakeProcessor.PossibleDuplicateJdException pd) {
+            Database.rollback(sp);
+            svc.Account__c = pd.accountId;
+            svc.Opportunity__c = pd.opportunityId;
+            svc.Status_Message__c = pd.getMessage();
+        } catch (IntakeProcessor.RejectException rej) {
+            Database.rollback(sp);
+            throw error(rej.getMessage());
+        } catch (Exception e) {
+            Database.rollback(sp);
+            UtilityClass.createElog(e, 'IntakeController', 'provideClientName');
+            throw error('Could not save the Job Description: ' + e.getMessage());
+        }
+        update svc;
+        return getStatus(new List<Id>{ svc.Id })[0];
+    }
+
+    /** Failed (or stuck in Queued for 15+ minutes): runs the file again. */    @AuraEnabled
     public static IntakeStatus retryIntake(Id serviceId) {
         Service__c svc = loadForAction(serviceId);
-        if (!canRetry(svc)) throw error('Only failed uploads, or uploads waiting for more than ' + STUCK_MINUTES + ' minutes, can be retried.');
+        if (!canRetry(svc)) throw error('Only failed or rejected uploads, or uploads waiting for more than ' + STUCK_MINUTES + ' minutes, can be retried.');
         svc.Status__c = 'Queued';
         svc.Retry_Count__c = (svc.Retry_Count__c == null ? 0 : svc.Retry_Count__c) + 1;
         svc.Status_Message__c = 'Retry requested by ' + UserInfo.getName() + '.';
@@ -661,6 +703,8 @@ public with sharing class IntakeController {
         Boolean jd = st.requestedType == TYPE_JD;
         st.canReview = ui && !jd && (s.Status__c == 'Needs Review' || nameDuplicate);
         st.canChooseJd = ui && jd && s.Status__c == 'Needs Review' && s.Opportunity__c != null;
+        st.canGiveClient = ui && jd && s.Status__c == 'Needs Review' && s.Status_Message__c != null
+            && s.Status_Message__c.startsWith(JobDescriptionCreationController.CLIENT_NAME_NEEDED_PREFIX);
         // Attach a resume only to a candidate Account, never to a client Account of a JD
         st.canAttach = ui && s.Status__c == 'Duplicate' && s.Account__c != null && st.requestedType != TYPE_JD
             && s.Account__r?.RecordType?.DeveloperName == 'Candidates';
@@ -673,6 +717,8 @@ public with sharing class IntakeController {
     private static Boolean canRetry(Service__c s) {
         if (s.Source_Channel__c != CHANNEL_UI) return false;
         if (s.Status__c == 'Failed') return true;
+        // Rejected after reading (not refused at upload): may be read again, e.g. after a prompt or rule fix (27-11-2026)
+        if (s.Status__c == 'Rejected' && String.isNotBlank(s.Upload_Batch__c)) return true;
         return s.Status__c == 'Queued' && s.LastModifiedDate != null
             && s.LastModifiedDate < Datetime.now().addMinutes(-STUCK_MINUTES);
     }
@@ -680,7 +726,7 @@ public with sharing class IntakeController {
     private static Service__c loadForAction(Id serviceId) {
         List<Service__c> rows = [
             SELECT Id, Name, Status__c, Status_Message__c, Requested_Type__c, Source_Channel__c, Account__c,
-                   AI_Response__c, Retry_Count__c, LastModifiedDate, CreatedDate
+                   AI_Response__c, Retry_Count__c, LastModifiedDate, CreatedDate, Upload_Batch__c, Client_Name__c
             FROM Service__c WHERE Id = :serviceId
         ];
         if (rows.isEmpty()) throw error('This upload was not found.');

@@ -1,0 +1,186 @@
+/*
+ * Qbay shared theme (27-11-2026). One look for all upload and search components, taken from the Quadrobay logo:
+ * plum (primary), orange (action), teal (success), yellow (attention).
+ * Use it with  @import 'c/qbayTheme';  at the top of a component's CSS file.
+ */
+:host {
+    --qb-plum: #6b2f48;
+    --qb-plum-dark: #55243a;
+    --qb-plum-soft: #f6eef2;
+    --qb-orange: #eb672c;
+    --qb-orange-soft: #fdeee6;
+    --qb-teal: #2f9e80;
+    --qb-teal-soft: #e5f5f0;
+    --qb-yellow: #f2a516;
+    --qb-yellow-soft: #fef5e2;
+    --qb-red: #c23934;
+    --qb-red-soft: #fdecec;
+    --qb-ink: #24212a;
+    --qb-muted: #6e6a73;
+    --qb-line: #ece8ee;
+    --qb-surface: #ffffff;
+    --qb-canvas: #faf8fb;
+    --qb-radius: 14px;
+    --qb-radius-sm: 9px;
+    --qb-shadow: 0 1px 2px rgba(36, 33, 42, 0.06), 0 6px 18px rgba(107, 47, 72, 0.06);
+
+    /* Lightning base components follow the theme */
+    --slds-c-button-brand-color-background: var(--qb-plum);
+    --slds-c-button-brand-color-border: var(--qb-plum);
+    --slds-c-button-brand-color-background-hover: var(--qb-plum-dark);
+    --slds-c-button-brand-color-border-hover: var(--qb-plum-dark);
+    --slds-c-button-radius-border: 999px;
+    --slds-c-button-neutral-color-border: var(--qb-line);
+    --slds-c-button-text-color: var(--qb-plum);
+    --slds-c-input-radius-border: var(--qb-radius-sm);
+    --slds-c-input-color-border-focus: var(--qb-plum);
+    --slds-c-combobox-radius-border: var(--qb-radius-sm);
+
+    color: var(--qb-ink);
+    font-size: 0.875rem;
+}
+
+/* ---------- surfaces ---------- */
+.qb-panel {
+    background: var(--qb-surface);
+    border: 1px solid var(--qb-line);
+    border-radius: var(--qb-radius);
+    box-shadow: var(--qb-shadow);
+    padding: 1.25rem 1.5rem;
+}
+.qb-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.qb-head-icon {
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--qb-plum), var(--qb-orange));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+.qb-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--qb-ink);
+    line-height: 1.2;
+}
+.qb-sub {
+    font-size: 0.8rem;
+    color: var(--qb-muted);
+}
+.qb-head-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.qb-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--qb-muted);
+    margin-bottom: 0.5rem;
+}
+.qb-muted {
+    color: var(--qb-muted);
+    font-size: 0.8rem;
+}
+
+/* ---------- pills, chips, badges ---------- */
+.qb-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.15rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--qb-canvas);
+    color: var(--qb-muted);
+    border: 1px solid var(--qb-line);
+}
+.qb-pill-success { background: var(--qb-teal-soft); color: var(--qb-teal); border-color: transparent; }
+.qb-pill-warning { background: var(--qb-yellow-soft); color: #8a5a00; border-color: transparent; }
+.qb-pill-review { background: var(--qb-plum-soft); color: var(--qb-plum); border-color: transparent; }
+.qb-pill-error { background: var(--qb-red-soft); color: var(--qb-red); border-color: transparent; }
+.qb-pill-info { background: var(--qb-orange-soft); color: #a64315; border-color: transparent; }
+.qb-chip {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 0.1rem 0.55rem;
+    margin: 0 0.3rem 0.3rem 0;
+    border-radius: 999px;
+    background: var(--qb-plum-soft);
+    color: var(--qb-plum);
+}
+.qb-chip-alt {
+    background: var(--qb-orange-soft);
+    color: #a64315;
+}
+
+/* ---------- segmented choice ---------- */
+.qb-segment {
+    display: inline-flex;
+    background: var(--qb-canvas);
+    border: 1px solid var(--qb-line);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+}
+.qb-segment-btn {
+    border: 0;
+    background: transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--qb-muted);
+    cursor: pointer;
+}
+.qb-segment-btn:hover { color: var(--qb-plum); }
+.qb-segment-btn.is-active {
+    background: var(--qb-plum);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(107, 47, 72, 0.25);
+}
+.qb-segment-btn:disabled { cursor: default; opacity: 0.6; }
+
+/* ---------- empty state, pager, links ---------- */
+.qb-empty {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    color: var(--qb-muted);
+    background: var(--qb-canvas);
+    border-radius: var(--qb-radius-sm);
+}
+.qb-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+}
+.qb-link {
+    color: var(--qb-plum);
+    font-weight: 600;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.qb-link:hover { text-decoration: underline; color: var(--qb-orange); }
+a {
+    color: var(--qb-plum);
+}
+a:hover {
+    color: var(--qb-orange);
+}

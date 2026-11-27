@@ -53,6 +53,19 @@ public without sharing class JobDescriptionCreationController {
     public static final String DECISION_EXISTING = 'existing';
     public static final String DECISION_NEW = 'new';
     public static final String POSSIBLE_DUPLICATE_PREFIX = 'Possible duplicate: ';
+    public static final String CLIENT_NAME_NEEDED_PREFIX = 'Client name needed: ';
+
+    /** True when the AI found real job content (not just a title copied from the file name). */
+    public static Boolean hasJobContent(String rawJson) {
+        Map<String, Object> parsed = AiJson.parse(rawJson);
+        if (parsed == null) return false;
+        for (Map<String, Object> w : AiJson.objList(parsed, 'jobs')) {
+            Map<String, Object> jd = AiJson.obj(w, 'jobDescription');
+            if (jd == null) continue;
+            if (AiJson.str(jd, 'companyName') != null || AiJson.str(jd, 'responsibilities') != null || hasJobSignals(jd)) return true;
+        }
+        return false;
+    }
     public static final String NOT_A_JD_MESSAGE = 'This file does not look like a resume or a job description: '
         + 'no company, skills, experience, qualifications or location were found. Nothing was created.';
 
@@ -94,10 +107,14 @@ public without sharing class JobDescriptionCreationController {
                 FROM Service__c WHERE Id = :serviceId LIMIT 1
             ];
             if (!svcs.isEmpty()) svc = svcs[0];
-            serviceFiles = [
+            serviceFiles = new List<ContentDocumentLink>();
+            for (ContentDocumentLink l : [
                 SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.FileExtension
                 FROM ContentDocumentLink WHERE LinkedEntityId = :serviceId
-            ];
+            ]) {
+                // the AI's text copy of a Word file is not linked to the Opportunity / JD
+                if (l.ContentDocument.Title == null || !l.ContentDocument.Title.endsWith(IntakeProcessor.TEXT_COPY_SUFFIX)) serviceFiles.add(l);
+            }
             if (!serviceFiles.isEmpty()) {
                 fileTitle = serviceFiles[0].ContentDocument.Title;
                 String ext = serviceFiles[0].ContentDocument.FileExtension;
@@ -134,6 +151,13 @@ public without sharing class JobDescriptionCreationController {
             if (companyName == null && svc != null && String.isNotBlank(svc.Client_Name__c)
                     && !svc.Client_Name__c.trim().equalsIgnoreCase(TEMP_ACCOUNT)) {
                 companyName = svc.Client_Name__c.trim();
+            }
+            if (companyName == null && askOnPossible) {
+                // Qbay Home: ask the recruiter for the client name instead of rejecting (27-11-2026)
+                String jdTitle = AiJson.str(jd, 'title');
+                throw new IntakeProcessor.NeedsCompanyException(CLIENT_NAME_NEEDED_PREFIX
+                    + 'no company name was found in this job description' + (jdTitle == null ? '' : ' ("' + jdTitle + '")')
+                    + '. Type the client name and click Continue. The details already read from the file are reused, so no new AI call is made.');
             }
             if (companyName == null) {
                 if (strict) throw new IntakeProcessor.RejectException('No company name was found in the Job Description. '

@@ -23,8 +23,9 @@ const VIEWS = [
  * the status views and paging are done in the browser, so switching them is instant.
  */
 export default class IntakeInbox extends LightningElement {
-    view = 'action';
-    channel = 'UI Upload';
+    // 27-11-2026: defaults are All statuses and All channels
+    view = 'all';
+    channel = 'All';
     days = '7';
     mineOnly = false;
     rows = [];
@@ -32,8 +33,8 @@ export default class IntakeInbox extends LightningElement {
     page = 1;
 
     channelOptions = [
-        { label: 'Qbay Home upload', value: 'UI Upload' },
         { label: 'All channels', value: 'All' },
+        { label: 'Qbay Home upload', value: 'UI Upload' },
         { label: 'Email', value: 'Email' },
         { label: 'WhatsApp', value: 'WhatsApp' }
     ];
@@ -54,7 +55,8 @@ export default class IntakeInbox extends LightningElement {
         return VIEWS.map((v) => ({
             name: v.name,
             label: v.label,
-            count: this.rows.filter(v.test).length
+            count: this.rows.filter(v.test).length,
+            cls: 'nav-item' + (v.name === this.view ? ' is-active' : '') + (v.name === 'action' ? ' nav-action' : '')
         }));
     }
 
@@ -149,7 +151,7 @@ export default class IntakeInbox extends LightningElement {
     }
 
     handleView(e) {
-        this.view = e.detail.name;
+        this.view = e.currentTarget.dataset.name;
         this.page = 1;
     }
     handleChannel(e) {

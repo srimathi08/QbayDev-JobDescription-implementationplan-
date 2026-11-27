@@ -1,60 +1,62 @@
 <template>
-    <lightning-card title="Intake inbox" icon-name="standard:record_lookup">
-        <lightning-button-icon slot="actions" icon-name="utility:refresh" alternative-text="Refresh" title="Refresh" onclick={refresh}></lightning-button-icon>
-        <div class="slds-grid slds-wrap inbox">
-            <!-- Left: status views with counts -->
-            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4 nav-col">
-                <lightning-vertical-navigation selected-item={view} onselect={handleView} compact shaded>
-                    <lightning-vertical-navigation-section label="Show">
-                        <template for:each={views} for:item="v">
-                            <lightning-vertical-navigation-item-badge key={v.name} label={v.label} name={v.name} badge-count={v.count}></lightning-vertical-navigation-item-badge>
-                        </template>
-                    </lightning-vertical-navigation-section>
-                </lightning-vertical-navigation>
+    <div class="qb-panel inbox">
+        <div class="qb-head">
+            <span class="qb-head-icon"><lightning-icon icon-name="utility:inbox" size="x-small"></lightning-icon></span>
+            <div>
+                <div class="qb-title">Intake inbox</div>
+                <div class="qb-sub">Every resume and JD received by upload, email and WhatsApp</div>
             </div>
+            <div class="qb-head-actions">
+                <lightning-button-icon icon-name="utility:refresh" variant="border-filled" alternative-text="Refresh" title="Refresh" onclick={refresh}></lightning-button-icon>
+            </div>
+        </div>
 
-            <!-- Right: filters, list, pages -->
-            <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-4 list-col">
-                <div class="slds-grid slds-gutters_x-small slds-wrap slds-grid_vertical-align-end">
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
-                        <lightning-combobox label="Channel" value={channel} options={channelOptions} onchange={handleChannel}></lightning-combobox>
-                    </div>
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
-                        <lightning-combobox label="Period" value={days} options={dayOptions} onchange={handleDays}></lightning-combobox>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-bottom_xx-small">
-                        <lightning-input type="toggle" label="Only mine" checked={mineOnly} message-toggle-active="" message-toggle-inactive="" onchange={handleMine}></lightning-input>
-                    </div>
+        <div class="filters">
+            <lightning-combobox class="filter" label="Channel" value={channel} options={channelOptions} onchange={handleChannel}></lightning-combobox>
+            <lightning-combobox class="filter" label="Period" value={days} options={dayOptions} onchange={handleDays}></lightning-combobox>
+            <lightning-input class="mine" type="toggle" label="Only mine" checked={mineOnly} message-toggle-active="" message-toggle-inactive="" onchange={handleMine}></lightning-input>
+        </div>
+
+        <div class="layout">
+            <!-- Left: status views with counts -->
+            <nav class="nav" aria-label="Status">
+                <template for:each={views} for:item="v">
+                    <button key={v.name} class={v.cls} data-name={v.name} onclick={handleView}>
+                        <span>{v.label}</span>
+                        <span class="count">{v.count}</span>
+                    </button>
+                </template>
+            </nav>
+
+            <!-- Right: list, 5 per page -->
+            <section class="list">
+                <div class="list-head">
+                    <span class="list-title">{viewLabel}</span>
+                    <span class="qb-muted">{rangeText}</span>
                 </div>
-
-                <div class="slds-grid slds-grid_vertical-align-center slds-m-vertical_small list-head">
-                    <h3 class="slds-text-heading_small">{viewLabel}</h3>
-                    <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{rangeText}</span>
-                </div>
-
                 <template lwc:if={loading}>
-                    <div class="slds-is-relative slds-p-around_large"><lightning-spinner alternative-text="Loading" size="small"></lightning-spinner></div>
+                    <div class="slds-is-relative spinner-box"><lightning-spinner alternative-text="Loading" size="small"></lightning-spinner></div>
                 </template>
                 <template lwc:elseif={hasRows}>
                     <template for:each={pageRows} for:item="r">
                         <c-intake-row key={r.serviceId} row={r} show-meta onrowchange={handleRowChange}></c-intake-row>
                     </template>
                     <template lwc:if={showPager}>
-                        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-top_small pager">
+                        <div class="qb-pager">
                             <lightning-button label="Previous" icon-name="utility:chevronleft" onclick={handlePrev} disabled={prevDisabled}></lightning-button>
-                            <span class="slds-text-body_small">{pageText}</span>
+                            <span class="qb-muted">{pageText}</span>
                             <lightning-button label="Next" icon-name="utility:chevronright" icon-position="right" onclick={handleNext} disabled={nextDisabled}></lightning-button>
                         </div>
                     </template>
                     <template lwc:if={atLimit}>
-                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">Showing the latest 200. Narrow the period to see older ones.</p>
+                        <p class="qb-muted note">Showing the latest 200. Narrow the period to see older ones.</p>
                     </template>
                 </template>
                 <template lwc:else>
-                    <p class="slds-p-vertical_medium slds-text-color_weak">{emptyText}</p>
+                    <div class="qb-empty">{emptyText}</div>
                 </template>
-                <p class="slds-text-body_small slds-text-color_weak slds-m-vertical_small">Email and WhatsApp intakes are shown for reference; they are handled by their own process.</p>
-            </div>
+                <p class="qb-muted note">Email and WhatsApp intakes are shown for reference; they are handled by their own process.</p>
+            </section>
         </div>
-    </lightning-card>
+    </div>
 </template>

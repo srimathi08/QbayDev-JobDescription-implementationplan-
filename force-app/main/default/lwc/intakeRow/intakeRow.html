@@ -1,43 +1,48 @@
 <template>
     <div class={boxClass}>
-        <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
-            <span class={badgeClass}>{row.status}</span>
-            <lightning-icon icon-name={fileIcon} size="x-small" class="slds-m-left_small"></lightning-icon>
-            <span class="slds-m-left_x-small slds-truncate file-name" title={row.fileName}>{row.fileName}</span>
-            <template lwc:if={isRunning}>
-                <lightning-spinner alternative-text="Processing" size="x-small" class="inline-spinner"></lightning-spinner>
-                <span class="slds-text-color_weak slds-m-left_x-small">{waitingText}</span>
-            </template>
-            <span class="slds-col_bump-left slds-text-body_small slds-text-color_weak">{metaText}</span>
+        <div class="top">
+            <span class="file-icon"><lightning-icon icon-name={fileIcon} size="small"></lightning-icon></span>
+            <div class="file">
+                <div class="file-name" title={row.fileName}>{row.fileName}</div>
+                <template lwc:if={metaText}>
+                    <div class="qb-muted">{metaText}</div>
+                </template>
+            </div>
+            <span class={badgeClass}>
+                <template lwc:if={isRunning}><span class="dot"></span></template>
+                {statusLabel}
+            </span>
         </div>
 
         <template lwc:if={row.message}>
-            <p class="slds-m-top_xx-small message">{row.message}</p>
+            <p class="message">{row.message}</p>
         </template>
 
-        <div class="slds-m-top_xx-small links">
-            <template lwc:if={accountUrl}>
-                <a href={accountUrl} target="_blank" class="slds-m-right_medium">{accountLabel}</a>
-            </template>
-            <template lwc:if={opportunityUrl}>
-                <a href={opportunityUrl} target="_blank" class="slds-m-right_medium">Opportunity: {row.opportunityName}</a>
-            </template>
-            <template lwc:if={jobDescriptionUrl}>
-                <a href={jobDescriptionUrl} target="_blank" class="slds-m-right_medium">Job Description: {row.jobDescriptionName}</a>
-            </template>
-        </div>
+        <template lwc:if={hasLinks}>
+            <div class="links">
+                <template lwc:if={accountUrl}>
+                    <a href={accountUrl} target="_blank" class="qb-chip">{accountLabel}</a>
+                </template>
+                <template lwc:if={opportunityUrl}>
+                    <a href={opportunityUrl} target="_blank" class="qb-chip qb-chip-alt">Opportunity: {row.opportunityName}</a>
+                </template>
+                <template lwc:if={jobDescriptionUrl}>
+                    <a href={jobDescriptionUrl} target="_blank" class="qb-chip qb-chip-alt">JD: {row.jobDescriptionName}</a>
+                </template>
+            </div>
+        </template>
 
         <template lwc:if={hasActions}>
-            <div class="slds-m-top_x-small">
+            <div class="actions">
                 <template lwc:if={row.canReview}>
-                    <lightning-button label={reviewLabel} icon-name="utility:edit" variant={reviewVariant} onclick={toggleForm} disabled={busy} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label={reviewLabel} icon-name="utility:edit" variant={reviewVariant} onclick={toggleForm} disabled={busy}></lightning-button>
                 </template>
                 <template lwc:if={row.canChooseJd}>
-                    <lightning-button variant="brand" label="Use existing Opportunity" icon-name="utility:link" onclick={handleUseExistingOpp} disabled={busy} class="slds-m-right_x-small"></lightning-button>
-                    <lightning-button label="Create new Opportunity" icon-name="utility:add" onclick={handleCreateNewOpp} disabled={busy} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button variant="brand" label="Use existing Opportunity" icon-name="utility:link" onclick={handleUseExistingOpp} disabled={busy}></lightning-button>
+                    <lightning-button label="Create new Opportunity" icon-name="utility:add" onclick={handleCreateNewOpp} disabled={busy}></lightning-button>
                 </template>
                 <template lwc:if={row.canAttach}>
-                    <lightning-button label="Attach resume to existing candidate" icon-name="utility:attach" onclick={handleAttach} disabled={busy} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label="Attach resume to existing candidate" icon-name="utility:attach" onclick={handleAttach} disabled={busy}></lightning-button>
                 </template>
                 <template lwc:if={row.canRetry}>
                     <lightning-button label="Retry" icon-name="utility:refresh" onclick={handleRetry} disabled={busy}></lightning-button>
@@ -45,23 +50,28 @@
             </div>
         </template>
 
-        <template lwc:if={showForm}>
-            <div class="slds-box slds-box_x-small slds-m-top_x-small review-form">
-                <p class="slds-text-body_small slds-m-bottom_x-small">Enter at least one. The details already read from the file are reused, so no new AI call is made.</p>
-                <div class="slds-grid slds-gutters_x-small slds-wrap">
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-                        <lightning-input type="email" label="Email" value={email} onchange={handleEmail}></lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-                        <lightning-input type="tel" label="Phone" value={phone} onchange={handlePhone}></lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-                        <lightning-input type="url" label="LinkedIn profile" value={linkedIn} onchange={handleLinkedIn}></lightning-input>
-                    </div>
+        <!-- JD without a company: type the client name (27-11-2026) -->
+        <template lwc:if={row.canGiveClient}>
+            <div class="form">
+                <div class="form-grid">
+                    <lightning-input class="grow" label="Client (company) name" required value={clientName} max-length="255"
+                        placeholder="e.g. Infosys Ltd" onchange={handleClientName}></lightning-input>
+                    <lightning-button variant="brand" label="Continue" onclick={handleClientContinue} disabled={busy}></lightning-button>
                 </div>
-                <div class="slds-m-top_x-small">
+            </div>
+        </template>
+
+        <template lwc:if={showForm}>
+            <div class="form">
+                <p class="qb-muted">Enter at least one. The details already read from the file are reused, so no new AI call is made.</p>
+                <div class="form-grid">
+                    <lightning-input class="grow" type="email" label="Email" value={email} onchange={handleEmail}></lightning-input>
+                    <lightning-input class="grow" type="tel" label="Phone" value={phone} onchange={handlePhone}></lightning-input>
+                    <lightning-input class="grow" type="url" label="LinkedIn profile" value={linkedIn} onchange={handleLinkedIn}></lightning-input>
+                </div>
+                <div class="actions">
                     <lightning-button variant="brand" label="Continue" onclick={handleContinue} disabled={busy}></lightning-button>
-                    <lightning-button label="Cancel" onclick={toggleForm} disabled={busy} class="slds-m-left_x-small"></lightning-button>
+                    <lightning-button label="Cancel" onclick={toggleForm} disabled={busy}></lightning-button>
                 </div>
             </div>
         </template>

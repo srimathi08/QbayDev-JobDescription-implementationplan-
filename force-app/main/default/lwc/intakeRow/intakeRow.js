@@ -4,6 +4,7 @@ import completeReview from '@salesforce/apex/IntakeController.completeReview';
 import attachToExisting from '@salesforce/apex/IntakeController.attachToExisting';
 import retryIntake from '@salesforce/apex/IntakeController.retryIntake';
 import resolveJdDuplicate from '@salesforce/apex/IntakeController.resolveJdDuplicate';
+import provideClientName from '@salesforce/apex/IntakeController.provideClientName';
 
 const LOOK = {
     Completed: 'success',
@@ -23,6 +24,7 @@ export default class IntakeRow extends LightningElement {
     email = '';
     phone = '';
     linkedIn = '';
+    clientName = '';
 
     get look() {
         return LOOK[this.row.status] || 'info';
@@ -31,7 +33,13 @@ export default class IntakeRow extends LightningElement {
         return `row row-${this.look}`;
     }
     get badgeClass() {
-        return `badge badge-${this.look}`;
+        return `qb-pill qb-pill-${this.look}`;
+    }
+    get statusLabel() {
+        return this.isRunning ? this.waitingText : this.row.status;
+    }
+    get hasLinks() {
+        return !!(this.accountUrl || this.opportunityUrl || this.jobDescriptionUrl);
     }
     get isRunning() {
         return !this.row.isFinal;
@@ -138,6 +146,18 @@ export default class IntakeRow extends LightningElement {
 
     async handleCreateNewOpp() {
         await this.run(() => resolveJdDuplicate({ serviceId: this.row.serviceId, useExisting: false }), false);
+    }
+
+    handleClientName(e) {
+        this.clientName = e.target.value;
+    }
+
+    async handleClientContinue() {
+        if (!this.clientName || this.clientName.trim().length < 2) {
+            this.toast('Client name needed', 'Please type the client (company) name.', 'warning');
+            return;
+        }
+        await this.run(() => provideClientName({ serviceId: this.row.serviceId, clientName: this.clientName }), false);
     }
 
     async handleRetry() {

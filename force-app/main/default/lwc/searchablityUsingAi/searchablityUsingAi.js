@@ -9,11 +9,12 @@ const EXAMPLES = [
     'Platform Developer certified',
     'Java Spring Boot 3 years'
 ];
+const ASK_EXAMPLES = ['Who is the best fit for a senior LWC role?', 'Compare the top 3', 'Who has the most certifications?'];
 
 /**
- * Magic Search v2 (26-11-2026): plain-English search over candidates (and optionally employees and contractors),
- * their skills, certifications and projects. Safe search in Apex (CandidateSearchController); an AI summary
- * of the top results is optional and only runs when the user clicks it.
+ * Magic Search v2 (26-11-2026, look and Ask AI 27-11-2026).
+ * Search: safe ranked search in Apex (CandidateSearchController) over candidates, skills, certifications, projects.
+ * Ask AI: optional question about the results found (top 20), answered by Einstein from those records only.
  */
 export default class SearchablityUsingAi extends LightningElement {
     searchKey = '';
@@ -25,8 +26,9 @@ export default class SearchablityUsingAi extends LightningElement {
     isLoading = false;
     errorMessage = '';
     page = 1;
-    summary = '';
-    summaryLoading = false;
+    question = '';
+    answer = '';
+    answerLoading = false;
 
     typeOptions = [
         { label: 'Candidates', value: 'Candidates' },
@@ -34,8 +36,17 @@ export default class SearchablityUsingAi extends LightningElement {
         { label: 'Contractors', value: 'Contractor' }
     ];
 
+    get typeButtons() {
+        return this.typeOptions.map((o) => ({
+            ...o,
+            cls: 'qb-segment-btn' + (this.types.includes(o.value) ? ' is-active' : '')
+        }));
+    }
     get examples() {
         return EXAMPLES.map((e) => ({ label: e }));
+    }
+    get askExamples() {
+        return ASK_EXAMPLES.map((e) => ({ label: e }));
     }
     get searchDisabled() {
         return this.isLoading || !this.searchKey || !this.searchKey.trim();
@@ -45,6 +56,9 @@ export default class SearchablityUsingAi extends LightningElement {
     }
     get noResults() {
         return this.searched && !this.isLoading && !this.errorMessage && this.results.length === 0;
+    }
+    get showClear() {
+        return this.searched || !!this.searchKey;
     }
     get understoodText() {
         const parts = [];
@@ -58,7 +72,10 @@ export default class SearchablityUsingAi extends LightningElement {
     }
     get countText() {
         const n = this.results.length;
-        return `${n} ${n === 1 ? 'match' : 'matches'}` + (n >= 100 ? ' (top 100 shown)' : '');
+        return `${n} ${n === 1 ? 'match' : 'matches'}` + (n >= 100 ? ' (top 100)' : '');
+    }
+    get askDisabled() {
+        return this.answerLoading || !this.hasResults;
     }
 
     // ---------------- paging ----------------
@@ -73,9 +90,16 @@ export default class SearchablityUsingAi extends LightningElement {
             ...r,
             url: `/${r.id}`,
             resumeUrl: r.resumeId ? `/lightning/r/ContentDocument/${r.resumeId}/view` : null,
-            experienceText: r.experience !== undefined && r.experience !== null ? `${r.experience} yrs` : 'Experience not given',
-            matchText: total ? `Matches ${r.score} of ${total}: ${r.matched.join(', ')}` : '',
-            matchClass: total && r.score === total ? 'match match-full' : 'match',
+            initials: (r.name || '?')
+                .split(' ')
+                .filter((w) => w)
+                .slice(0, 2)
+                .map((w) => w[0].toUpperCase())
+                .join(''),
+            experienceText: r.experience !== undefined && r.experience !== null ? `${r.experience} yrs` : 'Exp. not given',
+            matchText: total ? `Matches ${r.score} of ${total}` : '',
+            matchWords: total ? r.matched.join(', ') : '',
+            matchClass: total && r.score === total ? 'qb-pill qb-pill-success' : 'qb-pill qb-pill-warning',
             hasSkills: r.skills && r.skills.length > 0,
             hasCerts: r.certifications && r.certifications.length > 0,
             meta: [r.designation, r.location, r.organization].filter((x) => x).join(' · ')
@@ -94,13 +118,17 @@ export default class SearchablityUsingAi extends LightningElement {
         return this.page >= this.pageCount;
     }
     handlePrev() {
-        if (this.page > 1) this.page -= 1;
+        if (this.page > 1) {
+            this.page -= 1;
+        }
     }
     handleNext() {
-        if (this.page < this.pageCount) this.page += 1;
+        if (this.page < this.pageCount) {
+            this.page += 1;
+        }
     }
 
-    // ---------------- actions ----------------
+    // ---------------- search ----------------
 
     handleSearchChange(event) {
         this.searchKey = event.target.value;
@@ -110,18 +138,39 @@ export default class SearchablityUsingAi extends LightningElement {
             this.runSearch();
         }
     }
-    handleTypes(event) {
-        this.types = event.detail.value;
+    handleTypeClick(event) {
+        const v = event.currentTarget.dataset.value;
+        const next = this.types.includes(v) ? this.types.filter((t) => t !== v) : [...this.types, v];
+        this.types = next.length ? next : ['Candidates'];
+        if (this.searched) {
+            this.runSearch();
+        }
     }
     handleExample(event) {
-        this.searchKey = event.target.label;
+        this.searchKey = event.currentTarget.dataset.label;
         this.runSearch();
     }
 
+    /** "Clear": back to an empty search (the refresh the user asked for). */
+    handleClear() {
+        this.searchKey = '';
+        this.results = [];
+        this.keywords = [];
+        this.minYears = null;
+        this.searched = false;
+        this.errorMessage = '';
+        this.question = '';
+        this.answer = '';
+        this.page = 1;
+    }
+
     async runSearch() {
+        if (this.searchDisabled) {
+            return;
+        }
         this.isLoading = true;
         this.errorMessage = '';
-        this.summary = '';
+        this.answer = '';
         try {
             const resp = await search({ query: this.searchKey, recordTypes: this.types });
             this.results = resp.results || [];
@@ -137,15 +186,30 @@ export default class SearchablityUsingAi extends LightningElement {
         }
     }
 
-    async handleSummary() {
-        this.summaryLoading = true;
-        this.summary = '';
+    // ---------------- ask AI ----------------
+
+    handleQuestion(event) {
+        this.question = event.target.value;
+    }
+    handleAskKeyUp(event) {
+        if (event.key === 'Enter' && !this.askDisabled) {
+            this.handleAsk();
+        }
+    }
+    handleAskExample(event) {
+        this.question = event.currentTarget.dataset.label;
+        this.handleAsk();
+    }
+    async handleAsk() {
+        this.answerLoading = true;
+        this.answer = '';
+        const q = this.question && this.question.trim() ? this.question.trim() : 'Summarise these results: ' + this.searchKey;
         try {
-            this.summary = await summarize({ query: this.searchKey, accountIds: this.results.map((r) => r.id) });
+            this.answer = await summarize({ query: q, accountIds: this.results.map((r) => r.id) });
         } catch (e) {
-            this.summary = `<p>${this.errorText(e)}</p>`;
+            this.answer = `<p>${this.errorText(e)}</p>`;
         } finally {
-            this.summaryLoading = false;
+            this.answerLoading = false;
         }
     }
 

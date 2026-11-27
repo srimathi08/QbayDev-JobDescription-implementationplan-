@@ -43,11 +43,18 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         public Id accountId;
     }
 
+    /** JD without a company name: Qbay Home uploads wait for the recruiter to type the client name (27-11-2026). */
+    public class NeedsCompanyException extends Exception {}
+
     public static final String CHANNEL_UI = 'UI Upload';
+    public static final String TEXT_COPY_SUFFIX = ' (text copy)';
+    private transient IntakeFinalizer fin;
+    @TestVisible private static Id lastTextCopyFor;
     public static final String STATUS_NEEDS_REVIEW = 'Needs Review';
 
     public void execute(QueueableContext ctx) {
-        System.attachFinalizer(new IntakeFinalizer(serviceId, startNext));
+        fin = new IntakeFinalizer(serviceId, startNext);
+        System.attachFinalizer(fin);
 
         Service__c svc = [
             SELECT Id, Name, Status__c, Requested_Type__c, File_Checksum__c, Source_Channel__c
@@ -126,8 +133,14 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                         type = IntakeController.TYPE_JD;
                         rawJson = JobDescriptionCreationPrompt.generate(svc.Id);
                     } else if (dt == 'Other' || !hasAnyCandidateData(rawJson)) {
-                        // "Resume" with no name and no contact at all (e.g. a project document): not a resume
-                        type = null;
+                        // No person in it: before rejecting, ask the JD prompt too (27-11-2026: a JD read as an empty "Resume")
+                        String jdJson = JobDescriptionCreationPrompt.generate(svc.Id);
+                        if (JobDescriptionCreationController.hasJobContent(jdJson)) {
+                            type = IntakeController.TYPE_JD;
+                            rawJson = jdJson;
+                        } else {
+                            type = null;
+                        }
                     } else {
                         type = IntakeController.TYPE_RESUME;
                     }
@@ -138,6 +151,11 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             finish(svc, 'Failed', 'The AI service could not read the file: ' + e.getMessage(), null);
             return;
         }
+        // 2b. The AI returned empty data for a Word file it could not read: read the text in Apex and run again on a text copy
+        Boolean jdPath = type == IntakeController.TYPE_JD;
+        Boolean emptyResult = jdPath ? !JobDescriptionCreationController.hasJobContent(rawJson) : (type == null || !hasAnyCandidateData(rawJson));
+        if (emptyResult && isDocx(file) && !isTextCopy(file) && requeueWithTextCopy(svc, file)) return;
+
         if (auto) {
             if (type == null) {
                 svc.Detected_Type__c = 'Other';
@@ -159,8 +177,10 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                 svc.Job_Description__c = r.jobDescriptionId;
                 finish(svc, 'Completed', r.summary, rawJson);
             } else {
+                // A text copy is only for the AI: the candidate gets the original file
+                Id fileToLink = isTextCopy(file) ? originalDocumentId(svc.Id, file.ContentDocumentId) : file.ContentDocumentId;
                 CandidateCreationController.Result r =
-                    CandidateCreationController.process(rawJson, file.ContentDocumentId, svc.Id, true);
+                    CandidateCreationController.process(rawJson, fileToLink, svc.Id, true);
                 svc.Detected_Type__c = 'Resume';
                 svc.Account__c = r.primaryAccountId;
                 finish(svc, 'Completed', r.summary, rawJson);
@@ -173,6 +193,12 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
             svc.Account__c = pd.accountId;
             svc.Opportunity__c = pd.opportunityId;
             finish(svc, STATUS_NEEDS_REVIEW, pd.getMessage(), rawJson);
+        } catch (NeedsCompanyException nc) {
+            Database.rollback(sp);
+            // JD without a company: Qbay Home asks the recruiter for the client name (no new AI call)
+            svc.Detected_Type__c = 'Job Description';
+            svc.Requested_Type__c = IntakeController.TYPE_JD;
+            finish(svc, svc.Source_Channel__c == CHANNEL_UI ? STATUS_NEEDS_REVIEW : 'Rejected', nc.getMessage(), rawJson);
         } catch (NeedsReviewException nr) {
             Database.rollback(sp);
             svc.Detected_Type__c = 'Resume';
@@ -198,8 +224,52 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
         }
     }
 
-    // ---------------- helpers ----------------
+    // ---------------- text copy of a Word file (27-11-2026) ----------------
 
+    private static Boolean isDocx(ContentVersion f) {
+        return f != null && f.FileExtension != null && f.FileExtension.equalsIgnoreCase('docx');
+    }
+
+    public static Boolean isTextCopy(ContentVersion f) {
+        return f != null && f.Title != null && f.Title.endsWith(TEXT_COPY_SUFFIX);
+    }
+
+    /** The uploaded file of an intake (not the text copy). */
+    private static Id originalDocumentId(Id serviceId, Id fallback) {
+        for (ContentDocumentLink l : [
+            SELECT ContentDocumentId, ContentDocument.Title FROM ContentDocumentLink
+            WHERE LinkedEntityId = :serviceId ORDER BY SystemModstamp ASC
+        ]) {
+            if (l.ContentDocument.Title == null || !l.ContentDocument.Title.endsWith(TEXT_COPY_SUFFIX)) return l.ContentDocumentId;
+        }
+        return fallback;
+    }
+
+    /**
+     * Adds a PDF copy of the Word file's text to the intake and runs the intake again (next job), so the AI
+     * reads the copy. Returns false when the text cannot be read; the normal rejection then follows.
+     */
+    private Boolean requeueWithTextCopy(Service__c svc, ContentVersion file) {
+        List<ContentVersion> data = [SELECT VersionData FROM ContentVersion WHERE Id = :file.Id];
+        String text = data.isEmpty() ? null : DocxText.extract(data[0].VersionData);
+        if (String.isBlank(text) || text.length() < 50) return false;
+        String title = (file.Title == null ? 'Document' : file.Title).left(200) + TEXT_COPY_SUFFIX;
+        Blob pdf = parseEmail.bodyAsPdf(file.Title, text);
+        insert new ContentVersion(
+            Title = title,
+            PathOnClient = title + (pdf != null ? '.pdf' : '.txt'),
+            VersionData = pdf != null ? pdf : Blob.valueOf(text),
+            FirstPublishLocationId = svc.Id
+        );
+        svc.Status_Message__c = 'The AI could not read this Word file directly, so a text copy of it is being read. Please wait.';
+        update svc;
+        lastTextCopyFor = svc.Id;
+        if (fin != null) fin.startNext = false; // the re-run continues the upload
+        if (!Test.isRunningTest()) System.enqueueJob(new IntakeProcessor(svc.Id, startNext));
+        return true;
+    }
+
+    // ---------------- helpers ----------------
     public static String reviewMessage(String name) {
         return 'Found the name "' + name + '" but no email, phone number or LinkedIn profile in this file '
             + '(they may be inside an image). Type at least one of them and click Continue to create the candidate.';
@@ -326,7 +396,7 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
      */
     public class IntakeFinalizer implements Finalizer {
         private Id serviceId;
-        private Boolean startNext = true;
+        public Boolean startNext = true;
         public IntakeFinalizer(Id serviceId) { this.serviceId = serviceId; }
         public IntakeFinalizer(Id serviceId, Boolean startNext) {
             this.serviceId = serviceId;

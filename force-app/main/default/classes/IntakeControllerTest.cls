@@ -221,8 +221,92 @@ private class IntakeControllerTest {
         System.enqueueJob(new IntakeProcessor(svcId));
         Test.stopTest();
         Service__c s = load(svcId);
-        Assert.areEqual('Rejected', s.Status__c);
-        Assert.isTrue(s.Status_Message__c.contains('Client name box'), s.Status_Message__c);
+        // 27-11-2026: the recruiter is asked for the client name only when the JD has none
+        Assert.areEqual('Needs Review', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.startsWith(JobDescriptionCreationController.CLIENT_NAME_NEEDED_PREFIX), s.Status_Message__c);
+        IntakeController.IntakeStatus st = IntakeController.getStatus(new List<Id>{ svcId })[0];
+        Assert.isTrue(st.canGiveClient);
+        Assert.isFalse(st.canChooseJd);
+        try {
+            IntakeController.provideClientName(svcId, ' ');
+            Assert.fail('a blank client name must be refused');
+        } catch (AuraHandledException e) {
+            Assert.isTrue(e.getMessage().contains('client'));
+        }
+        st = IntakeController.provideClientName(svcId, 'Infosys Ltd');
+        Assert.areEqual('Completed', st.status, st.message);
+        Assert.areEqual('Infosys Ltd', [SELECT Name FROM Account WHERE Id = :st.accountId].Name);
+        Assert.isNotNull(st.opportunityId);
+    }
+
+    // ---------------- 27-11-2026: empty AI result, Word text copy, retry of rejected uploads ----------------
+
+    private static String emptyResumeJson() {
+        return JSON.serialize(new Map<String, Object>{ 'documentType' => 'Resume', 'resumes' => new List<Object>{
+            new Map<String, Object>{ 'account' => new Map<String, Object>{ 'name' => '', 'email' => '', 'phone' => '' } } } });
+    }
+
+    private static String emptyJdJson() {
+        return JSON.serialize(new Map<String, Object>{ 'documentType' => 'Job Description', 'jobs' => new List<Object>{
+            new Map<String, Object>{ 'jobDescription' => new Map<String, Object>{ 'title' => 'JD_InfosysLtd', 'companyName' => '' } } } });
+    }
+
+    @IsTest
+    static void autoDetectTriesTheJdPromptWhenTheResumeIsEmpty() {
+        Id svcId = IntakeTestData.newIntake(null, 'jd.pdf', 'auto-jd');
+        CandidateCreationPrompt.mockResponse = emptyResumeJson();
+        JobDescriptionCreationPrompt.mockResponse = IntakeTestData.jdJson('Infosys Ltd.', 'Software Engineer', 'Job Description');
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svcId));
+        Test.stopTest();
+        Service__c s = load(svcId);
+        Assert.areEqual('Completed', s.Status__c, s.Status_Message__c);
+        Assert.areEqual('Job Description', s.Detected_Type__c);
+        Assert.isNotNull(s.Opportunity__c);
+    }
+
+    @IsTest
+    static void unreadableWordFileGetsATextCopy() {
+        Compression.ZipWriter zw = new Compression.ZipWriter();
+        zw.addEntry('word/document.xml', Blob.valueOf('<w:document><w:body><w:p><w:r><w:t>JOB DESCRIPTION Software Engineer</w:t></w:r></w:p>'
+            + '<w:p><w:r><w:t>Company Name Infosys Ltd. Work Location Chennai. Experience 2-4 years. Skills Java, SQL.</w:t></w:r></w:p></w:body></w:document>'));
+        Blob docx = zw.getArchive();
+        Service__c svc = new Service__c(Name = 'JD_InfosysLtd.docx', Source_Channel__c = 'UI Upload', Requested_Type__c = 'Job Description',
+            Status__c = 'Queued', Request_Key__c = 'docx-1');
+        insert svc;
+        insert new ContentVersion(Title = 'JD_InfosysLtd', PathOnClient = 'JD_InfosysLtd.docx', VersionData = docx, FirstPublishLocationId = svc.Id);
+        JobDescriptionCreationPrompt.mockResponse = emptyJdJson();
+        Test.startTest();
+        System.enqueueJob(new IntakeProcessor(svc.Id));
+        Test.stopTest();
+        Service__c s = load(svc.Id);
+        Assert.areEqual('Queued', s.Status__c, s.Status_Message__c);
+        Assert.isTrue(s.Status_Message__c.contains('text copy'), s.Status_Message__c);
+        Assert.areEqual(1, [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :svc.Id
+            AND ContentDocument.Title = 'JD_InfosysLtd (text copy)']);
+        Assert.areEqual(svc.Id, IntakeProcessor.lastTextCopyFor);
+    }
+
+    @IsTest
+    static void wordTextIsReadFromTheXml() {
+        String t = DocxText.fromXml('<w:p><w:r><w:t>Hello &amp; welcome</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:t>A</w:t></w:p></w:tc>'
+            + '<w:tc><w:p><w:t>B</w:t></w:p></w:tc></w:tr></w:tbl>');
+        Assert.isTrue(t.contains('Hello & welcome'), t);
+        Assert.isTrue(t.contains('A'), t);
+        Assert.isNull(DocxText.extract(Blob.valueOf('not a zip')));
+        Assert.isNull(DocxText.fromXml(''));
+    }
+
+    @IsTest
+    static void rejectedUploadsCanBeRetried() {
+        Service__c s = new Service__c(Name = 'r.pdf', Source_Channel__c = 'UI Upload', Status__c = 'Rejected',
+            Requested_Type__c = 'Resume', Upload_Batch__c = 'B-R', Request_Key__c = 'B-R-0');
+        Service__c refused = new Service__c(Name = 'big.pdf', Source_Channel__c = 'UI Upload', Status__c = 'Rejected',
+            Requested_Type__c = 'Resume', Request_Key__c = 'B-R-1');
+        insert new List<Service__c>{ s, refused };
+        List<IntakeController.IntakeStatus> st = IntakeController.getStatus(new List<Id>{ s.Id, refused.Id });
+        Assert.isTrue(st[0].canRetry, 'a file that was read and rejected can be read again');
+        Assert.isFalse(st[1].canRetry, 'a file refused at upload (size, type) cannot');
     }
 
     // ---------------- Same file already waiting in Needs Review (26-11-2026) ----------------

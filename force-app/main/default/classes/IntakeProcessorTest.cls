@@ -230,7 +230,8 @@ private class IntakeProcessorTest {
         Test.startTest();
         System.enqueueJob(new IntakeProcessor(svcId));
         Test.stopTest();
-        Assert.areEqual('Rejected', load(svcId).Status__c);
+        // 27-11-2026: Qbay Home uploads ask for the client name instead of rejecting; nothing is created yet
+        Assert.areEqual('Needs Review', load(svcId).Status__c);
         Assert.areEqual(0, [SELECT COUNT() FROM Opportunity]);
     }
 

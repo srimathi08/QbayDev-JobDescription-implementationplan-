@@ -1,104 +1,108 @@
 <template>
-    <lightning-card title={cardTitle} icon-name={iconName}>
-        <!-- Vertical steps (26-11-2026): 1 type, 2 files, 3 review (several files only), 4 results. Logic unchanged. -->
-        <ol class="steps slds-m-horizontal_medium">
-            <!-- Step 1: what is uploaded -->
+    <div class="qb-panel uploader">
+        <div class="qb-head">
+            <span class="qb-head-icon"><lightning-icon icon-name="utility:upload" size="x-small"></lightning-icon></span>
+            <div>
+                <div class="qb-title">{cardTitle}</div>
+                <div class="qb-sub">PDF or DOCX · up to {maxFileMb} MB each · up to {maxFiles} files at a time</div>
+            </div>
+            <template lwc:if={showTodayButton}>
+                <div class="qb-head-actions">
+                    <lightning-button label="View Today Uploads" onclick={openTodayModal}></lightning-button>
+                </div>
+            </template>
+        </div>
+
+        <!-- Vertical steps: 1 type, 2 files, 3 review (several files only), 4 results. Logic unchanged. -->
+        <ol class="steps">
             <li class={stepTypeClass}>
                 <span class="step-dot">1</span>
                 <div class="step-body">
-                    <h3 class="step-title">What are you uploading?</h3>
+                    <div class="step-title">What are you uploading?</div>
                     <template lwc:if={showTypeSwitch}>
-                        <lightning-radio-group name="intakeType" label="Type" variant="label-hidden" options={typeOptions}
-                            value={selectedType} type="button" onchange={handleTypeChange} disabled={isBusy}>
-                        </lightning-radio-group>
-                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">{typeHint}</p>
+                        <div class="qb-segment" role="radiogroup" aria-label="Document type">
+                            <template for:each={typeButtons} for:item="b">
+                                <button key={b.value} class={b.cls} data-value={b.value} onclick={handleTypeClick} disabled={isBusy} role="radio">{b.label}</button>
+                            </template>
+                        </div>
+                        <p class="qb-muted hint">{typeHint}</p>
                     </template>
                     <template lwc:else>
-                        <p class="slds-text-body_small">{typeLabel}</p>
-                    </template>
-                    <template lwc:if={showClientName}>
-                        <div class="slds-m-top_small client-name">
-                            <lightning-input label="Client name (optional)" value={clientName} max-length="255"
-                                placeholder="e.g. Carewell Insurance Ltd" disabled={isBusy} onchange={handleClientName}
-                                field-level-help="Used only when a job description does not name the company. Leave blank if the JD names it.">
-                            </lightning-input>
-                        </div>
+                        <span class="qb-pill qb-pill-review">{typeLabel}</span>
                     </template>
                 </div>
             </li>
 
-            <!-- Step 2: add files -->
             <li class={stepFilesClass}>
                 <span class="step-dot">2</span>
                 <div class="step-body">
-                    <h3 class="step-title">Add files</h3>
+                    <div class="step-title">Add files</div>
                     <template lwc:if={ready}>
                         <div class="drop-zone">
-                            <lightning-file-upload label={fileLabel} name="intakeFiles" accept={acceptedFormats}
+                            <lightning-file-upload label={fileLabel} variant="label-hidden" name="intakeFiles" accept={acceptedFormats}
                                 record-id={userId} multiple disabled={isBusy} onuploadfinished={handleUploadFinished}>
                             </lightning-file-upload>
-                            <ul class="slds-text-body_small slds-text-color_weak slds-m-top_x-small rules">
-                                <li>PDF or DOCX, up to {maxFileMb} MB each, up to {maxFiles} files per upload.</li>
-                                <li>One file is processed straight away. Several files wait in a review list until you click Start processing.</li>
-                                <li>Phone and email must be text in the file, not inside an image or icon.</li>
-                                <li>The same file (even renamed) is never uploaded twice for a candidate.</li>
-                            </ul>
+                            <div class="qb-muted drop-help">One file is processed straight away. Several files wait in a review list until you click Start processing. The same file, even renamed, is never added twice for a candidate.</div>
                         </div>
                     </template>
                     <template lwc:else>
-                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                        <div class="slds-is-relative spinner-box"><lightning-spinner alternative-text="Loading" size="small"></lightning-spinner></div>
                     </template>
                     <template lwc:if={isBusy}>
-                        <p class="slds-text-color_weak slds-m-top_x-small">{busyText}</p>
+                        <p class="qb-muted busy">{busyText}</p>
                     </template>
                 </div>
             </li>
 
-            <!-- Step 3: review (several files). Nothing is processed and no AI call is made until "Start processing" -->
             <template lwc:if={hasStaged}>
                 <li class={stepReviewClass}>
                     <span class="step-dot">3</span>
                     <div class="step-body">
-                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
-                            <h3 class="step-title">Review and start ({stagedCount})</h3>
-                            <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">Not processed yet. Remove any file you do not want.</span>
-                            <lightning-button variant="base" label="Remove all" class="slds-col_bump-left" disabled={isBusy} onclick={handleRemoveAll}></lightning-button>
+                        <div class="step-row">
+                            <div class="step-title">Review and start ({stagedCount})</div>
+                            <button class="qb-link" onclick={handleRemoveAll} disabled={isBusy}>Remove all</button>
                         </div>
+                        <p class="qb-muted">Nothing is read yet. Remove any file you do not want.</p>
                         <template for:each={stagedView} for:item="f">
-                            <div key={f.documentId} class="review-row slds-grid slds-grid_vertical-align-center">
-                                <lightning-icon icon-name={f.icon} size="small" alternative-text={f.extLabel} class="slds-m-right_small"></lightning-icon>
-                                <div class="slds-col slds-truncate review-name">
-                                    <div class="slds-truncate" title={f.fileName}>{f.fileName}</div>
-                                    <div class="slds-text-body_small slds-text-color_weak">{f.extLabel} · {f.sizeLabel}</div>
+                            <div key={f.documentId} class="review-row">
+                                <lightning-icon icon-name={f.icon} size="small" alternative-text={f.extLabel}></lightning-icon>
+                                <div class="review-name">
+                                    <div class="file-name" title={f.fileName}>{f.fileName}</div>
+                                    <div class="qb-muted">{f.extLabel} · {f.sizeLabel}</div>
                                 </div>
                                 <span class={f.badgeClass} title={f.pendingMessage}>{f.checkLabel}</span>
-                                <lightning-button-icon icon-name="utility:close" variant="border-filled" size="small" class="slds-m-left_small"
+                                <lightning-button-icon icon-name="utility:close" variant="bare" size="small"
                                     alternative-text="Remove this file" title="Remove this file" data-id={f.documentId}
                                     disabled={isBusy} onclick={handleRemoveFile}></lightning-button-icon>
                             </div>
                         </template>
-                        <div class="slds-m-top_small">
+                        <div class="start">
                             <lightning-button variant="brand" label={startLabel} disabled={startDisabled} onclick={handleStartProcessing}></lightning-button>
                         </div>
                     </div>
                 </li>
             </template>
 
-            <!-- Step 4: results of this session -->
-            <template lwc:if={hasResults}>
+            <template lwc:if={showResultsStep}>
                 <li class={stepResultsClass}>
                     <span class="step-dot">4</span>
                     <div class="step-body">
-                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
-                            <h3 class="step-title">Results</h3>
-                            <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{progressSummary}</span>
-                            <lightning-button variant="base" label="Hide all results" title="Hides the list only. Nothing is deleted; results stay in the Intake inbox."
-                                class="slds-col_bump-left" onclick={clearResults}></lightning-button>
+                        <div class="step-row">
+                            <div class="step-title">Results</div>
+                            <span class="qb-muted">{progressSummary}</span>
+                            <div class="row-actions">
+                                <template lwc:if={hasHidden}>
+                                    <button class="qb-link" onclick={showHidden}>{hiddenLabel}</button>
+                                </template>
+                                <template lwc:if={hasResults}>
+                                    <button class="qb-link" title="Hides the list only. Nothing is deleted." onclick={clearResults}>Hide all</button>
+                                </template>
+                            </div>
                         </div>
                         <template for:each={results} for:item="r">
                             <div key={r.serviceId} class="result-row">
                                 <c-intake-row class="result-body" row={r} onrowchange={handleRowChange}></c-intake-row>
-                                <lightning-button-icon icon-name="utility:close" variant="bare" size="small" class="result-hide"
+                                <lightning-button-icon icon-name="utility:hide" variant="bare" size="small" class="result-hide"
                                     alternative-text="Hide this result" title="Hide this result (nothing is deleted)"
                                     data-id={r.serviceId} onclick={handleHideResult}></lightning-button-icon>
                             </div>
@@ -107,13 +111,7 @@
                 </li>
             </template>
         </ol>
-
-        <template lwc:if={showTodayButton}>
-            <div class="slds-m-around_medium">
-                <lightning-button variant="neutral" label="View Today Uploads" onclick={openTodayModal}></lightning-button>
-            </div>
-        </template>
-    </lightning-card>
+    </div>
 
     <!-- Today's uploads (pages without the intake inbox) -->
     <template lwc:if={showModal}>

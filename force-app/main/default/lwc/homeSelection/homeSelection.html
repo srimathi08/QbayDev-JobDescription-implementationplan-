@@ -1,8 +1,14 @@
 <template>
-    <lightning-card title="Make a Choice">
-        <lightning-tabset active-tab-value={activeTab}>
-            <div class="slds-m-around_x-small">
-                <lightning-tab label="Upload Resume or JD" value="1" onactive={handleActive}>
+    <div class="home">
+        <div class="hero">
+            <div>
+                <div class="hero-title">Qbay Talent Hub</div>
+                <div class="hero-sub">Upload resumes and job descriptions, track every intake, and find the right people.</div>
+            </div>
+        </div>
+        <lightning-tabset active-tab-value={activeTab} variant="scoped">
+            <lightning-tab label="Upload Resume or JD" value="1" icon-name="utility:upload" onactive={handleActive}>
+                <div class="stack">
                     <c-intake-uploader
                         requested-type="Auto"
                         show-type-switch
@@ -11,15 +17,15 @@
                         file-label="Upload files"
                         onuploaded={handleUploaded}>
                     </c-intake-uploader>
-                    <div class="slds-m-top_small">
-                        <c-intake-inbox></c-intake-inbox>
-                    </div>
-                </lightning-tab>
+                    <c-intake-inbox></c-intake-inbox>
+                </div>
+            </lightning-tab>
 
-                <lightning-tab label="Magic Search" value="2" onactive={handleActive}>
+            <lightning-tab label="Magic Search" value="2" icon-name="utility:search" onactive={handleActive}>
+                <div class="stack">
                     <c-searchablity-using-ai></c-searchablity-using-ai>
-                </lightning-tab>
-            </div>
+                </div>
+            </lightning-tab>
         </lightning-tabset>
-    </lightning-card>
+    </div>
 </template>

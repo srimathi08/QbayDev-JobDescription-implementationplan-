@@ -119,12 +119,16 @@ public with sharing class CandidateSearchController {
         return resp;
     }
 
-    /** Optional AI summary of the top results, in the user's words (existing GeneratedSearch prompt). */
+    /**
+     * Ask AI (optional): answers the user's question about the search results, e.g. "Who fits a senior LWC role best?",
+     * "How many have Platform Developer I?", or a summary when the question is the search itself.
+     * Uses the existing GeneratedSearch prompt with the top 20 results only, so the answer is grounded in real records.
+     */
     @AuraEnabled
     public static String summarize(String query, List<Id> accountIds) {
         if (String.isBlank(query) || accountIds == null || accountIds.isEmpty()) throw error('Run a search first.');
         List<Id> top = new List<Id>();
-        for (Integer i = 0; i < accountIds.size() && i < 10; i++) top.add(accountIds[i]);
+        for (Integer i = 0; i < accountIds.size() && i < 20; i++) top.add(accountIds[i]);
         SearchResponse fake = new SearchResponse();
         for (Account a : [
             SELECT Id, Name, Designation__c, Experience_Years__c, Current_Location__c, Current_Organization__c
@@ -143,7 +147,7 @@ public with sharing class CandidateSearchController {
         List<Map<String, Object>> compact = new List<Map<String, Object>>();
         for (Result r : fake.results) {
             compact.add(new Map<String, Object>{
-                'name' => r.name, 'designation' => r.designation, 'experienceYears' => r.experience,
+                'recordId' => r.id, 'name' => r.name, 'designation' => r.designation, 'experienceYears' => r.experience,
                 'location' => r.location, 'currentCompany' => r.organization,
                 'skills' => r.skills, 'certifications' => r.certifications
             });
