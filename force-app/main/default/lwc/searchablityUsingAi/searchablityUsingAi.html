@@ -1,79 +1,109 @@
 <template>
     <div class="qb-panel search">
-        <div class="qb-head">
-            <span class="qb-head-icon"><lightning-icon icon-name="utility:search" size="x-small"></lightning-icon></span>
-            <div>
-                <div class="qb-title">Magic Search</div>
-                <div class="qb-sub">Describe the person you need in plain English. Then ask AI about the results.</div>
-            </div>
-            <template lwc:if={showClear}>
-                <div class="qb-head-actions">
-                    <lightning-button label="Clear" icon-name="utility:refresh" onclick={handleClear}></lightning-button>
-                </div>
-            </template>
+        <!-- Command bar -->
+        <div class="intro">
+            <div class="qb-title">Magic Search</div>
+            <div class="qb-sub">Ask anything: find people by skills, or ask about any records, e.g. "How many opportunities were created last week?"</div>
         </div>
-
-        <!-- 1. Search -->
-        <div class="search-bar" onkeyup={handleKeyUp}>
-            <lightning-input class="search-input" type="search" variant="label-hidden" label="Search" value={searchKey}
-                placeholder="e.g. Salesforce developer in Chennai with 5+ years, LWC and integration"
-                onchange={handleSearchChange}></lightning-input>
-            <lightning-button variant="brand" label="Search" icon-name="utility:search" onclick={runSearch} disabled={searchDisabled}></lightning-button>
+        <div class="command" onkeyup={handleKeyUp}>
+            <lightning-icon icon-name="utility:search" size="x-small" class="command-icon"></lightning-icon>
+            <input class="command-input" type="text" value={searchKey} oninput={handleSearchChange}
+                placeholder="Ask a question or describe the person you need..." aria-label="Ask Magic Search" />
+            <template lwc:if={showClear}>
+                <button class="qb-link clear" onclick={handleClear} title="Clear">Clear</button>
+            </template>
+            <lightning-button variant="brand" label="Search" onclick={runSearch} disabled={searchDisabled}></lightning-button>
         </div>
         <div class="controls">
-            <div class="qb-segment" aria-label="Search in">
+            <span class="qb-muted">People search in</span>
+            <div class="qb-segment" aria-label="People search in">
                 <template for:each={typeButtons} for:item="b">
                     <button key={b.value} class={b.cls} data-value={b.value} onclick={handleTypeClick}>{b.label}</button>
                 </template>
             </div>
-            <div class="examples">
-                <span class="qb-muted">Try:</span>
-                <template for:each={examples} for:item="ex">
-                    <button key={ex.label} class="qb-chip example" data-label={ex.label} onclick={handleExample}>{ex.label}</button>
-                </template>
-            </div>
         </div>
 
+        <!-- Start: suggestions -->
+        <template lwc:if={showStart}>
+            <div class="start">
+                <div class="qb-section-title">Try asking</div>
+                <div class="suggestions">
+                    <template for:each={examples} for:item="ex">
+                        <button key={ex.label} class="suggestion" data-label={ex.label} onclick={handleExample}>
+                            <lightning-icon icon-name="utility:forward" size="xx-small"></lightning-icon>
+                            <span>{ex.label}</span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </template>
+
         <template lwc:if={isLoading}>
-            <div class="slds-is-relative spinner-box"><lightning-spinner alternative-text="Searching" size="small"></lightning-spinner></div>
+            <div class="loading">
+                <div class="slds-is-relative spinner-box"><lightning-spinner alternative-text="Searching" size="small"></lightning-spinner></div>
+                <div class="qb-muted">{loadingText}</div>
+            </div>
         </template>
         <template lwc:if={errorMessage}>
             <div class="qb-empty error">{errorMessage}</div>
         </template>
         <template lwc:if={noResults}>
             <div class="qb-empty">
-                <div class="qb-title">No matches</div>
-                <div>{understoodText} Try fewer or different words, a lower experience, or include employees and contractors.</div>
+                <div class="qb-title">Nothing found</div>
+                <div>{understoodText} Try different words, a wider date range, or include employees and contractors.</div>
             </div>
         </template>
 
-        <template lwc:if={hasResults}>
-            <!-- 2. Ask AI about the results -->
+        <!-- Data question answer -->
+        <template lwc:if={isData}>
+            <div class="answer-head">
+                <div>
+                    <div class="big-number">{dataAnswer.totalCount}</div>
+                </div>
+                <div class="answer-text">
+                    <div class="qb-title">{dataTitle}</div>
+                    <div class="qb-muted">{dataCountText}</div>
+                    <template lwc:if={understoodText}><div class="qb-muted">{understoodText}</div></template>
+                </div>
+            </div>
+            <template lwc:if={hasDataRows}>
+                <div class="table">
+                    <lightning-datatable key-field="Id" data={dataRows} columns={dataColumns} hide-checkbox-column
+                        column-widths-mode="auto"></lightning-datatable>
+                </div>
+            </template>
+            <details class="how">
+                <summary>How this was searched</summary>
+                <code>{querySoql}</code>
+                <p class="qb-muted">Run with your own access: you only see records you are allowed to open.</p>
+            </details>
+        </template>
+
+        <!-- People results -->
+        <template lwc:if={isPeople}>
             <div class="ask">
                 <div class="ask-head">
                     <lightning-icon icon-name="utility:magicwand" size="x-small"></lightning-icon>
                     <span class="ask-title">Ask AI about these {countText}</span>
                 </div>
-                <div class="search-bar" onkeyup={handleAskKeyUp}>
-                    <lightning-input class="search-input" variant="label-hidden" label="Question" value={question}
-                        placeholder="e.g. Who is the best fit for a senior LWC role? (leave empty for a summary)"
-                        onchange={handleQuestion}></lightning-input>
-                    <lightning-button variant="brand" label="Ask AI" onclick={handleAsk} disabled={askDisabled}></lightning-button>
+                <div class="ask-bar" onkeyup={handleAskKeyUp}>
+                    <lightning-input class="grow" variant="label-hidden" label="Question" value={question}
+                        placeholder="e.g. Who is the best fit for a senior LWC role? (empty = summary)" onchange={handleQuestion}></lightning-input>
+                    <lightning-button label="Ask AI" onclick={handleAsk} disabled={askDisabled}></lightning-button>
                 </div>
-                <div class="examples">
+                <div class="chips">
                     <template for:each={askExamples} for:item="ex">
-                        <button key={ex.label} class="qb-chip qb-chip-alt example" data-label={ex.label} onclick={handleAskExample}>{ex.label}</button>
+                        <button key={ex.label} class="qb-chip example" data-label={ex.label} onclick={handleAskExample}>{ex.label}</button>
                     </template>
                 </div>
                 <template lwc:if={answerLoading}>
                     <div class="slds-is-relative spinner-box"><lightning-spinner alternative-text="Thinking" size="small"></lightning-spinner></div>
                 </template>
-                <template lwc:if={answer}>
-                    <div class="answer"><lightning-formatted-rich-text value={answer}></lightning-formatted-rich-text></div>
+                <template lwc:if={answerHtml}>
+                    <div class="ai-answer"><lightning-formatted-rich-text value={answerHtml}></lightning-formatted-rich-text></div>
                 </template>
             </div>
 
-            <!-- 3. Results -->
             <div class="results-head">
                 <span class="qb-title">{countText}</span>
                 <span class="qb-muted">{understoodText}</span>
@@ -85,17 +115,14 @@
                             <span class="avatar">{r.initials}</span>
                             <div class="who">
                                 <a href={r.url} target="_blank" class="name">{r.name}</a>
-                                <div class="qb-muted">{r.meta}</div>
+                                <div class="qb-muted ellipsis">{r.meta}</div>
                             </div>
-                            <span class="qb-pill">{r.experienceText}</span>
+                            <span class="exp">{r.experienceText}</span>
                         </div>
                         <div class="card-tags">
-                            <span class="qb-pill qb-pill-review">{r.recordType}</span>
+                            <span class="qb-pill">{r.recordType}</span>
                             <template lwc:if={r.matchText}>
                                 <span class={r.matchClass} title={r.matchWords}>{r.matchText}</span>
-                            </template>
-                            <template lwc:if={r.resumeUrl}>
-                                <a href={r.resumeUrl} target="_blank" class="resume" title={r.resumeTitle}>Resume</a>
                             </template>
                         </div>
                         <template lwc:if={r.hasSkills}>
@@ -105,13 +132,12 @@
                                 </template>
                             </div>
                         </template>
-                        <template lwc:if={r.hasCerts}>
-                            <div class="chips">
-                                <template for:each={r.certifications} for:item="c">
-                                    <span key={c} class="qb-chip qb-chip-alt">{c}</span>
-                                </template>
-                            </div>
-                        </template>
+                        <div class="card-actions">
+                            <button class="qb-link" data-id={r.id} onclick={open360}>360° view</button>
+                            <template lwc:if={r.resumeUrl}>
+                                <a href={r.resumeUrl} target="_blank" title={r.resumeTitle}>Resume</a>
+                            </template>
+                        </div>
                     </article>
                 </template>
             </div>
@@ -123,6 +149,68 @@
                 </div>
             </template>
         </template>
-        <p class="qb-muted footnote">Searches names, designation, location, company, skills, certifications and projects. Only records you can see are shown.</p>
     </div>
+
+    <!-- Candidate 360 view -->
+    <template lwc:if={showProfile}>
+        <section role="dialog" aria-modal="true" aria-label="Candidate 360 view" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <div class="slds-modal__content profile">
+                    <button class="close" onclick={close360} title="Close">×</button>
+                    <template lwc:if={profileLoading}>
+                        <div class="slds-is-relative spinner-box"><lightning-spinner alternative-text="Loading" size="small"></lightning-spinner></div>
+                    </template>
+                    <template lwc:elseif={profile}>
+                        <template lwc:if={profile.error}>
+                            <div class="qb-empty error">{profile.error}</div>
+                        </template>
+                        <template lwc:else>
+                            <div class="profile-head">
+                                <span class="avatar avatar-lg">{profile.initials}</span>
+                                <div class="who">
+                                    <a href={profile.url} target="_blank" class="profile-name">{profile.name}</a>
+                                    <div class="qb-muted">{profile.facts}</div>
+                                    <div class="contact">
+                                        <span class="qb-pill">{profile.recordType}</span>
+                                        <template lwc:if={profile.experienceText}><span class="qb-pill">{profile.experienceText}</span></template>
+                                        <template lwc:if={profile.email}><span class="qb-muted">{profile.email}</span></template>
+                                        <template lwc:if={profile.phone}><span class="qb-muted">{profile.phone}</span></template>
+                                        <template lwc:if={profile.linkedIn}><a href={profile.linkedIn} target="_blank">LinkedIn</a></template>
+                                    </div>
+                                </div>
+                            </div>
+                            <template lwc:if={profile.summary}>
+                                <p class="summary">{profile.summary}</p>
+                            </template>
+                            <div class="sections">
+                                <template for:each={profile.sections} for:item="s">
+                                    <div key={s.title} class="section">
+                                        <div class="section-head">
+                                            <lightning-icon icon-name={s.icon} size="x-small"></lightning-icon>
+                                            <span class="section-title">{s.title}</span>
+                                            <span class="qb-pill">{s.count}</span>
+                                        </div>
+                                        <template lwc:if={s.hasItems}>
+                                            <ul class="items">
+                                                <template for:each={s.items} for:item="it">
+                                                    <li key={it.id}>
+                                                        <a href={it.url} target="_blank">{it.label}</a>
+                                                        <template lwc:if={it.sub}><span class="qb-muted"> · {it.sub}</span></template>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="qb-muted none">None yet</div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open" onclick={close360}></div>
+    </template>
 </template>

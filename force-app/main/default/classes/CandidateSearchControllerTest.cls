@@ -80,6 +80,26 @@ private class CandidateSearchControllerTest {
     }
 
     @IsTest
+    static void candidate360ShowsEverythingAboutOnePerson() {
+        Account asha = [SELECT Id FROM Account WHERE Name = 'Asha Apex'];
+        CandidateSearchController.Profile360 p = CandidateSearchController.candidate360(asha.Id);
+        Assert.areEqual('Asha Apex', p.name);
+        Assert.areEqual('Candidate', p.recordType);
+        Map<String, Integer> counts = new Map<String, Integer>();
+        for (CandidateSearchController.Section s : p.sections) counts.put(s.title, s.count);
+        Assert.areEqual(1, counts.get('Skills'));
+        Assert.areEqual(1, counts.get('Certifications'));
+        Assert.areEqual(1, counts.get('Files'));
+        Assert.areEqual(0, counts.get('Interviews'));
+        try {
+            CandidateSearchController.candidate360(null);
+            Assert.fail('no id');
+        } catch (AuraHandledException e) {
+            Assert.isTrue(String.isNotBlank(e.getMessage()));
+        }
+    }
+
+    @IsTest
     static void summaryUsesTheTopResults() {
         Account asha = [SELECT Id FROM Account WHERE Name = 'Asha Apex'];
         Assert.areEqual('<p>Summary</p>', CandidateSearchController.summarize('apex', new List<Id>{ asha.Id }));

@@ -82,9 +82,9 @@
 }
 /* ---------- drop zone ---------- */
 .drop-zone {
-    border: 2px dashed #dccbd3;
+    border: 1.5px dashed #cfcdd4;
     border-radius: var(--qb-radius);
-    background: linear-gradient(180deg, var(--qb-plum-soft), #ffffff);
+    background: var(--qb-canvas);
     padding: 1rem 1.25rem;
     display: flex;
     flex-wrap: wrap;

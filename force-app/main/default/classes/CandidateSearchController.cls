@@ -165,6 +165,137 @@ public with sharing class CandidateSearchController {
     @TestVisible private static String mockSummary = '<p>Summary</p>';
 
     // =====================================================================
+    // Candidate 360 view (27-11-2026): everything about one person on one screen
+    // =====================================================================
+
+    public class Item {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String label;
+        @AuraEnabled public String sub;
+    }
+
+    public class Section {
+        @AuraEnabled public String title;
+        @AuraEnabled public String icon;
+        @AuraEnabled public List<Item> items = new List<Item>();
+        @AuraEnabled public Integer count = 0;
+    }
+
+    public class Profile360 {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String name;
+        @AuraEnabled public String recordType;
+        @AuraEnabled public String designation;
+        @AuraEnabled public Decimal experience;
+        @AuraEnabled public String location;
+        @AuraEnabled public String organization;
+        @AuraEnabled public String email;
+        @AuraEnabled public String phone;
+        @AuraEnabled public String linkedIn;
+        @AuraEnabled public String summary;
+        @AuraEnabled public List<Section> sections = new List<Section>();
+    }
+
+    @AuraEnabled
+    public static Profile360 candidate360(Id accountId) {
+        if (accountId == null) throw error('No candidate was given.');
+        List<Account> accs = [
+            SELECT Id, Name, RecordType.DeveloperName, Designation__c, Experience_Years__c, Current_Location__c,
+                   Current_Organization__c, Personal_Email__c, Phone, LinkedIn__c, Description
+            FROM Account WHERE Id = :accountId WITH USER_MODE
+        ];
+        if (accs.isEmpty()) throw error('This record was not found, or you do not have access to it.');
+        Account a = accs[0];
+        Profile360 p = new Profile360();
+        p.id = a.Id;
+        p.name = a.Name;
+        p.recordType = a.RecordType?.DeveloperName == 'Candidates' ? 'Candidate' : a.RecordType?.DeveloperName;
+        p.designation = a.Designation__c;
+        p.experience = a.Experience_Years__c;
+        p.location = a.Current_Location__c;
+        p.organization = a.Current_Organization__c;
+        p.email = a.Personal_Email__c;
+        p.phone = a.Phone;
+        p.linkedIn = a.LinkedIn__c;
+        p.summary = a.Description == null ? null : a.Description.left(600);
+
+        p.sections.add(section('Job matches', 'standard:opportunity',
+            'SELECT Id, Opportunity_Name__c, Opportunity_Name__r.Name, Match_Score__c FROM Job_Match__c WHERE Candidate_Name__c = :aid ORDER BY Match_Score__c DESC NULLS LAST LIMIT 50',
+            a.Id, 'Opportunity_Name__r.Name', 'Match_Score__c', 'Opportunity_Name__c'));
+        p.sections.add(section('Presented to clients', 'standard:contact_list',
+            'SELECT Id, Name, Opportunity__r.Name, CreatedDate FROM Presented_Candidate__c WHERE Candidate_Name__c = :aid ORDER BY CreatedDate DESC LIMIT 50',
+            a.Id, 'Opportunity__r.Name', 'CreatedDate', null));
+        p.sections.add(section('Interviews', 'standard:event',
+            'SELECT Id, Name, Opportunity__r.Name, CreatedDate FROM Interview__c WHERE Candidate_Name__c = :aid ORDER BY CreatedDate DESC LIMIT 50',
+            a.Id, 'Name', 'Opportunity__r.Name', null));
+        p.sections.add(section('Skills', 'standard:skill',
+            'SELECT Id, Name, Proficiency__c FROM Employee_Skill__c WHERE Employee_Name__c = :aid ORDER BY Name LIMIT 100',
+            a.Id, 'Name', 'Proficiency__c', null));
+        p.sections.add(section('Certifications', 'standard:reward',
+            'SELECT Id, Name FROM Certification__c WHERE Candidate_Name__c = :aid ORDER BY Name LIMIT 50',
+            a.Id, 'Name', null, null));
+        p.sections.add(section('Projects', 'standard:work_order',
+            'SELECT Id, Name FROM Project_Experience__c WHERE Employee_Name__c = :aid ORDER BY CreatedDate DESC LIMIT 50',
+            a.Id, 'Name', null, null));
+        p.sections.add(section('Intake history', 'standard:record_lookup',
+            'SELECT Id, Name, Status__c, Source_Channel__c FROM Service__c WHERE Account__c = :aid ORDER BY CreatedDate DESC LIMIT 50',
+            a.Id, 'Name', 'Status__c', null));
+
+        Section files = new Section();
+        files.title = 'Files';
+        files.icon = 'standard:file';
+        for (ContentDocumentLink l : [
+            SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.CreatedDate FROM ContentDocumentLink
+            WHERE LinkedEntityId = :a.Id ORDER BY ContentDocument.CreatedDate DESC LIMIT 20
+        ]) {
+            Item it = new Item();
+            it.id = l.ContentDocumentId;
+            it.label = l.ContentDocument.Title;
+            it.sub = l.ContentDocument.CreatedDate.format('dd MMM yyyy');
+            files.items.add(it);
+        }
+        files.count = files.items.size();
+        p.sections.add(files);
+        return p;
+    }
+
+    /** One related list; skipped quietly when the user cannot read that object or field. */
+    private static Section section(String title, String icon, String soql, Id aid, String labelPath, String subPath, String linkPath) {
+        Section s = new Section();
+        s.title = title;
+        s.icon = icon;
+        try {
+            for (SObject r : Database.queryWithBinds(soql, new Map<String, Object>{ 'aid' => aid }, AccessLevel.USER_MODE)) {
+                Item it = new Item();
+                Object linkId = linkPath == null ? r.Id : pathValue(r, linkPath);
+                it.id = linkId == null ? r.Id : (Id) linkId;
+                Object l = pathValue(r, labelPath);
+                it.label = l == null ? String.valueOf(r.get('Id')) : String.valueOf(l);
+                if (subPath != null) {
+                    Object v = pathValue(r, subPath);
+                    if (v instanceof Datetime) v = ((Datetime) v).format('dd MMM yyyy');
+                    if (v != null) it.sub = (subPath == 'Match_Score__c' ? 'Score ' : '') + String.valueOf(v);
+                }
+                s.items.add(it);
+            }
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'CandidateSearchController', '360 ' + title);
+        }
+        s.count = s.items.size();
+        return s;
+    }
+
+    private static Object pathValue(SObject r, String path) {
+        SObject cur = r;
+        List<String> parts = path.split('\\.');
+        for (Integer i = 0; i < parts.size() - 1; i++) {
+            cur = cur.getSObject(parts[i]);
+            if (cur == null) return null;
+        }
+        return cur.get(parts[parts.size() - 1]);
+    }
+
+    // =====================================================================
     // Helpers
     // =====================================================================
 

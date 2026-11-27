@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</activeVersionIdentifier>
+    <description>Magic Search: turns a recruiter's plain-English question into one read-only SOQL query, using only the objects and fields it is given.</description>
+    <developerName>Qbay_Ask_Data</developerName>
+    <masterLabel>Qbay Ask Data</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>You turn a recruiter&apos;s question into ONE read-only Salesforce SOQL query.
+
+Question:
+{!$Input:question}
+
+Context (today&apos;s date, the user, and the ONLY objects and fields you may use):
+{!$Input:schema}
+
+Rules:
+1. Use only the objects, fields and relationship names listed in the context. Never invent a field. If the question cannot be answered with them, use the closest listed object and say so in &quot;note&quot;.
+2. The query must start with SELECT and read one main object. Parent fields with dot notation (for example Account.Name) and the filters listed are allowed. Do not use sub-queries, COUNT(), GROUP BY, HAVING, TYPEOF, FOR UPDATE, or a semicolon.
+3. Always select Id, the record&apos;s name field, and up to 7 other fields that best answer the question (dates, status, owner name, amounts, key lookups).
+4. Dates: use SOQL date literals: TODAY, YESTERDAY, LAST_WEEK, THIS_WEEK, LAST_MONTH, THIS_MONTH, LAST_N_DAYS:n, NEXT_N_DAYS:n, THIS_YEAR. &quot;Created last week&quot; means CreatedDate = LAST_WEEK. &quot;In the last 7 days&quot; means CreatedDate = LAST_N_DAYS:7.
+5. Text matching: use LIKE &apos;%word%&apos; on text fields. Picklists: use the listed values exactly.
+6. &quot;How many&quot; questions: still return the records (the app counts them).
+7. Record types: filter with RecordType.DeveloperName and the listed developer names (for Account: Candidates = job candidates, Employee = employees, Contractor = contractors, Direct_Customers = clients).
+8. Order by the most useful field (usually CreatedDate DESC) and end with LIMIT 200.
+
+Return ONLY this JSON, with no code fences and no other text:
+{&quot;soql&quot;: &quot;SELECT ...&quot;, &quot;title&quot;: &quot;a short title for the result, e.g. Opportunities created last week&quot;, &quot;note&quot;: &quot;empty, or one short sentence if you had to assume something&quot;}</content>
+        <inputs>
+            <apiName>question</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>question</masterLabel>
+            <referenceName>Input:question</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>schema</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>schema</masterLabel>
+            <referenceName>Input:schema</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>ZMPj0Xg0dayy6tngciqqkBHSOcctacxTsXtp72k+Ojo=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>
