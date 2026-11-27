@@ -17,6 +17,8 @@
  * - The files of one email are processed one after another (no parallel duplicates).
  * - The same email delivered twice (same Message-Id) is ignored the second time.
  * - Optional acknowledgement email to internal senders (OFF by default) and optional failure alert.
+ *   The acknowledgement is a short, branded reply in the sender's thread (Intake_Branding__mdt, Intake_Ack_* labels),
+ *   marked as sent only when Salesforce accepted it; a reply to it with nothing attached is ignored.
  *
  * Email only: nothing here changes how WhatsApp or Qbay Home uploads work.
  * extensionOf() and bodyAsPdf() are also used by WhatsAppWebhook and keep their behaviour.
@@ -31,8 +33,9 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
         Savepoint sp = Database.setSavepoint();
         try {
             receive(email, envelope);
+            // No message on success: Salesforce would send it to the sender as an extra reply.
+            // The sender gets the real acknowledgement (per-file results) instead.
             result.success = true;
-            result.message = 'Email processed successfully';
         } catch (Exception e) {
             // all or nothing: no half-saved email records
             Database.rollback(sp);
@@ -77,6 +80,9 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
 
     public class Outcome {
         public Boolean duplicateEmail = false;
+        public Boolean blockedSender = false;
+        /** A reply to one of our acknowledgements with nothing new attached: nothing saved, no reply. */
+        public Boolean acknowledgementReply = false;
         public List<Id> queued = new List<Id>();
         public List<Id> rejected = new List<Id>();
         public List<String> ignored = new List<String>();
@@ -106,6 +112,17 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
 
         String fromAddress = String.isNotBlank(email.fromAddress) ? email.fromAddress
             : (envelope != null ? envelope.fromAddress : null);
+
+        // Internal channel: only active Salesforce users may create records by email.
+        // Anyone else is ignored quietly (no records, no reply) and logged.
+        if (senderCheckApplies(cfg) && !isActiveInternalUser(fromAddress)) {
+            out.blockedSender = true;
+            UtilityClass.createElog(new IntakeException('Email from ' + (fromAddress == null ? 'unknown sender' : fromAddress)
+                + ' (subject: ' + (email.subject == null ? '' : email.subject.left(80)) + ') was ignored: '
+                + 'the sender is not an active Salesforce user.'), 'parseEmail', 'senderCheck');
+            return out;
+        }
+
         String subject = email.subject;
         String body = bodyOf(email);
         String emailKey = emailKeyOf(email, fromAddress, subject, body);
@@ -133,10 +150,16 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
         // ---------- 2. The email text (own text + text of forwarded emails) ----------
         String text = documentText(body, c.forwardedTexts);
         String title = safeFileName(('Email - ' + (String.isBlank(subject) ? 'no subject' : subject.trim())).left(70));
+        // A reply that quotes one of our acknowledgements: its text is never a new resume or JD
+        Boolean ackReply = isAcknowledgementReply(body);
         if (c.usable == 0) {
             // No usable file: the text itself may be the JD / resume
-            if (text.length() >= cfg.minBodyLength) {
+            if (!ackReply && text.length() >= cfg.minBodyLength) {
                 items.add(textItem(title, subject, text, null));
+            } else if (items.isEmpty() && ackReply) {
+                // nothing new was sent (e.g. "thanks" in reply to the acknowledgement): save nothing, send nothing
+                out.acknowledgementReply = true;
+                return out;
             } else if (items.isEmpty()) {
                 items.add(new Item(String.isBlank(subject) ? 'Email with no attachment' : subject, null,
                     'No resume or job description was found: the email has no PDF or DOCX attachment and its text is too short '
@@ -144,7 +167,7 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
                     + (out.ignored.isEmpty() ? '' : ' Ignored attachments: ' + String.join(out.ignored, ', ').left(1000) + '.')
                     + ' Nothing was created.'));
             }
-        } else if (cfg.minBodyLengthWithFiles > 0 && text.length() >= cfg.minBodyLengthWithFiles
+        } else if (!ackReply && cfg.minBodyLengthWithFiles > 0 && text.length() >= cfg.minBodyLengthWithFiles
                 && c.usable < cfg.maxFilesPerEmail) {
             // Files attached AND a long text: the text may be a JD (for the attached resumes). Checked as a JD only.
             String withFilesTitle = safeFileName((BODY_WITH_FILES_PREFIX + (String.isBlank(subject) ? 'no subject' : subject.trim())).left(70));
@@ -155,6 +178,8 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
         List<Service__c> services = new List<Service__c>();
         String safeFrom = validEmailOrNull(fromAddress);
         String batch = (BATCH_PREFIX + emailKey).left(64);
+        // Message-ID of the sender's email: the acknowledgement replies in the same conversation
+        String messageId = String.isBlank(email.messageId) ? null : email.messageId.trim().left(255);
         for (Integer i = 0; i < items.size(); i++) {
             Item it = items[i];
             Boolean rejected = it.rejectReason != null;
@@ -165,6 +190,7 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
                 Email_Subject__c = subject == null ? null : subject.left(32000),
                 Email_Body__c = body == null ? null : body.left(131000),
                 Email_Message_Key__c = emailKey,
+                Email_Message_Id__c = messageId,
                 Request_Key__c = ('E' + sha256(emailKey + '|' + i)).left(64),
                 Upload_Batch__c = batch,
                 Retry_Count__c = 0,
@@ -223,6 +249,22 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
             }
         }
         return out;
+    }
+
+    /** Tests run with the sender check off unless a test turns it on (the org setting is on). */
+    @TestVisible private static Boolean senderCheckInTests = false;
+
+    private static Boolean senderCheckApplies(IntakeRouter.Settings cfg) {
+        if (!cfg.restrictEmailToInternal) return false;
+        return !Test.isRunningTest() || senderCheckInTests;
+    }
+
+    /** True when the address is the email of an active internal (standard) Salesforce user. */
+    @TestVisible
+    private static Boolean isActiveInternalUser(String address) {
+        if (String.isBlank(address)) return false;
+        String a = address.trim();
+        return [SELECT COUNT() FROM User WHERE IsActive = true AND UserType = 'Standard' AND Email = :a] > 0;
     }
 
     private static Item textItem(String title, String subject, String text, String requestedType) {
@@ -739,6 +781,44 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
         } catch (Exception e) {
             UtilityClass.createElog(e, 'parseEmail', 'onAfterUpdate');
         }
+        try {
+            deleteTextCopies(newList, oldMap);
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'parseEmail', 'deleteTextCopies');
+        }
+    }
+
+    /**
+     * Email records that finished well (Completed / Duplicate): the PDF text copy of a Word file was only for the AI,
+     * so it is deleted (the original file stays on the intake and on the candidate). Kept when the file failed,
+     * so the team can see what the AI was given.
+     */
+    private static void deleteTextCopies(List<Service__c> newList, Map<Id, Service__c> oldMap) {
+        Set<Id> done = new Set<Id>();
+        for (Service__c s : newList) {
+            if (s.Source_Channel__c != CHANNEL) continue;
+            Service__c old = oldMap == null ? null : oldMap.get(s.Id);
+            if (old != null && old.Status__c == s.Status__c) continue;
+            if (s.Status__c == 'Completed' || s.Status__c == 'Duplicate') done.add(s.Id);
+        }
+        if (done.isEmpty()) return;
+        String copyPattern = '%' + IntakeProcessor.TEXT_COPY_SUFFIX;
+        Set<Id> copies = new Set<Id>();
+        for (ContentDocumentLink l : [
+            SELECT ContentDocumentId FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :done AND ContentDocument.Title LIKE :copyPattern
+        ]) {
+            copies.add(l.ContentDocumentId);
+        }
+        if (copies.isEmpty()) return;
+        List<ContentDocument> docs = new List<ContentDocument>();
+        for (Id d : copies) docs.add(new ContentDocument(Id = d));
+        for (Database.DeleteResult r : Database.delete(docs, false)) {
+            if (!r.isSuccess()) {
+                UtilityClass.createElog(new IntakeException('Text copy not deleted: ' + r.getErrors()[0].getMessage()),
+                    'parseEmail', 'deleteTextCopies');
+            }
+        }
     }
 
     /** Catch-up from the hourly job: finished emails whose acknowledgement was not sent yet. */
@@ -758,25 +838,45 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
         if (!keys.isEmpty()) notifyGroups(keys);
     }
 
+    /** Fields the acknowledgement needs (also used by tests to load records the same way). */
+    @TestVisible
+    private static final String ACK_FIELDS = 'Id, Name, Status__c, Status_Message__c, Detected_Type__c, EmailFrom__c, '
+        + 'Email_Subject__c, Email_Message_Key__c, Email_Message_Id__c, Acknowledged__c, CreatedDate, Source_Channel__c, '
+        + 'Retry_Count__c, Account__c, Account__r.Name, Account__r.Phone, Opportunity__c, Opportunity__r.Name, '
+        + 'Opportunity__r.Account.Name';
+
+    /** Tests: pretend this many sends failed (the records must then stay unacknowledged for the hourly retry). */
+    @TestVisible private static Boolean failSendsInTest = false;
+
     private static void notifyGroups(Set<String> keys) {
         IntakeRouter.Settings cfg = IntakeRouter.getSettings();
         Map<String, List<Service__c>> byKey = new Map<String, List<Service__c>>();
-        for (Service__c s : [
-            SELECT Id, Name, Status__c, Status_Message__c, Detected_Type__c, EmailFrom__c, Email_Subject__c,
-                   Email_Message_Key__c, Acknowledged__c, CreatedDate, Source_Channel__c, Retry_Count__c,
-                   Account__c, Account__r.Name, Opportunity__c, Opportunity__r.Name
-            FROM Service__c
-            WHERE Email_Message_Key__c IN :keys
-            ORDER BY CreatedDate ASC, Name ASC
-        ]) {
+        for (Service__c s : (List<Service__c>) Database.query(
+            'SELECT ' + ACK_FIELDS + ' FROM Service__c WHERE Email_Message_Key__c IN :keys ORDER BY CreatedDate ASC, Name ASC'
+        )) {
             if (!byKey.containsKey(s.Email_Message_Key__c)) byKey.put(s.Email_Message_Key__c, new List<Service__c>());
             byKey.get(s.Email_Message_Key__c).add(s);
         }
 
+        // Senders who are Salesforce users get the email by user Id (does not count against the daily email limit)
+        Set<String> senders = new Set<String>();
+        for (List<Service__c> grp : byKey.values()) {
+            if (String.isNotBlank(grp[0].EmailFrom__c)) senders.add(grp[0].EmailFrom__c.trim().toLowerCase());
+        }
+        Map<String, User> userByEmail = new Map<String, User>();
+        if (!senders.isEmpty()) {
+            for (User u : [SELECT Id, FirstName, Email FROM User
+                           WHERE IsActive = true AND UserType = 'Standard' AND Email IN :senders]) {
+                userByEmail.put(u.Email.toLowerCase(), u);
+            }
+        }
+
         List<Messaging.SingleEmailMessage> mails = new List<Messaging.SingleEmailMessage>();
+        List<List<Service__c>> mailGroups = new List<List<Service__c>>();
         List<Service__c> mark = new List<Service__c>();
         String base = System.Url.getOrgDomainUrl().toExternalForm();
         Id fromAddressId = orgWideAddressId(cfg.acknowledgementFromAddress);
+        Branding brand = getBranding();
 
         for (String key : byKey.keySet()) {
             List<Service__c> grp = byKey.get(key);
@@ -788,23 +888,78 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
             }
             if (!allFinal || alreadySent) continue;
 
-            for (Service__c s : grp) mark.add(new Service__c(Id = s.Id, Acknowledged__c = true));
             String to = grp[0].EmailFrom__c;
-            if (!cfg.canAcknowledge(to)) continue;
+            if (!cfg.canAcknowledge(to)) {
+                // nothing will be sent for this email: close it so the hourly job does not look at it again
+                for (Service__c s : grp) mark.add(new Service__c(Id = s.Id, Acknowledged__c = true));
+                continue;
+            }
+            User u = userByEmail.get(to.trim().toLowerCase());
+            Ack a = buildAcknowledgement(grp, base, cfg, brand, u == null ? null : u.FirstName);
+            if (a.lineCount == 0) {
+                for (Service__c s : grp) mark.add(new Service__c(Id = s.Id, Acknowledged__c = true));
+                continue;
+            }
 
             Messaging.SingleEmailMessage m = new Messaging.SingleEmailMessage();
-            m.setToAddresses(new List<String>{ to });
-            m.setSubject(('Processed: ' + (String.isBlank(grp[0].Email_Subject__c) ? '(no subject)' : grp[0].Email_Subject__c)).left(250));
-            m.setPlainTextBody(acknowledgementSummary(grp, base));
+            if (u != null) {
+                m.setTargetObjectId(u.Id);
+            } else {
+                m.setToAddresses(new List<String>{ to });
+            }
+            m.setSubject(a.subject);
+            m.setHtmlBody(a.html);
+            m.setPlainTextBody(a.text);
             m.setSaveAsActivity(false);
             m.setUseSignature(false);
+            m.setCharset('UTF-8');
+            String originalId = grp[0].Email_Message_Id__c;
+            if (String.isNotBlank(originalId)) {
+                // reply in the same conversation as the sender's email
+                m.setInReplyTo(originalId);
+                m.setReferences(originalId);
+            }
             if (fromAddressId != null) m.setOrgWideEmailAddressId(fromAddressId);
             mails.add(m);
+            mailGroups.add(grp);
         }
 
+        // Mark as acknowledged only what was really handed over for sending; failures stay open for the hourly retry
+        List<Boolean> sent = sendAcknowledgements(mails);
+        for (Integer i = 0; i < mails.size(); i++) {
+            if (!sent[i]) continue;
+            for (Service__c s : mailGroups[i]) mark.add(new Service__c(Id = s.Id, Acknowledged__c = true));
+        }
         if (!mark.isEmpty()) Database.update(mark, false);
-        sendAll(mails, 'sendAcknowledgement');
-        if (Test.isRunningTest()) ackSentCount += mails.size();
+        if (Test.isRunningTest()) {
+            for (Boolean ok : sent) if (ok) ackSentCount++;
+        }
+    }
+
+    /** Sends the acknowledgements one by one in a single call; returns true per email that was accepted. */
+    private static List<Boolean> sendAcknowledgements(List<Messaging.SingleEmailMessage> mails) {
+        List<Boolean> ok = new List<Boolean>();
+        for (Integer i = 0; i < mails.size(); i++) ok.add(false);
+        if (mails.isEmpty()) return ok;
+        if (Test.isRunningTest()) {
+            for (Integer i = 0; i < mails.size(); i++) ok[i] = !failSendsInTest;
+            return ok;
+        }
+        try {
+            List<Messaging.SendEmailResult> results = Messaging.sendEmail(mails, false);
+            for (Integer i = 0; i < results.size(); i++) {
+                ok[i] = results[i].isSuccess();
+                if (!ok[i]) {
+                    List<String> errs = new List<String>();
+                    for (Messaging.SendEmailError err : results[i].getErrors()) errs.add(err.getMessage());
+                    UtilityClass.createElog(new IntakeException('Acknowledgement not sent (will retry hourly): '
+                        + String.join(errs, '; ')), 'parseEmail', 'sendAcknowledgement');
+                }
+            }
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'parseEmail', 'sendAcknowledgement');
+        }
+        return ok;
     }
 
     /** One alert to the team when email records finally failed (after all automatic retries). */
@@ -867,23 +1022,317 @@ global without sharing class parseEmail implements Messaging.InboundEmailHandler
             .replace('Please try again.', 'It will be checked by the team.');
     }
 
+    /** Plain-text version of the acknowledgement (kept for tests and support checks). */
     @TestVisible
     private static String acknowledgementSummary(List<Service__c> grp, String base) {
-        List<String> lines = new List<String>();
-        lines.add('Your email "' + (String.isBlank(grp[0].Email_Subject__c) ? '(no subject)' : grp[0].Email_Subject__c)
-            + '" has been processed in Salesforce.');
-        lines.add('');
+        return buildAcknowledgement(grp, base, IntakeRouter.getSettings(), getBranding(), null).text;
+    }
+
+    // =====================================================================
+    // Acknowledgement content (simple: greeting, one line per file, sign-off)
+    // =====================================================================
+
+    /** Words that mark our own acknowledgement; a reply that quotes it is not a new resume or JD. */
+    @TestVisible private static final String ACK_REFERENCE_PREFIX = 'Reference: EM-';
+    private static final String OLD_ACK_MARKER = 'has been processed in Salesforce.';
+
+    public class Ack {
+        public String subject;
+        public String html;
+        public String text;
+        public Integer lineCount = 0;
+    }
+
+    /** One file in the acknowledgement: kind ok / info / error. */
+    public class AckLine {
+        public String kind;
+        public String title;
+        public String text;
+        public String note;
+        public String action;
+        public String url;
+    }
+
+    /** Company branding for the acknowledgement (Intake_Branding__mdt "Default"; blank values fall back safely). */
+    public class Branding {
+        public String companyName;
+        public String logoUrl;
+        public String accent = '#EA6630';
+        public String signOff;
+        public String footerText;
+        public String helpText;
+    }
+
+    @TestVisible
+    private static Branding getBranding() {
+        Branding b = new Branding();
+        try {
+            Intake_Branding__mdt rec = Intake_Branding__mdt.getInstance('Default');
+            if (rec != null) {
+                b.companyName = trimToNull(rec.Company_Name__c);
+                b.logoUrl = trimToNull(rec.Logo_URL__c);
+                String colour = trimToNull(rec.Accent_Colour__c);
+                if (colour != null && Pattern.matches('#[0-9A-Fa-f]{6}', colour)) b.accent = colour;
+                b.signOff = trimToNull(rec.Sign_Off__c);
+                b.footerText = trimToNull(rec.Footer_Text__c);
+                b.helpText = trimToNull(rec.Help_Text__c);
+            }
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'parseEmail', 'getBranding');
+        }
+        if (b.signOff == null) b.signOff = b.companyName == null ? 'Salesforce' : b.companyName;
+        if (b.logoUrl != null && !b.logoUrl.startsWithIgnoreCase('https://')) b.logoUrl = null;
+        return b;
+    }
+
+    private static String trimToNull(String s) {
+        return String.isBlank(s) ? null : s.trim();
+    }
+
+    @TestVisible
+    private static Ack buildAcknowledgement(List<Service__c> grp, String base, IntakeRouter.Settings cfg,
+            Branding brand, String firstName) {
+        Ack a = new Ack();
+        List<AckLine> lines = new List<AckLine>();
+        Integer okCount = 0, infoCount = 0, errorCount = 0;
         for (Service__c s : grp) {
             if (isUnusedEmailText(s)) continue;
-            String icon = (s.Status__c == 'Completed') ? '[OK]' : (s.Status__c == 'Duplicate' ? '[ALREADY EXISTS]' : '[NOT CREATED]');
-            lines.add(icon + ' ' + s.Name);
-            if (String.isNotBlank(s.Status_Message__c)) lines.add('    ' + forEmailSender(s.Status_Message__c).left(500));
-            if (s.Account__c != null && s.Detected_Type__c == 'Resume') lines.add('    Candidate: ' + s.Account__r.Name + ' - ' + base + '/' + s.Account__c);
-            if (s.Opportunity__c != null) lines.add('    Opportunity: ' + s.Opportunity__r.Name + ' - ' + base + '/' + s.Opportunity__c);
-            lines.add('    Intake record: ' + base + '/' + s.Id);
-            lines.add('');
+            AckLine l = lineFor(s, base, cfg);
+            lines.add(l);
+            if (l.kind == 'ok') okCount++;
+            else if (l.kind == 'info') infoCount++;
+            else errorCount++;
         }
-        lines.add('This is an automated message from Salesforce. Please do not reply.');
-        return String.join(lines, '\n');
+        a.lineCount = lines.size();
+
+        String subject = String.isBlank(grp[0].Email_Subject__c) ? '(no subject)' : grp[0].Email_Subject__c.trim();
+        String reference = BATCH_PREFIX + (grp[0].Email_Message_Key__c == null ? String.valueOf(grp[0].Id).right(8)
+            : grp[0].Email_Message_Key__c.left(8)).toUpperCase();
+
+        // Subject: RE: <original> - 2 added, 1 already in Salesforce, 1 needs action
+        List<String> counts = new List<String>();
+        if (okCount > 0) counts.add(String.format(System.Label.Intake_Ack_Count_Added, new List<Object>{ okCount }));
+        if (infoCount > 0) counts.add(String.format(System.Label.Intake_Ack_Count_Existing, new List<Object>{ infoCount }));
+        if (errorCount > 0) counts.add(String.format(errorCount == 1 ? System.Label.Intake_Ack_Count_Action_One
+            : System.Label.Intake_Ack_Count_Action_Many, new List<Object>{ errorCount }));
+        String prefix = subject.toLowerCase().startsWith('re:') ? '' : 'RE: ';
+        a.subject = (prefix + subject + (counts.isEmpty() ? '' : ' - ' + String.join(counts, ', '))).left(250);
+
+        String greeting = String.isBlank(firstName) ? System.Label.Intake_Ack_Greeting_NoName
+            : String.format(System.Label.Intake_Ack_Greeting, new List<Object>{ firstName.trim() });
+        String fileWord = lines.size() == 1 ? System.Label.Intake_Ack_One_File
+            : String.format(System.Label.Intake_Ack_Files, new List<Object>{ lines.size() });
+        String intro = String.format(System.Label.Intake_Ack_Intro, new List<Object>{ subject, fileWord });
+        String footer = System.Label.Intake_Ack_Reference.replace('{0}', reference)
+            + (brand.footerText == null ? '' : ' ' + brand.footerText);
+
+        // ---------- plain text ----------
+        List<String> t = new List<String>{ greeting, '', intro, '' };
+        for (AckLine l : lines) {
+            t.add(icon(l.kind) + ' ' + l.title + ' - ' + l.text + '.');
+            if (l.note != null) t.add('   ' + l.note);
+            if (l.action != null) t.add('   ' + l.action);
+            if (l.url != null) t.add('   ' + System.Label.Intake_Ack_Open + ': ' + l.url);
+            t.add('');
+        }
+        if (brand.helpText != null) { t.add(brand.helpText); t.add(''); }
+        t.add(System.Label.Intake_Ack_Thanks);
+        t.add(brand.signOff);
+        t.add('');
+        t.add(footer);
+        a.text = String.join(t, '\n');
+
+        // ---------- HTML (inline styles: works in Outlook and Gmail) ----------
+        String h = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1F1F1F;max-width:640px;">';
+        if (brand.logoUrl != null) {
+            h += '<img src="' + brand.logoUrl.escapeHtml4() + '" alt="' + esc(brand.companyName == null ? '' : brand.companyName)
+                + '" height="30" style="height:30px;display:block;margin-bottom:6px;">';
+        } else if (brand.companyName != null) {
+            h += '<div style="font-weight:600;font-size:16px;margin-bottom:6px;">' + esc(brand.companyName) + '</div>';
+        }
+        h += '<div style="border-top:3px solid ' + brand.accent + ';margin:0 0 18px;"></div>';
+        h += '<p style="margin:0 0 12px;">' + esc(greeting) + '</p>';
+        h += '<p style="margin:0 0 12px;">' + esc(intro).replace('&quot;' + esc(subject) + '&quot;',
+            '<b>&quot;' + esc(subject) + '&quot;</b>') + '</p>';
+        h += '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:4px 0 16px;">';
+        for (AckLine l : lines) {
+            h += '<tr><td style="width:30px;padding:10px 0;border-bottom:1px solid #EEE8E4;vertical-align:top;font-size:16px;">'
+                + icon(l.kind) + '</td><td style="padding:10px 0;border-bottom:1px solid #EEE8E4;vertical-align:top;">'
+                + '<b>' + esc(l.title) + '</b> &mdash; ' + esc(l.text) + '.';
+            if (l.url != null) {
+                h += ' <a href="' + l.url.escapeHtml4() + '" style="color:#6B2F48;font-weight:600;text-decoration:none;">'
+                    + esc(System.Label.Intake_Ack_Open) + '</a>';
+            }
+            if (l.note != null) h += '<br><span style="color:#5F6368;">' + esc(l.note) + '</span>';
+            if (l.action != null) h += '<br><span style="color:#B03A2E;font-weight:600;">' + esc(l.action) + '</span>';
+            h += '</td></tr>';
+        }
+        h += '</table>';
+        if (brand.helpText != null) h += '<p style="margin:0 0 12px;">' + esc(brand.helpText) + '</p>';
+        h += '<p style="margin:0 0 16px;">' + esc(System.Label.Intake_Ack_Thanks) + '<br>' + esc(brand.signOff) + '</p>';
+        h += '<p style="margin:0;font-size:12px;color:#5F6368;">' + esc(footer) + '</p>';
+        h += '</div>';
+        a.html = h;
+        return a;
+    }
+
+    private static String icon(String kind) {
+        return kind == 'ok' ? '✅' : (kind == 'info' ? 'ℹ️' : '❌');
+    }
+
+    private static String esc(String s) {
+        return s == null ? '' : s.escapeHtml4();
+    }
+
+    private static String recordUrl(String base, String objectName, Id recordId) {
+        return recordId == null ? null : base + '/lightning/r/' + objectName + '/' + recordId + '/view';
+    }
+
+    /** Turns the technical status message of one record into a short line for the sender. */
+    @TestVisible
+    private static AckLine lineFor(Service__c s, String base, IntakeRouter.Settings cfg) {
+        AckLine l = new AckLine();
+        String m = s.Status_Message__c == null ? '' : s.Status_Message__c;
+        String lower = m.toLowerCase();
+        l.title = s.Name;
+
+        if (s.Status__c == 'Completed') {
+            l.kind = 'ok';
+            Boolean isJd = s.Detected_Type__c == 'Job Description' || (s.Opportunity__c != null && s.Detected_Type__c != 'Resume');
+            if (isJd) {
+                if (s.Opportunity__c != null && s.Opportunity__r != null && s.Opportunity__r.Name != null) l.title = s.Opportunity__r.Name;
+                String client = s.Opportunity__r != null && s.Opportunity__r.Account != null ? s.Opportunity__r.Account.Name : null;
+                l.text = (lower.startsWith('updated open opportunity') ? 'existing requirement updated' : 'new requirement created')
+                    + (String.isBlank(client) ? '' : ' for ' + client);
+                String marker = 'possible duplicate of the open opportunity "';
+                Integer at = lower.indexOf(marker);
+                if (at >= 0) {
+                    String rest = m.substring(at + marker.length());
+                    String other = rest.contains('"') ? rest.substringBefore('"') : null;
+                    l.note = 'This may be the same as the open requirement' + (other == null ? '' : ' "' + other + '"')
+                        + '. Please check.';
+                }
+                l.url = recordUrl(base, 'Opportunity', s.Opportunity__c);
+            } else {
+                if (s.Account__c != null && s.Account__r != null && s.Account__r.Name != null) l.title = s.Account__r.Name;
+                Boolean created = lower.contains('created candidate');
+                l.text = created || !lower.contains('updated existing candidate') ? 'new candidate created' : 'existing candidate updated';
+                List<String> notes = new List<String>();
+                if (lower.contains('please check: a candidate named')) {
+                    notes.add('A candidate with the same name already exists. Please check if it is the same person.');
+                }
+                if (lower.contains('is also on the existing candidate')) {
+                    notes.add('This phone number is also on another candidate. Please check.');
+                }
+                if (created && s.Account__r != null && looksLikePlaceholderPhone(s.Account__r.Phone)) {
+                    notes.add(System.Label.Intake_Ack_Check_Phone);
+                }
+                if (!notes.isEmpty()) l.note = String.join(notes, ' ');
+                l.url = recordUrl(base, 'Account', s.Account__c);
+            }
+            return l;
+        }
+
+        if (s.Status__c == 'Duplicate') {
+            l.kind = 'info';
+            String marker = 'already uploaded on ';
+            Integer at = lower.indexOf(marker);
+            if (at >= 0) {
+                String sentOn = m.substring(at + marker.length()).substringBefore('.').trim();
+                // "26 Nov 2026 18:14" -> "26 Nov 2026"
+                List<String> parts = sentOn.split(' ');
+                if (parts.size() >= 3) sentOn = parts[0] + ' ' + parts[1] + ' ' + parts[2];
+                l.text = 'already in Salesforce (sent on ' + sentOn + '). Nothing new was created';
+            } else if (lower.contains('a candidate named') || lower.contains('candidates named')) {
+                l.text = 'a candidate with this name is already in Salesforce. Nothing new was created';
+            } else {
+                l.text = 'already in Salesforce. Nothing new was created';
+            }
+            l.url = s.Account__c != null ? recordUrl(base, 'Account', s.Account__c) : recordUrl(base, 'Opportunity', s.Opportunity__c);
+            return l;
+        }
+
+        // Rejected / Failed
+        l.kind = 'error';
+        if (s.Status__c == 'Failed') {
+            l.text = 'could not be processed';
+            l.action = cfg.failureAlertEmails != null && !cfg.failureAlertEmails.isEmpty()
+                ? 'Our team has been told and will look into it.' : 'Please send it again later.';
+            return l;
+        }
+        if (lower.contains('already exists as')) {
+            l.kind = 'info';
+            l.text = 'this person is already in Salesforce as another type of record (for example an employee). Nothing was changed';
+            return l;
+        }
+        for (List<String> rule : REJECT_RULES) {
+            Boolean hit = false;
+            for (String key : rule[0].split('\\|')) {
+                if (lower.contains(key)) { hit = true; break; }
+            }
+            if (hit) {
+                l.text = rule[1];
+                l.action = rule[2];
+                return l;
+            }
+        }
+        // anything else: the original message, worded for an email sender
+        l.text = forEmailSender(m).removeEnd('.').trim();
+        if (String.isBlank(l.text)) l.text = 'could not be processed';
+        return l;
+    }
+
+    /** contains (any of, |-separated, lower case) -> short reason, what to do. First match wins. */
+    private static final List<List<String>> REJECT_RULES = new List<List<String>>{
+        new List<String>{ 'is an image', 'could not be read (it is an image)',
+            'Please send it as a PDF or DOCX file.' },
+        new List<String>{ 'is larger than', 'is too large to process',
+            'Please send a smaller file (for example a PDF without scanned pages).' },
+        new List<String>{ 'can carry at most', 'was not processed (too many files in one email)',
+            'Please send it in another email.' },
+        new List<String>{ 'old word format', 'could not be read (old Word format)',
+            'Please save it as PDF or DOCX and send it again.' },
+        new List<String>{ 'outlook item (.msg)', 'could not be read (Outlook item)',
+            'Please attach the resume or job description file directly.' },
+        new List<String>{ 'not a supported file type', 'is not a supported file type',
+            'Please send it as a PDF or DOCX file.' },
+        new List<String>{ 'the forwarded email', 'could not be opened (forwarded email)',
+            'Please attach the resume or job description files directly.' },
+        new List<String>{ 'no resume or job description was found', 'no resume or job description was found',
+            'Please attach the resume or job description as a PDF or DOCX file.' },
+        new List<String>{ 'no email, phone number or linkedin', 'no email or phone number was found in the file',
+            'Please add the contact details as text in the file and send it again.' },
+        new List<String>{ 'could not find the candidate', 'no candidate name or contact details were found',
+            'Please add the contact details as text in the file and send it again.' },
+        new List<String>{ 'no company name', 'no client name was found',
+            'Please add the client name to the job description and send it again.' },
+        new List<String>{ 'ai response could not be read', 'could not be read',
+            'Please check it is a readable PDF or DOCX file.' },
+        new List<String>{ 'unreadable or empty', 'could not be read',
+            'Please check the file opens normally, or send it as a PDF.' },
+        new List<String>{ 'not a resume or a job description|does not look like|looks like a resume, not|'
+            + 'looks like a job description, not|no job description could be read',
+            'does not look like a resume or a job description',
+            'If it is one, please send it as a text-based PDF or DOCX file.' }
+    };
+
+    /** True for numbers that look made up or cut off: too short, one digit repeated, long runs of zeros, 1234567890. */
+    @TestVisible
+    private static Boolean looksLikePlaceholderPhone(String phone) {
+        if (String.isBlank(phone)) return false;
+        String d = phone.replaceAll('[^0-9]', '');
+        if (d.length() == 12 && d.startsWith('91')) d = d.substring(2);
+        else if (d.length() == 11 && d.startsWith('0')) d = d.substring(1);
+        if (d.length() < 10) return true;
+        if (Pattern.matches('(\\d)\\1+', d)) return true;
+        if (d.contains('00000')) return true;
+        return d == '1234567890' || d == '0123456789' || d == '9876543210';
+    }
+
+    /** A reply to (or forward of) one of our acknowledgements: its text is not a new resume or JD. */
+    @TestVisible
+    private static Boolean isAcknowledgementReply(String body) {
+        if (String.isBlank(body)) return false;
+        return body.contains(ACK_REFERENCE_PREFIX) || body.contains(OLD_ACK_MARKER);
     }
 }

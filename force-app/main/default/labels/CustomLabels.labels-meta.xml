@@ -22,4 +22,108 @@
         <shortDescription>WHATSAPPSECRET</shortDescription>
         <value>e42f20181e2df1877e587fdc14af22ec</value>
     </labels>
+    <labels>
+        <fullName>Intake_Ack_Check_Phone</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Check Phone</shortDescription>
+        <value>Please check the phone number, it looks incomplete.</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Count_Action_Many</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Count Action Many</shortDescription>
+        <value>{0} need action</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Count_Action_One</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Count Action One</shortDescription>
+        <value>{0} needs action</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Count_Added</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Count Added</shortDescription>
+        <value>{0} added</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Count_Existing</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Count Existing</shortDescription>
+        <value>{0} already in Salesforce</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Files</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Files</shortDescription>
+        <value>{0} files</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Greeting</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Greeting</shortDescription>
+        <value>Hi {0},</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Greeting_NoName</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Greeting No Name</shortDescription>
+        <value>Hello,</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Intro</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Intro</shortDescription>
+        <value>We received your email &quot;{0}&quot; with {1}. Here is what happened:</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_One_File</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack One File</shortDescription>
+        <value>1 file</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Open</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Open</shortDescription>
+        <value>Open</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Reference</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Reference</shortDescription>
+        <value>Reference: {0} · This is an automated message.</value>
+    </labels>
+    <labels>
+        <fullName>Intake_Ack_Thanks</fullName>
+        <categories>Intake Acknowledgement</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Intake Ack Thanks</shortDescription>
+        <value>Thanks,</value>
+    </labels>
 </CustomLabels>

@@ -76,8 +76,16 @@ public without sharing class WhatsAppUtils {
         }
     }
     
-    public static Blob getMedia(String mediaId){
-        System.debug('mediaid: ' + mediaId);
+    public class MediaInfo {
+        public String url;
+        public Long fileSize;
+        public String mimeType;
+    }
+
+    public static MediaInfo fetchMediaInfo(String mediaId) {
+        if (String.isBlank(mediaId)) {
+            throw new CalloutException('WhatsApp mediaId is missing.');
+        }
         String token = resolveAccessToken();
 
         Http httpObj = new Http();
@@ -92,13 +100,29 @@ public without sharing class WhatsAppUtils {
             throw new CalloutException('Failed to fetch WhatsApp media metadata (' + response.getStatusCode() + '): ' + response.getBody());
         }
 
-        Map<String, Object> result = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
-        String downloadUrl = result != null ? (String)result.get('url') : null;        
-        System.debug('Download Url: ' + downloadUrl);        
-        if (String.isBlank(downloadUrl)) {
+        Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
+        MediaInfo info = new MediaInfo();
+        info.url = result != null ? (String) result.get('url') : null;
+        info.mimeType = result != null ? (String) result.get('mime_type') : null;
+        Object rawSize = result != null ? result.get('file_size') : null;
+        if (rawSize != null) {
+            try {
+                info.fileSize = Long.valueOf(String.valueOf(rawSize));
+            } catch (Exception e) {
+                info.fileSize = null;
+            }
+        }
+        if (String.isBlank(info.url)) {
             throw new CalloutException('WhatsApp media metadata missing download url: ' + response.getBody());
         }
+        return info;
+    }
 
+    public static Blob downloadMediaUrl(String downloadUrl) {
+        if (String.isBlank(downloadUrl)) {
+            throw new CalloutException('WhatsApp media download url is missing.');
+        }
+        String token = resolveAccessToken();
         Http http = new Http();
         HttpRequest requestmedia = new HttpRequest();
         requestmedia.setEndpoint(downloadUrl);
@@ -109,7 +133,12 @@ public without sharing class WhatsAppUtils {
         if (responsemedia.getStatusCode() < 200 || responsemedia.getStatusCode() >= 300) {
             throw new CalloutException('Failed to download WhatsApp media (' + responsemedia.getStatusCode() + '): ' + responsemedia.getBody());
         }
-
         return responsemedia.getBodyAsBlob();
+    }
+
+    public static Blob getMedia(String mediaId){
+        System.debug('mediaid: ' + mediaId);
+        MediaInfo info = fetchMediaInfo(mediaId);
+        return downloadMediaUrl(info.url);
     } 
 }

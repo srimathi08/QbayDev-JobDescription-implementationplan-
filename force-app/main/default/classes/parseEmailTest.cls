@@ -368,8 +368,7 @@ private class parseEmailTest {
         System.assertEquals('Other', r.Detected_Type__c);
         System.assert(r.Status_Message__c.contains('not a job description'), r.Status_Message__c);
 
-        List<Service__c> grp = [SELECT Id, Name, Status__c, Status_Message__c, Detected_Type__c, Email_Subject__c,
-            Account__c, Account__r.Name, Opportunity__c, Opportunity__r.Name FROM Service__c];
+        List<Service__c> grp = Database.query('SELECT ' + parseEmail.ACK_FIELDS + ' FROM Service__c');
         String text = parseEmail.acknowledgementSummary(grp, 'https://example.com');
         System.assert(!text.contains('Email text - '), 'not reported to the sender: ' + text);
     }
@@ -631,6 +630,51 @@ private class parseEmailTest {
         System.assertEquals(null, parseEmail.forEmailSender(null));
     }
 
+    // ---------------- internal senders only ----------------
+
+    @isTest
+    static void emailFromSomeoneWhoIsNotAnActiveUserIsIgnored() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.enabled = false;
+        cfg.restrictEmailToInternal = true;
+        parseEmail.senderCheckInTests = true;
+        Messaging.InboundEmail e = mail('stranger@quadrobay.com', 'CV', 'cv', '<m60@x>');
+        e.binaryAttachments.add(att('cv.pdf', 'application/pdf', 'X', false));
+
+        Messaging.InboundEmailResult r = new parseEmail().handleInboundEmail(e, env(e.fromAddress));
+
+        System.assertEquals(true, r.success, 'no bounce, no reply');
+        System.assertEquals(0, intakes().size(), 'nothing created');
+        System.assertEquals(false, parseEmail.isActiveInternalUser(null));
+    }
+
+    @isTest
+    static void emailFromAnActiveUserIsProcessed() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.enabled = false;
+        cfg.restrictEmailToInternal = true;
+        parseEmail.senderCheckInTests = true;
+        User me = [SELECT Email FROM User WHERE Id = :UserInfo.getUserId()];
+        Messaging.InboundEmail e = mail(me.Email, 'CV', 'cv', '<m61@x>');
+        e.binaryAttachments.add(att('cv.pdf', 'application/pdf', 'X', false));
+
+        parseEmail.Outcome o = parseEmail.receive(e, env(e.fromAddress));
+
+        System.assertEquals(false, o.blockedSender);
+        System.assertEquals(1, o.queued.size());
+    }
+
+    @isTest
+    static void senderCheckCanBeSwitchedOff() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.enabled = false;
+        cfg.restrictEmailToInternal = false;
+        parseEmail.senderCheckInTests = true;
+        Messaging.InboundEmail e = mail('stranger@quadrobay.com', 'CV', 'cv', '<m62@x>');
+        e.binaryAttachments.add(att('cv.pdf', 'application/pdf', 'X', false));
+        System.assertEquals(1, parseEmail.receive(e, env(e.fromAddress)).queued.size());
+    }
+
     @isTest
     static void newSettingsHaveSafeDefaults() {
         IntakeRouter.cachedSettings = null;
@@ -670,13 +714,304 @@ private class parseEmailTest {
         parseEmail.sendPendingAcknowledgements(Datetime.now().addDays(-1));
         System.assertEquals(1, parseEmail.ackSentCount, 'never sent twice');
 
-        List<Service__c> full = [
-            SELECT Id, Name, Status__c, Status_Message__c, Detected_Type__c, Email_Subject__c,
-                   Account__c, Account__r.Name, Opportunity__c, Opportunity__r.Name
-            FROM Service__c WHERE Email_Message_Key__c = :key ORDER BY Name
-        ];
+        List<Service__c> full = Database.query('SELECT ' + parseEmail.ACK_FIELDS
+            + ' FROM Service__c WHERE Email_Message_Key__c = :key ORDER BY Name');
         String text = parseEmail.acknowledgementSummary(full, 'https://example.com');
-        System.assert(text.contains('[OK] a.pdf') && text.contains('[NOT CREATED] b.pdf'), text);
+        System.assert(text.contains('a.pdf - new candidate created.'), text);
+        System.assert(text.contains('b.pdf - Not a resume.'), text);
+        System.assert(text.contains(parseEmail.ACK_REFERENCE_PREFIX), text);
+    }
+
+    // ---------------- acknowledgement content (simple format) ----------------
+
+    private static Service__c rec(String status, String detected, String message) {
+        return new Service__c(Name = 'file.pdf', Source_Channel__c = 'Email', Status__c = status,
+            Detected_Type__c = detected, Status_Message__c = message);
+    }
+
+    @isTest
+    static void everyResultBecomesOneShortLine() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.failureAlertEmails = new List<String>{ 'team@example.com' };
+        String base = 'https://example.com';
+
+        // new candidate, with a made-up phone number
+        // in memory only (no DML, so Account validation rules cannot interfere)
+        Account cand = new Account(Name = 'Karthik Raman', Phone = '+91 90000 00000');
+        Service__c ok = rec('Completed', 'Resume', 'Created candidate Karthik Raman.');
+        ok.Account__c = Id.valueOf('001000000000001');
+        ok.putSObject('Account__r', cand);
+        parseEmail.AckLine l = parseEmail.lineFor(ok, base, cfg);
+        System.assertEquals('ok', l.kind);
+        System.assertEquals('Karthik Raman', l.title);
+        System.assertEquals('new candidate created', l.text);
+        System.assert(l.note.contains(System.Label.Intake_Ack_Check_Phone), l.note);
+        System.assert(l.url.contains('/lightning/r/Account/'), l.url);
+
+        System.assertEquals('existing candidate updated',
+            parseEmail.lineFor(rec('Completed', 'Resume', 'Updated existing candidate A.'), base, cfg).text);
+        System.assert(parseEmail.lineFor(rec('Completed', 'Resume', 'Created candidate A. Please check: a candidate named A '
+            + 'already exists with a different email and phone'), base, cfg).note.contains('same name'));
+
+        // JD with a possible duplicate
+        parseEmail.AckLine jd = parseEmail.lineFor(rec('Completed', 'Job Description', 'Created Opportunity Java Dev for Acme. '
+            + 'Possible duplicate of the open Opportunity "Java Developer" created on 01 Nov 2026 (same role)'), base, cfg);
+        System.assertEquals('new requirement created', jd.text);
+        System.assert(jd.note.contains('"Java Developer"'), jd.note);
+
+        // already in Salesforce
+        parseEmail.AckLine dup = parseEmail.lineFor(rec('Duplicate', 'Resume',
+            'This exact file was already uploaded on 26 Nov 2026 18:14. No new records were created.'), base, cfg);
+        System.assertEquals('info', dup.kind);
+        System.assert(dup.text.contains('sent on 26 Nov 2026'), dup.text);
+        System.assert(parseEmail.lineFor(rec('Duplicate', 'Resume', 'Duplicate: a candidate named A already exists.'), base, cfg)
+            .text.contains('this name'));
+
+        // rejected: short reason + what to do
+        Map<String, String> cases = new Map<String, String>{
+            '"x.doc" is in the old Word format (.doc), which cannot be read.' => 'old Word format',
+            '"x.png" is an image. Images cannot be read.' => 'it is an image',
+            '"x.pdf" is larger than 10 MB and was not processed.' => 'too large',
+            '"x.pdf" was not processed: an email can carry at most 10 files.' => 'too many files',
+            '"x.msg" is an Outlook item (.msg), which cannot be read.' => 'Outlook item',
+            '"x.xlsx" is not a supported file type.' => 'not a supported file type',
+            'The forwarded email "y" could not be read.' => 'forwarded email',
+            'No resume or job description was found: the email has no PDF' => 'no resume or job description',
+            'Found the name "A" but no email, phone number or LinkedIn profile in this file.' => 'no email or phone',
+            'Could not find the candidate\'s name and an email.' => 'no candidate name',
+            'No company name was found in the Job Description.' => 'no client name',
+            'The AI response could not be read for this file.' => 'could not be read',
+            'This file is not a resume or a job description (report).' => 'does not look like'
+        };
+        for (String msg : cases.keySet()) {
+            parseEmail.AckLine r = parseEmail.lineFor(rec('Rejected', 'Other', msg), base, cfg);
+            System.assertEquals('error', r.kind, msg);
+            System.assert(r.text.contains(cases.get(msg)), msg + ' -> ' + r.text);
+            System.assertNotEquals(null, r.action, msg);
+        }
+        System.assertEquals('info', parseEmail.lineFor(rec('Rejected', 'Resume',
+            'A (a@x.com) already exists as Employee Account "A". It was not changed.'), base, cfg).kind);
+        System.assert(parseEmail.lineFor(rec('Failed', null, 'Gave up after 2 automatic retries.'), base, cfg)
+            .action.contains('team has been told'));
+        System.assertEquals('Something unusual happened',
+            parseEmail.lineFor(rec('Rejected', 'Other', 'Something unusual happened.'), base, cfg).text);
+    }
+
+    @isTest
+    static void acknowledgementHasSubjectCountsGreetingAndHtml() {
+        List<Service__c> grp = new List<Service__c>{
+            rec('Completed', 'Resume', 'Created candidate A.'),
+            rec('Duplicate', 'Resume', 'This exact file was already uploaded on 26 Nov 2026 18:14.'),
+            rec('Rejected', 'Other', '"x.doc" is in the old Word format (.doc), which cannot be read.')
+        };
+        for (Service__c s : grp) {
+            s.Email_Subject__c = 'Resumes for Java role';
+            s.Email_Message_Key__c = 'abcdef1234567890';
+        }
+        parseEmail.Ack a = parseEmail.buildAcknowledgement(grp, 'https://example.com', IntakeRouter.getSettings(),
+            parseEmail.getBranding(), 'Anantha');
+        System.assertEquals(3, a.lineCount);
+        System.assert(a.subject.startsWith('RE: Resumes for Java role - '), a.subject);
+        System.assert(a.subject.contains('1 added') && a.subject.contains('1 already in Salesforce')
+            && a.subject.contains('1 needs action'), a.subject);
+        System.assert(a.text.startsWith('Hi Anantha,'), a.text);
+        System.assert(a.text.contains('Reference: EM-ABCDEF12'), a.text);
+        System.assert(a.html.contains('<b>&quot;Resumes for Java role&quot;</b>'), a.html);
+        System.assert(a.html.contains('Please save it as PDF or DOCX'), a.html);
+
+        // a subject that is already a reply is not prefixed twice; no first name -> neutral greeting
+        grp[0].Email_Subject__c = 'RE: Old thread';
+        parseEmail.Ack b = parseEmail.buildAcknowledgement(grp, 'https://example.com', IntakeRouter.getSettings(),
+            parseEmail.getBranding(), null);
+        System.assert(b.subject.startsWith('RE: Old thread - '), b.subject);
+        System.assert(b.text.startsWith(System.Label.Intake_Ack_Greeting_NoName), b.text);
+    }
+
+    @isTest
+    static void brandingAlwaysHasSafeValues() {
+        parseEmail.Branding b = parseEmail.getBranding();
+        System.assertNotEquals(null, b.signOff);
+        System.assert(b.accent.startsWith('#'));
+        System.assert(b.logoUrl == null || b.logoUrl.startsWith('https://'));
+    }
+
+    @isTest
+    static void placeholderPhoneNumbersAreSpotted() {
+        System.assertEquals(true, parseEmail.looksLikePlaceholderPhone('+91 90000 00000'));
+        System.assertEquals(true, parseEmail.looksLikePlaceholderPhone('99999 99999'));
+        System.assertEquals(true, parseEmail.looksLikePlaceholderPhone('12345'));
+        System.assertEquals(true, parseEmail.looksLikePlaceholderPhone('1234567890'));
+        System.assertEquals(false, parseEmail.looksLikePlaceholderPhone('+91 90031 45678'));
+        System.assertEquals(false, parseEmail.looksLikePlaceholderPhone(null));
+    }
+
+    @isTest
+    static void failedSendStaysOpenAndIsRetriedLater() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.sendAcknowledgement = true;
+        cfg.acknowledgementDomains = new Set<String>{ 'quadrobay.com' };
+        parseEmail.failSendsInTest = true;
+        Service__c s = new Service__c(Name = 'a.pdf', Source_Channel__c = 'Email', Status__c = 'Queued',
+            Email_Message_Key__c = 'k-send', EmailFrom__c = 'recruiter@quadrobay.com', Email_Subject__c = 'CV');
+        insert s;
+        s.Status__c = 'Completed';
+        s.Status_Message__c = 'Created candidate A.';
+        update s;
+        System.assertEquals(0, parseEmail.ackSentCount);
+        System.assertEquals(false, intakes()[0].Acknowledged__c, 'not marked when the send failed');
+
+        parseEmail.failSendsInTest = false;
+        parseEmail.sendPendingAcknowledgements(Datetime.now().addDays(-1));
+        System.assertEquals(1, parseEmail.ackSentCount, 'sent by the hourly catch-up');
+        System.assertEquals(true, intakes()[0].Acknowledged__c);
+    }
+
+    @isTest
+    static void salesforceUserSenderIsGreetedByName() {
+        User me = [SELECT Email FROM User WHERE Id = :UserInfo.getUserId()];
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.sendAcknowledgement = true;
+        cfg.acknowledgementDomains = new Set<String>{ me.Email.substringAfterLast('@').toLowerCase() };
+        Service__c s = new Service__c(Name = 'a.pdf', Source_Channel__c = 'Email', Status__c = 'Queued',
+            Email_Message_Key__c = 'k-user', EmailFrom__c = me.Email, Email_Subject__c = 'CV',
+            Email_Message_Id__c = '<orig@x>');
+        insert s;
+        s.Status__c = 'Completed';
+        s.Status_Message__c = 'Created candidate A.';
+        update s;
+        System.assertEquals(1, parseEmail.ackSentCount);
+    }
+
+    @isTest
+    static void replyToAnAcknowledgementIsNotProcessed() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.enabled = false;
+        String quoted = 'Thanks!\n\n> Hi Anantha,\n> We received your email ...\n> ' + parseEmail.ACK_REFERENCE_PREFIX
+            + 'ABCDEF12 - This is an automated message.\n' + 'x'.repeat(900);
+        Messaging.InboundEmail e = mail('recruiter@quadrobay.com', 'RE: CV - 1 added', quoted, '<m80@x>');
+        parseEmail.Outcome o = parseEmail.receive(e, env(e.fromAddress));
+        System.assertEquals(true, o.acknowledgementReply);
+        System.assertEquals(0, intakes().size(), 'nothing saved for a plain reply');
+
+        // a reply that attaches a new resume: the file is processed, the quoted text is not
+        Messaging.InboundEmail e2 = mail('recruiter@quadrobay.com', 'RE: CV - 1 added', quoted, '<m81@x>');
+        e2.binaryAttachments.add(att('new.pdf', 'application/pdf', 'NEW CV', false));
+        parseEmail.Outcome o2 = parseEmail.receive(e2, env(e2.fromAddress));
+        System.assertEquals(1, o2.queued.size());
+        System.assertEquals(1, intakes().size());
+        System.assertEquals(true, parseEmail.isAcknowledgementReply('Your email "x" has been processed in Salesforce.'));
+        System.assertEquals(false, parseEmail.isAcknowledgementReply('Please find the JD below.'));
+    }
+
+    // ---------------- Word files the AI cannot read: text copy ----------------
+
+    private static Blob docx(String paragraph) {
+        Compression.ZipWriter w = new Compression.ZipWriter();
+        w.addEntry('word/document.xml', Blob.valueOf('<?xml version="1.0"?><w:document xmlns:w="x"><w:body>'
+            + '<w:p><w:r><w:t>' + paragraph + '</w:t></w:r></w:p><w:p><w:r><w:t>Skills: Apex, LWC</w:t></w:r></w:p>'
+            + '</w:body></w:document>'));
+        return w.getArchive();
+    }
+
+    private static Service__c emailDocx(Blob data) {
+        Service__c s = new Service__c(Name = 'cv.docx', Source_Channel__c = 'Email', Status__c = 'New',
+            Upload_Batch__c = 'EM-docx', Email_Message_Key__c = 'k-docx');
+        insert s;
+        insert new ContentVersion(Title = 'cv', PathOnClient = 'cv.docx', VersionData = data, FirstPublishLocationId = s.Id);
+        return s;
+    }
+
+    private static Integer textCopiesOn(Id recordId) {
+        return [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :recordId
+                AND ContentDocument.Title LIKE '%(text copy)'];
+    }
+
+    @isTest
+    static void wordFileTheAiCannotReadGetsATextCopyAndIsReadAgain() {
+        Service__c s = emailDocx(docx('Karthik Iyer, Full Stack Developer, Chennai, karthik.iyer@example.com, +91 90031 45678'));
+        IntakeRouter.mockResponse = '{"documentType":"Other","confidence":0.1,"reason":"File content is unreadable or empty."}';
+
+        Test.startTest();
+        System.enqueueJob(new IntakeRouter(s.Id, true));
+        Test.stopTest();
+
+        System.assertEquals(s.Id, IntakeRouter.lastTextCopyFor);
+        System.assertEquals(1, textCopiesOn(s.Id), 'one text copy added');
+        Service__c after = [SELECT Status__c, Status_Message__c FROM Service__c WHERE Id = :s.Id];
+        System.assertEquals('New', after.Status__c, 'not rejected: it is read again');
+        System.assert(after.Status_Message__c.contains('text copy'), after.Status_Message__c);
+    }
+
+    @isTest
+    static void wordFileIsNotCopiedTwice() {
+        Service__c s = emailDocx(docx('Karthik Iyer, Full Stack Developer, Chennai, karthik.iyer@example.com, +91 90031 45678'));
+        insert new ContentVersion(Title = 'cv (text copy)', PathOnClient = 'cv (text copy).txt',
+            VersionData = Blob.valueOf('text'), FirstPublishLocationId = s.Id);
+        IntakeRouter.mockResponse = '{"documentType":"Other","confidence":0.1,"reason":"File content is unreadable or empty."}';
+
+        Test.startTest();
+        System.enqueueJob(new IntakeRouter(s.Id, true));
+        Test.stopTest();
+
+        System.assertEquals(null, IntakeRouter.lastTextCopyFor);
+        System.assertEquals(1, textCopiesOn(s.Id));
+        System.assertEquals('Rejected', [SELECT Status__c FROM Service__c WHERE Id = :s.Id].Status__c);
+    }
+
+    @isTest
+    static void largeOrTextlessWordFileIsRejectedAsBefore() {
+        Service__c s = emailDocx(docx('x'));
+        IntakeRouter.mockResponse = '{"documentType":"Other","confidence":0.1,"reason":"File content is unreadable or empty."}';
+        Test.startTest();
+        System.enqueueJob(new IntakeRouter(s.Id, true));
+        Test.stopTest();
+        System.assertEquals(0, textCopiesOn(s.Id), 'too little text: no copy');
+        System.assertEquals('Rejected', [SELECT Status__c FROM Service__c WHERE Id = :s.Id].Status__c);
+
+        IntakeRouter.textCopyMaxBytes = 10;
+        System.assertEquals(false, IntakeRouter.needsTextCopy(IntakeProcessor.latestFile(s.Id)), 'over the size limit');
+        System.assertEquals(false, IntakeRouter.needsTextCopy(null));
+    }
+
+    @isTest
+    static void textCopyIsDeletedWhenTheFileIsDoneButKeptWhenItFails() {
+        List<Service__c> recs = new List<Service__c>{
+            new Service__c(Name = 'ok.docx', Source_Channel__c = 'Email', Status__c = 'Queued', Email_Message_Key__c = 'k-c1'),
+            new Service__c(Name = 'bad.docx', Source_Channel__c = 'Email', Status__c = 'Queued', Email_Message_Key__c = 'k-c2')
+        };
+        insert recs;
+        insert new List<ContentVersion>{
+            new ContentVersion(Title = 'ok (text copy)', PathOnClient = 'ok (text copy).txt', VersionData = Blob.valueOf('a'),
+                FirstPublishLocationId = recs[0].Id),
+            new ContentVersion(Title = 'bad (text copy)', PathOnClient = 'bad (text copy).txt', VersionData = Blob.valueOf('b'),
+                FirstPublishLocationId = recs[1].Id)
+        };
+        recs[0].Status__c = 'Completed';
+        recs[0].Status_Message__c = 'Created candidate A.';
+        recs[1].Status__c = 'Rejected';
+        recs[1].Status_Message__c = 'Not a resume.';
+        update recs;
+
+        System.assertEquals(0, textCopiesOn(recs[0].Id), 'deleted after success');
+        System.assertEquals(1, textCopiesOn(recs[1].Id), 'kept for checking');
+    }
+
+    @isTest
+    static void unreadableFileGetsAClearLine() {
+        parseEmail.AckLine l = parseEmail.lineFor(rec('Rejected', 'Other', 'This file is not a resume or a job description '
+            + '(File content is unreadable or empty.). If it is a resume...'), 'https://example.com', IntakeRouter.getSettings());
+        System.assertEquals('could not be read', l.text);
+        System.assert(l.action.contains('opens normally'), l.action);
+    }
+
+    @isTest
+    static void messageIdIsSavedForThreading() {
+        IntakeRouter.Settings cfg = IntakeRouter.getSettings();
+        cfg.enabled = false;
+        Messaging.InboundEmail e = mail('recruiter@quadrobay.com', 'CV', 'cv', '<m90@x>');
+        e.binaryAttachments.add(att('cv.pdf', 'application/pdf', 'CV 90', false));
+        parseEmail.receive(e, env(e.fromAddress));
+        System.assertEquals('<m90@x>', [SELECT Email_Message_Id__c FROM Service__c LIMIT 1].Email_Message_Id__c);
     }
 
     @isTest
@@ -910,6 +1245,6 @@ private class parseEmailTest {
         Messaging.InboundEmailResult result = new parseEmail().handleInboundEmail(email, env(email.fromAddress));
 
         System.assertEquals(true, result.success);
-        System.assertEquals('Email processed successfully', result.message);
+        System.assert(String.isBlank(result.message), 'no automatic reply text on success');
     }
 }

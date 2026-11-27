@@ -30,6 +30,7 @@ global without sharing class WhatsAppWebhook {
         Service__c service;
         String fileName;
         Blob fileData;
+        String mediaId;
         Boolean shouldRoute;
         String replyTo;
         String replyMessage;
@@ -141,7 +142,9 @@ global without sharing class WhatsAppWebhook {
                 for (Integer i = 0; i < items.size(); i++) {
                     if (items[i].shouldRoute) {
                         events.add(new WhatsApp_Intake_Event__e(
-                            Service_Id__c = String.valueOf(services[i].Id)
+                            Service_Id__c = String.valueOf(services[i].Id),
+                            Media_Id__c   = items[i].mediaId,
+                            File_Name__c  = items[i].fileName != null ? items[i].fileName.left(255) : null
                         ));
                     }
                 }
@@ -363,14 +366,14 @@ global without sharing class WhatsAppWebhook {
             if (!displayName.contains('.') && ext != '') displayName += '.' + ext;
 
             if (cfg.allowedExtensions.contains(ext)) {
-                // Download media BEFORE any DML because Salesforce forbids callouts after uncommitted DML
-                item.fileData = WhatsAppUtils.getMedia((String) docMap.get('id'));
+                // Hand off media download to async Queueable (12 MB limit) via WhatsApp_Intake_Event__e
+                item.mediaId = (String) docMap.get('id');
                 item.fileName = displayName;
                 item.shouldRoute = true;
                 serv.Name = displayName.left(80);
                 serv.Status__c = IntakeRouter.STATUS_NEW;
                 serv.Status_Message__c = ('Received by WhatsApp from ' + senderLabel
-                    + '. Waiting to identify whether it is a resume or a job description.').left(32000);
+                    + '. Waiting to download and identify whether it is a resume or a job description.').left(32000);
                 item.replyMessage = 'Thank you! We have received your document (' + displayName
                     + ') and queued it for processing.';
             } else {
@@ -383,8 +386,9 @@ global without sharing class WhatsAppWebhook {
                 serv.Name = displayName.left(80);
                 serv.Status__c = 'Rejected';
                 serv.Detected_Type__c = 'Other';
+                serv.Acknowledged__c = true;
                 serv.Status_Message__c = rejectMsg.left(32000);
-                item.replyMessage = rejectMsg;
+                item.replyMessage = buildFinalSummary(serv, null);
             }
         } else if (imageMap != null && String.isNotBlank((String) imageMap.get('id'))) {
             String rejectMsg = 'Images are not supported. Please send resumes and job descriptions as '
@@ -393,8 +397,9 @@ global without sharing class WhatsAppWebhook {
             serv.Name = firstNonBlank(replyTo, 'WhatsApp Image').left(80);
             serv.Status__c = 'Rejected';
             serv.Detected_Type__c = 'Other';
+            serv.Acknowledged__c = true;
             serv.Status_Message__c = rejectMsg;
-            item.replyMessage = rejectMsg;
+            item.replyMessage = buildFinalSummary(serv, null);
         } else {
             String trimmed = bodyText == null ? '' : bodyText.trim();
             if (trimmed.length() >= cfg.minBodyLength) {
@@ -410,13 +415,15 @@ global without sharing class WhatsAppWebhook {
                 item.replyMessage = 'Thank you! We have received your message and queued it for processing.';
             } else {
                 String rejectMsg = 'No resume or job description was found: the message has no PDF or DOCX '
-                    + 'attachment and its text is too short to be a job description or a resume. Nothing was created.';
+                    + 'attachment and its text is too short to be a job description or a resume. '
+                    + 'Please send a PDF/DOCX file or paste the full text (at least ' + cfg.minBodyLength
+                    + ' characters). Nothing was created.';
                 serv.Name = firstNonBlank(replyTo, 'WhatsApp Message').left(80);
                 serv.Status__c = 'Rejected';
                 serv.Detected_Type__c = 'Other';
-                serv.Status_Message__c = rejectMsg;
-                item.replyMessage = 'Please send a resume or job description as a PDF or DOCX file '
-                    + '(or paste the full text) to process it in Salesforce.';
+                serv.Acknowledged__c = true;
+                serv.Status_Message__c = rejectMsg.left(32000);
+                item.replyMessage = buildFinalSummary(serv, null);
             }
         }
 
@@ -479,25 +486,39 @@ global without sharing class WhatsAppWebhook {
     }
 
     @TestVisible
+    private static String forWhatsAppSender(String message) {
+        if (message == null) return null;
+        return message
+            .replaceAll('\\s*Please upload it as an? [A-Za-z ]+, or choose Auto-detect\\.', '')
+            .replace('upload again', 'send it again')
+            .replace('upload the file again', 'send the file again')
+            .replace('Please try again.', 'It will be checked by the team.');
+    }
+
+    @TestVisible
     private static String buildFinalSummary(Service__c s, String baseUrl) {
-        if (s.Status__c == 'Completed') {
-            if (s.Detected_Type__c == IntakeController.TYPE_RESUME && s.Account__c != null) {
-                return 'Resume processed successfully.\nCandidate: ' + s.Account__r.Name
-                    + '\nLink: ' + baseUrl + '/' + s.Account__c;
-            }
-            if (s.Detected_Type__c == IntakeController.TYPE_JD && s.Opportunity__c != null) {
-                return 'Job Description processed successfully.\nOpportunity: ' + s.Opportunity__r.Name
-                    + '\nLink: ' + baseUrl + '/' + s.Opportunity__c;
-            }
-            return 'Processed successfully: ' + (String.isNotBlank(s.Status_Message__c) ? s.Status_Message__c : s.Name);
+        String tag = (s.Status__c == 'Completed')
+            ? '[OK]'
+            : (s.Status__c == 'Duplicate' ? '[ALREADY EXISTS]' : '[NOT CREATED]');
+
+        List<String> lines = new List<String>{
+            'Your WhatsApp submission has been processed in Salesforce.',
+            '',
+            tag + ' ' + s.Name
+        };
+
+        if (String.isNotBlank(s.Status_Message__c)) {
+            lines.add('    ' + forWhatsAppSender(s.Status_Message__c).left(500));
         }
-        if (s.Status__c == 'Duplicate') {
-            return 'Duplicate file: ' + (String.isNotBlank(s.Status_Message__c)
-                ? s.Status_Message__c
-                : 'This file was already uploaded earlier.');
+        if (s.Account__c != null && s.Detected_Type__c == IntakeController.TYPE_RESUME) {
+            lines.add('    Candidate: ' + s.Account__r.Name + ' - ' + baseUrl + '/' + s.Account__c);
         }
-        return 'Could not process "' + s.Name + '": '
-            + (String.isNotBlank(s.Status_Message__c) ? s.Status_Message__c : s.Status__c);
+        if (s.Opportunity__c != null) {
+            lines.add('    Opportunity: ' + s.Opportunity__r.Name + ' - ' + baseUrl + '/' + s.Opportunity__c);
+        }
+        lines.add('');
+        lines.add('This is an automated message from Salesforce. Please do not reply.');
+        return String.join(lines, '\n');
     }
 
     // =====================================================================

@@ -97,8 +97,13 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
         }
     }
 
+    /** Word files up to this size get a text copy when the AI cannot read them (larger ones: heap safety). */
+    @TestVisible private static Integer textCopyMaxBytes = 8 * 1024 * 1024;
+    @TestVisible private static Id lastTextCopyFor;
+
     public void execute(QueueableContext ctx) {
-        System.attachFinalizer(new RouterFinalizer(serviceId, emailChain));
+        RouterFinalizer fin = new RouterFinalizer(serviceId, emailChain);
+        System.attachFinalizer(fin);
 
         List<Service__c> svcs = [
             SELECT Id, Name, Status__c, Requested_Type__c, Detected_Type__c, Source_Channel__c
@@ -127,6 +132,11 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
             return;
         }
 
+        // Email: a Word file the AI could not read (empty, or read too early) gets a PDF text copy and is read again.
+        // Same text copy as IntakeProcessor (Srimathi, 27-11-2026), which then reads the copy and links the original file.
+        Boolean understood = c.documentType == IntakeController.TYPE_RESUME || c.documentType == IntakeController.TYPE_JD;
+        if (email && !jdOnly && !understood && needsTextCopy(file) && addTextCopyAndRetry(svc, file, fin)) return;
+
         String why = String.isBlank(c.reason) ? '' : ' (' + c.reason + ')';
         if (jdOnly && c.documentType != IntakeController.TYPE_JD) {
             svc.Detected_Type__c = 'Other';
@@ -152,6 +162,48 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
         }
     }
 
+    /** A Word file (not already a text copy) small enough to read in Apex. */
+    @TestVisible
+    private static Boolean needsTextCopy(ContentVersion f) {
+        return f != null && f.FileExtension != null && f.FileExtension.equalsIgnoreCase('docx')
+            && !IntakeProcessor.isTextCopy(f) && f.ContentSize != null && f.ContentSize <= textCopyMaxBytes;
+    }
+
+    /**
+     * Reads the Word file's text in Apex (DocxText), saves it as a PDF text copy on the intake and identifies the
+     * intake again in a new job (the AI then reads the copy). False when no text could be read: normal result follows.
+     */
+    private Boolean addTextCopyAndRetry(Service__c svc, ContentVersion file, RouterFinalizer fin) {
+        try {
+            // never a second copy for the same intake (loop guard)
+            String copyPattern = '%' + IntakeProcessor.TEXT_COPY_SUFFIX;
+            if ([SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :svc.Id
+                 AND ContentDocument.Title LIKE :copyPattern] > 0) return false;
+            List<ContentVersion> data = [SELECT VersionData FROM ContentVersion WHERE Id = :file.Id];
+            String text = data.isEmpty() ? null : DocxText.extract(data[0].VersionData);
+            data = null;
+            if (String.isBlank(text) || text.length() < 50) return false;
+            String title = (file.Title == null ? 'Document' : file.Title).left(200) + IntakeProcessor.TEXT_COPY_SUFFIX;
+            Blob pdf = parseEmail.bodyAsPdf(null, text);
+            insert new ContentVersion(
+                Title = title,
+                PathOnClient = title + (pdf != null ? '.pdf' : '.txt'),
+                VersionData = pdf != null ? pdf : Blob.valueOf(text),
+                FirstPublishLocationId = svc.Id
+            );
+            svc.Status_Message__c = 'The AI could not read this Word file directly, so a text copy of it is being read. Please wait.';
+            update svc;
+        } catch (Exception e) {
+            UtilityClass.createElog(e, 'IntakeRouter', 'addTextCopy');
+            return false;
+        }
+        // this file is not finished yet: the new job identifies it, then continues with the email's next file
+        fin.skipChain = true;
+        lastTextCopyFor = svc.Id;
+        if (!Test.isRunningTest()) System.enqueueJob(new IntakeRouter(svc.Id, emailChain));
+        return true;
+    }
+
     private static void finish(Service__c svc, String status, String message) {
         svc.Status__c = status;
         svc.Status_Message__c = message == null ? null : message.left(32000);
@@ -165,6 +217,8 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
     public class RouterFinalizer implements Finalizer {
         private Id serviceId;
         private Boolean emailChain = false;
+        /** Set when the same record is identified again in a new job (text copy): do not move on yet. */
+        public Boolean skipChain = false;
         public RouterFinalizer(Id serviceId) { this.serviceId = serviceId; }
         public RouterFinalizer(Id serviceId, Boolean emailChain) {
             this.serviceId = serviceId;
@@ -172,7 +226,7 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
         }
         public void execute(FinalizerContext ctx) {
             if (ctx.getResult() != ParentJobResult.SUCCESS) markFailed(serviceId, ctx.getException());
-            if (!emailChain) return;
+            if (!emailChain || (skipChain && ctx.getResult() == ParentJobResult.SUCCESS)) return;
             try {
                 continueEmailChain(serviceId);
             } catch (Exception e) {
@@ -338,6 +392,8 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
         public Set<String> retryChannels = new Set<String>{ 'Email' };
         public Set<String> allowedExtensions = new Set<String>{ 'pdf', 'docx' };
         public Integer maxFilesPerEmail = 10;
+        public Integer maxFilesPerUpload = 10;
+        public Integer maxUploadFileMb = 10;
         public Integer minBodyLength = 300;
         public Integer maxRetries = 2;
         public Boolean sendAcknowledgement = false;
@@ -348,6 +404,7 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
         public Integer maxEmailFileMb = 10;               // 0 = no size limit
         public String acknowledgementFromAddress;         // Org-Wide Email Address used as sender (blank = running user)
         public List<String> failureAlertEmails = new List<String>(); // blank = no failure alert
+        public Boolean restrictEmailToInternal = false;   // only active Salesforce users may send by email
 
         /** True when the address belongs to one of the acknowledgement domains. */
         public Boolean canAcknowledge(String address) {
@@ -373,6 +430,8 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
             Set<String> exts = splitList(rec.Allowed_Extensions__c, true);
             if (!exts.isEmpty()) s.allowedExtensions = exts;
             if (rec.Max_Files_Per_Email__c != null && rec.Max_Files_Per_Email__c > 0) s.maxFilesPerEmail = rec.Max_Files_Per_Email__c.intValue();
+            if (rec.Max_Files_Per_Upload__c != null && rec.Max_Files_Per_Upload__c > 0) s.maxFilesPerUpload = rec.Max_Files_Per_Upload__c.intValue();
+            if (rec.Max_Upload_File_MB__c != null && rec.Max_Upload_File_MB__c > 0) s.maxUploadFileMb = rec.Max_Upload_File_MB__c.intValue();
             if (rec.Min_Body_Length__c != null && rec.Min_Body_Length__c >= 0) s.minBodyLength = rec.Min_Body_Length__c.intValue();
             if (rec.Max_Retries__c != null && rec.Max_Retries__c >= 0) s.maxRetries = rec.Max_Retries__c.intValue();
             if (rec.Min_Body_Length_With_Files__c != null && rec.Min_Body_Length_With_Files__c >= 0) {
@@ -381,6 +440,7 @@ public without sharing class IntakeRouter implements Queueable, Database.AllowsC
             if (rec.Max_Email_File_MB__c != null && rec.Max_Email_File_MB__c >= 0) s.maxEmailFileMb = rec.Max_Email_File_MB__c.intValue();
             if (String.isNotBlank(rec.Acknowledgement_From_Address__c)) s.acknowledgementFromAddress = rec.Acknowledgement_From_Address__c.trim();
             s.failureAlertEmails = new List<String>(splitList(rec.Failure_Alert_Emails__c, false));
+            if (rec.Restrict_Email_To_Internal__c != null) s.restrictEmailToInternal = rec.Restrict_Email_To_Internal__c;
         }
         cachedSettings = s;
         return s;

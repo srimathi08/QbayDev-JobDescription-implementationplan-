@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Restrict_Email_To_Internal__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Email only. When checked, only emails from active Salesforce users are processed; others are ignored (no records, no reply) and logged in Error_Log__c.</description>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Restrict Email To Internal</label>
+    <type>Checkbox</type>
+</CustomField>
