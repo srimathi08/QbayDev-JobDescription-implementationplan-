@@ -9,7 +9,7 @@ public with sharing class OpportunityFlexSummaryController {
         Integer eligibleCount = [
             SELECT COUNT() FROM Job_Match__c
             WHERE Opportunity_Name__c = :opportunityId
-            AND Match_Score__c >= 6
+            AND Match_Score__c >= 50
 
         ];
 
@@ -48,13 +48,13 @@ public with sharing class OpportunityFlexSummaryController {
         ];
     }
 
-    // 🔹 Eligible Candidates (Match Score >= 6)
+    // 🔹 Eligible Candidates (Match Score >= 50 of 100)
     @AuraEnabled(cacheable=true)
     public static List<Job_Match__c> getEligibleCandidates(Id opportunityId) {
         return [
             SELECT Id, Opportunity_Name__r.Name, Candidate_Name__r.Name, Match_Score__c
             FROM Job_Match__c
-            WHERE Opportunity_Name__c = :opportunityId AND Match_Score__c >= 6 ORDER BY Match_Score__c DESC NULLS LAST
+            WHERE Opportunity_Name__c = :opportunityId AND Match_Score__c >= 50 ORDER BY Match_Score__c DESC NULLS LAST
         ];
     }
 

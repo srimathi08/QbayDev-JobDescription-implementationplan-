@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Match_Key__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>Opportunity Id + candidate Account Id. One match row per job and candidate; rows are updated, never duplicated.</description>
+    <externalId>true</externalId>
+    <label>Match Key</label>
+    <length>40</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

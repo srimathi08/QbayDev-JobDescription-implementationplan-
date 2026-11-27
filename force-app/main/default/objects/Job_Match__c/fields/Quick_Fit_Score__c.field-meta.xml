@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Quick_Fit_Score__c</fullName>
+    <description>Rule-based score 0-100 (skills 50, experience 20, role 15, certifications 10, location 5). No AI.</description>
+    <externalId>false</externalId>
+    <label>Quick Fit Score</label>
+    <precision>3</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

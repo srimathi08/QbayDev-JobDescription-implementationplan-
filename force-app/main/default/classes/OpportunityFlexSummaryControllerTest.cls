@@ -3,7 +3,8 @@ public class OpportunityFlexSummaryControllerTest {
 
     // Utility: create an opportunity
     private static Opportunity createOpportunity() {
-        Account acc = new Account(Name = 'Test Account');
+        Account acc = new Account(Name = 'Test Account',
+            RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Direct_Customers').getRecordTypeId());
         insert acc;
 
         Opportunity opp = new Opportunity(
@@ -32,7 +33,7 @@ public class OpportunityFlexSummaryControllerTest {
         Job_Match__c match = new Job_Match__c(
             Opportunity_Name__c = opp.Id,
             Candidate_Name__c = accIdHelper(),
-            Match_Score__c = 7
+            Match_Score__c = 70
         );
         insert match;
 
@@ -82,7 +83,7 @@ public class OpportunityFlexSummaryControllerTest {
         Job_Match__c jm = new Job_Match__c(
             Opportunity_Name__c = opp.Id,
             Candidate_Name__c = accIdHelper(),
-            Match_Score__c = 8
+            Match_Score__c = 80
         );
         insert jm;
 
@@ -91,7 +92,7 @@ public class OpportunityFlexSummaryControllerTest {
         Test.stopTest();
 
         System.assertEquals(1, results.size());
-        System.assert(results[0].Match_Score__c >= 5);
+        System.assert(results[0].Match_Score__c >= 50);
     }
 
     @isTest
@@ -123,7 +124,7 @@ public class OpportunityFlexSummaryControllerTest {
         Job_Match__c jm = new Job_Match__c(
             Opportunity_Name__c = opp.Id,
             Candidate_Name__c = accIdHelper(),
-            Match_Score__c = 8
+            Match_Score__c = 80
         );
         insert jm;
 

@@ -184,6 +184,11 @@ public without sharing class IntakeProcessor implements Queueable, Database.Allo
                 svc.Detected_Type__c = 'Resume';
                 svc.Account__c = r.primaryAccountId;
                 finish(svc, 'Completed', r.summary, rawJson);
+                // reverse matching: score the new or updated candidate against the open jobs
+                Set<Id> people = new Set<Id>();
+                for (Account a : r.accounts) if (a.Id != null) people.add(a.Id);
+                if (r.primaryAccountId != null) people.add(r.primaryAccountId);
+                JobMatchJob.enqueueCandidates(people);
             }
         } catch (PossibleDuplicateJdException pd) {
             Database.rollback(sp);

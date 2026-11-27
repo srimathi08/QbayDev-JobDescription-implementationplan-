@@ -1,63 +1,31 @@
 @isTest
 public class OpportunityMatchJob_Test {
+    // Since 27-11-2026 OpportunityMatchJob runs the two-stage matching (JobMatchJob). Detailed tests: JobMatchEngine_Test.
+    @isTest
+    static void runsMatchingForTheJob() {
+        Account client = new Account(Name = 'Client Co',
+            RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Direct_Customers').getRecordTypeId());
+        insert client;
+        Account cand = new Account(Name = 'Candidate One', Designation__c = 'Developer',
+            RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Candidates').getRecordTypeId());
+        insert cand;
+        Opportunity opp = new Opportunity(Name = 'Developer', AccountId = client.Id, StageName = 'Discovery',
+            CloseDate = Date.today().addDays(10), Skills_Required__c = 'Apex',
+            RecordTypeId = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('Resourcing').getRecordTypeId());
+        insert opp;
 
-    @testSetup
-    static void setupData() {
-        // Try to get RecordTypes (they already exist in most orgs)
-        Map<String, Id> recordTypeMap = new Map<String, Id>();
-        for (RecordType rt : [
-            SELECT Id, DeveloperName 
-            FROM RecordType 
-            WHERE SObjectType = 'Account' 
-            AND DeveloperName IN ('Employee','Candidates','Contractor')
-        ]) {
-            recordTypeMap.put(rt.DeveloperName, rt.Id);
-        }
+        Test.startTest();
+        System.enqueueJob(new OpportunityMatchJob(opp.Id));
+        Test.stopTest();
 
-        // If RecordTypes don’t exist (in sandbox/test), still create accounts without RT filter
-        List<Account> accounts = new List<Account>();
-        for (Integer i = 0; i < 3; i++) {
-            Account acc = TestDataFactory.createAccount(false);
-            acc.Name = 'TestCandidate_' + i;
-            if (recordTypeMap.containsKey('Employee') && i == 0) {
-                acc.RecordTypeId = recordTypeMap.get('Employee');
-            } else if (recordTypeMap.containsKey('Candidates') && i == 1) {
-                acc.RecordTypeId = recordTypeMap.get('Candidates');
-            } else if (recordTypeMap.containsKey('Contractor') && i == 2) {
-                acc.RecordTypeId = recordTypeMap.get('Contractor');
-            }
-            accounts.add(acc);
-        }
-        insert accounts;
-
-        // Create an Opportunity using TestDataFactory
-        Opportunity opp = TestDataFactory.createOpportunity(true, accounts[0].Id, null);
+        System.assertEquals(1, [SELECT COUNT() FROM Job_Match__c WHERE Opportunity_Name__c = :opp.Id AND Candidate_Name__c = :cand.Id]);
     }
 
     @isTest
-    static void test_Queueable_Execute() {
-        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
-
+    static void noCandidatesIsFine() {
         Test.startTest();
-            System.enqueueJob(new OpportunityMatchJob(opp.Id));
+        System.enqueueJob(new OpportunityMatchJob(new List<Id>()));
         Test.stopTest();
-
-        // ✅ Verify that the job executed without throwing exceptions
-        System.assert(true, 'Queueable executed successfully with candidate accounts.');
-    }
-
-    @isTest
-    static void test_Queueable_WithNoAccounts() {
-        // Delete all Accounts to simulate no candidate accounts
-        delete [SELECT Id FROM Account];
-
-        Opportunity opp = TestDataFactory.createOpportunity(true, null, null);
-
-        Test.startTest();
-            System.enqueueJob(new OpportunityMatchJob(opp.Id));
-        Test.stopTest();
-
-        // ✅ Should still complete gracefully
-        System.assert(true, 'Queueable executed successfully with no accounts available.');
+        System.assertEquals(0, [SELECT COUNT() FROM Job_Match__c]);
     }
 }
